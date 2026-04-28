@@ -1,0 +1,26 @@
+name: mRAG
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pytorch
+  - torchvision
+  - pytorch-cuda=12.1
+  - pip:
+    - fastapi
+    - uvicorn[standard]
+    - pydantic
+    - transformers
+    - sentencepiece
+    - huggingface-hub
+    - qdrant-client
+    - pillow
+    - pandas
+    - tqdm
+    - matplotlib
+    - networkx
+    - accelerate

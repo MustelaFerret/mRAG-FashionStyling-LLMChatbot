@@ -1,0 +1,54 @@
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+LOCAL_CACHE_DIR = BASE_DIR / os.getenv("MODEL_CACHE_DIR", "model_cache")
+LOCAL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+def setup_environment() -> None:
+    os.environ.setdefault("HF_HOME", str(LOCAL_CACHE_DIR))
+    os.environ.setdefault("HF_HUB_OFFLINE", os.getenv("HF_HUB_OFFLINE", "0"))
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+    os.environ.setdefault("PYTORCH_ALLOC_CONF", "expandable_segments:True")
+
+setup_environment()
+
+@dataclass(frozen=True)
+class Settings:
+    cache_dir: str = str(LOCAL_CACHE_DIR)
+    db_path: str = str(BASE_DIR / os.getenv("QDRANT_DB_PATH", "db/qdrant_local_db"))
+    collection_name: str = os.getenv("QDRANT_COLLECTION_NAME", "fashion_products")
+    graph_file: str = str(BASE_DIR / os.getenv("GRAPH_FILE", "data/processed/final_outfit_graph.csv"))
+    meta_file: str = str(BASE_DIR / os.getenv("META_FILE", "data/processed/dataset_final_qwen_filled.csv"))
+    image_dir: str = str(BASE_DIR / os.getenv("IMAGE_DIR", "data/raw/images"))
+    frontend_dir: str = str(BASE_DIR / os.getenv("FRONTEND_DIR", "src/frontend"))
+
+    topk_similar: int = int(os.getenv("TOPK_SIMILAR", "4"))
+    topk_graph: int = int(os.getenv("TOPK_GRAPH", "4"))
+    topk_variants: int = int(os.getenv("TOPK_VARIANTS", "4"))
+
+    graph_hard_min_weight: int = int(os.getenv("GRAPH_HARD_MIN_WEIGHT", "3"))
+    graph_preferred_min_weight: int = int(os.getenv("GRAPH_PREFERRED_MIN_WEIGHT", "4"))
+    graph_max_hops: int = int(os.getenv("GRAPH_MAX_HOPS", "3"))
+    graph_branch_per_hop: int = int(os.getenv("GRAPH_BRANCH_PER_HOP", "3"))
+
+    use_llm_router: bool = os.getenv("USE_LLM_ROUTER", "1") == "1"
+    use_query_rewrite: bool = os.getenv("USE_QUERY_REWRITE", "1") == "1"
+    strict_metadata_filters: bool = os.getenv("STRICT_METADATA_FILTERS", "1") == "1"
+    max_vision_images: int = int(os.getenv("MAX_VISION_IMAGES", "3"))
+
+    session_ttl_seconds: int = int(os.getenv("SESSION_TTL_SECONDS", str(60 * 60 * 6)))
+    max_session_context: int = int(os.getenv("MAX_SESSION_CONTEXT", "500"))
+
+    clean_cuda_cache_each_request: bool = os.getenv("CLEAN_CUDA_CACHE_EACH_REQUEST", "1") == "1"
+
+    siglip_model_id: str = os.getenv("SIGLIP_MODEL_ID", "google/siglip-base-patch16-224")
+    qwen_model_id: str = os.getenv("QWEN_MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
+    qwen_vl_model_id: str = os.getenv("QWEN_VL_MODEL_ID", "")
+    qwen_text_model_id: str = os.getenv("QWEN_TEXT_MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
+    use_vl_model: bool = os.getenv("USE_VL_MODEL", "0") == "1"
+    use_text_llm_for_nlp: bool = os.getenv("USE_TEXT_LLM_FOR_NLP", "1") == "1"
+    llm_local_files_only: bool = os.getenv("LLM_LOCAL_FILES_ONLY", "0") == "1"
+
+settings = Settings()

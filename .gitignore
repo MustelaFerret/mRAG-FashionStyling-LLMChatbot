@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+data/
+db/
+markdown/
+EDA/
+model_cache/
+qdrant_local_db/
+new_FE(unsed yet)/
