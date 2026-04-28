@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from datetime import datetime
 from typing import Dict, List
 
 import torch
@@ -94,8 +95,9 @@ class QwenMultimodalService:
         if self.nlp_model is None or self.nlp_tokenizer is None:
             raise RuntimeError("Text LLM is not available")
 
+        text_messages = self._strip_to_text_messages(messages)
         prompt_text = self.nlp_tokenizer.apply_chat_template(
-            messages,
+            text_messages,
             tokenize=False,
             add_generation_prompt=True,
         )
@@ -112,6 +114,29 @@ class QwenMultimodalService:
         output_ids = self.nlp_model.generate(**generation_kwargs)
         generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
         return self.nlp_tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
+
+    @staticmethod
+    def _strip_to_text_messages(messages: List[Dict]) -> List[Dict]:
+        cleaned = []
+        for msg in messages or []:
+            role = str(msg.get("role", "user"))
+            content = msg.get("content", "")
+            if isinstance(content, str):
+                text = content
+            elif isinstance(content, list):
+                parts = []
+                for block in content:
+                    if not isinstance(block, dict):
+                        continue
+                    if block.get("type") == "text":
+                        value = str(block.get("text", "")).strip()
+                        if value:
+                            parts.append(value)
+                text = "\n".join(parts)
+            else:
+                text = ""
+            cleaned.append({"role": role, "content": text})
+        return cleaned
 
     def _chat_generate(
         self,
@@ -204,6 +229,225 @@ class QwenMultimodalService:
             return obj if isinstance(obj, dict) else None
         except json.JSONDecodeError:
             return None
+
+    @staticmethod
+    def _format_history(history: List[Dict[str, str]]) -> str:
+        lines = []
+        for item in history or []:
+            role = str(item.get("role", "")).strip().lower() or "user"
+            text = str(item.get("text", "")).strip()
+            if not text:
+                continue
+            lines.append(f"{role}: {text}")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _normalize_filters(filters: Dict | None) -> Dict[str, str]:
+        if not isinstance(filters, dict):
+            return {}
+        allowed = {"product_type", "colour_group", "fit", "occasion", "seasonality"}
+        normalized: Dict[str, str] = {}
+        for key, value in filters.items():
+            if key not in allowed:
+                continue
+            value_str = str(value).strip()
+            if not value_str:
+                continue
+            normalized[key] = value_str
+        return normalized
+
+    @staticmethod
+    def _normalize_must_not(filters: Dict | None) -> Dict[str, List[str]]:
+        if not isinstance(filters, dict):
+            return {}
+        allowed = {"product_type", "colour_group", "fit", "occasion", "seasonality"}
+        normalized: Dict[str, List[str]] = {}
+        for key, value in filters.items():
+            if key not in allowed:
+                continue
+            if isinstance(value, (list, tuple)):
+                values = [str(v).strip() for v in value if str(v).strip()]
+                if values:
+                    normalized[key] = values
+                continue
+            value_str = str(value).strip()
+            if value_str:
+                normalized[key] = [value_str]
+        return normalized
+
+    def _normalize_intent(self, intent: str | None) -> str:
+        value = str(intent or "").strip().lower()
+        if value in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT}:
+            return value
+        if value in {"matching", "match", "pairing", "pair"}:
+            return INTENT_GRAPH
+        if value in {"similar", "lookalike"}:
+            return INTENT_SIMILAR
+        if value in {"variant", "color_variant", "colour_variant"}:
+            return INTENT_VARIANT
+        return INTENT_SIMILAR
+
+    def _normalize_analysis_output(self, obj: Dict | None, user_query: str) -> Dict:
+        if not isinstance(obj, dict):
+            obj = {}
+        search_query = str(obj.get("search_query", "") or "").strip()
+        if not search_query:
+            search_query = str(user_query or "").strip()
+        must_filters = self._normalize_filters(obj.get("must_filters"))
+        must_not_filters = self._normalize_must_not(obj.get("must_not_filters"))
+        return {
+            "search_query": search_query,
+            "must_filters": must_filters,
+            "must_not_filters": must_not_filters,
+        }
+
+    def _log_analysis(self, session_id: str, prompt: str, raw_text: str, result: Dict) -> None:
+        log_dir = settings.log_dir
+        os.makedirs(log_dir, exist_ok=True)
+        log_path = os.path.join(log_dir, "llm_router.log")
+        timestamp = datetime.utcnow().isoformat()
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(f"timestamp={timestamp}\n")
+            f.write(f"session_id={session_id}\n")
+            f.write("prompt=\n")
+            f.write(prompt.strip() + "\n")
+            f.write("raw=\n")
+            f.write((raw_text or "").strip() + "\n")
+            f.write("json=\n")
+            f.write(json.dumps(result, ensure_ascii=False) + "\n")
+            f.write("\n")
+
+    def _classify_intent_agent(
+        self,
+        query: str,
+        history: str,
+        anchor: str,
+        debug: Dict | None = None,
+    ) -> str:
+        prompt = (
+            "Task: Classify user intent for a fashion search system.\n"
+            "Options:\n"
+            "- 'graph_pairing': User wants an item to WEAR WITH or MATCH the anchor or previous items.\n"
+            "- 'color_variant': User wants a DIFFERENT COLOR of the anchor or previous items.\n"
+            "- 'similar_items': User is searching for a new item, or no clear pairing/variant intent.\n\n"
+            f"[Context]\nHistory: {history}\nAnchor: {anchor}\nQuery: {query}\n\n"
+            "Output ONLY the exact string from the options: graph_pairing, color_variant, or similar_items."
+        )
+        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+        raw = ""
+        try:
+            raw = self._chat_generate_text(
+                messages,
+                max_new_tokens=10,
+                temperature=0.0,
+                top_p=1.0,
+                do_sample=False,
+            ).strip()
+        except Exception:
+            raw = ""
+
+        if debug is not None:
+            debug["prompt"] = prompt
+            debug["raw"] = raw
+
+        lowered = raw.lower()
+        if "graph_pairing" in lowered:
+            return INTENT_GRAPH
+        if "color_variant" in lowered or "colour_variant" in lowered:
+            return INTENT_VARIANT
+        if "similar_items" in lowered:
+            return INTENT_SIMILAR
+        return INTENT_SIMILAR
+
+    def _extract_filters_agent(
+        self,
+        intent: str,
+        query: str,
+        history: str,
+        anchor: str,
+        debug: Dict | None = None,
+    ) -> Dict:
+        prompt = (
+            f"Task: Extract constraints for a fashion database based on the intent '{intent}'.\n"
+            "1. 'search_query': A clean search string. Resolve pronouns (it/them) using History.\n"
+            "2. 'must_filters': Required attributes (e.g., {'product_type': 'dress'}).\n"
+            "3. 'must_not_filters': Prohibited attributes from negative words like 'no', 'avoid', 'hate'.\n\n"
+            f"[Context]\nHistory: {history}\nAnchor: {anchor}\nQuery: {query}\n\n"
+            "Output ONLY valid JSON:\n"
+            "{\"search_query\": \"...\", \"must_filters\": {}, \"must_not_filters\": {}}"
+        )
+        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+        raw = ""
+        try:
+            raw = self._chat_generate_text(
+                messages,
+                max_new_tokens=256,
+                temperature=0.0,
+                top_p=1.0,
+                do_sample=False,
+            )
+            obj = self._extract_json_object(raw)
+            normalized = self._normalize_analysis_output(obj, query) if obj else {}
+        except Exception:
+            normalized = {}
+
+        if debug is not None:
+            debug["prompt"] = prompt
+            debug["raw"] = raw
+
+        return normalized
+
+    def analyze_request(
+        self,
+        user_query: str,
+        history: List[Dict[str, str]],
+        anchor_item: Dict | None = None,
+        session_id: str = "",
+    ) -> Dict:
+        anchor_text = ""
+        if anchor_item:
+            anchor_text = (
+                f"#{anchor_item.get('article_id', '')} "
+                f"{anchor_item.get('product_type', '')} "
+                f"{anchor_item.get('colour_group', '')}"
+            ).strip()
+
+        history_text = "None"
+        if history:
+            history_lines = []
+            for msg in history[-4:]:
+                role = msg.get("role", "user")
+                content = msg.get("text", msg.get("content", ""))
+                history_lines.append(f"{role.capitalize()}: {content}")
+            history_text = "\n".join(history_lines)
+
+        intent_debug: Dict = {}
+        extract_debug: Dict = {}
+        intent_raw = self._classify_intent_agent(user_query, history_text, anchor_text, debug=intent_debug)
+        intent = self._normalize_intent(intent_raw)
+        extraction = self._extract_filters_agent(intent, user_query, history_text, anchor_text, debug=extract_debug)
+
+        result = {
+            "intent": intent,
+            "search_query": extraction.get("search_query", user_query),
+            "must_filters": extraction.get("must_filters", {}),
+            "must_not_filters": extraction.get("must_not_filters", {}),
+        }
+
+        prompt_log = (
+            "### intent_agent_prompt\n"
+            f"{intent_debug.get('prompt', '')}\n\n"
+            "### extraction_agent_prompt\n"
+            f"{extract_debug.get('prompt', '')}"
+        )
+        raw_log = (
+            "intent_raw:\n"
+            f"{intent_debug.get('raw', '')}\n\n"
+            "extraction_raw:\n"
+            f"{extract_debug.get('raw', '')}"
+        )
+        self._log_analysis(session_id, prompt_log, raw_log, result)
+        return result
 
     def route_intent(self, user_query: str, anchor_item: Dict | None = None) -> str | None:
         anchor_text = ""

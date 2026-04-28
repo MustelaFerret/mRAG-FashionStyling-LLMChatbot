@@ -9,6 +9,7 @@ from typing import Dict, List, Tuple
 class SessionState:
     anchor_id: str = ""
     recent_item_ids: List[str] = field(default_factory=list)
+    history: List[Dict[str, str]] = field(default_factory=list)
     updated_at: float = field(default_factory=time.time)
 
 
@@ -59,9 +60,25 @@ class SessionStore:
     def reset(self, state: SessionState) -> None:
         state.anchor_id = ""
         state.recent_item_ids = []
+        state.history = []
         state.updated_at = time.time()
 
     def touch_anchor(self, state: SessionState, anchor_id: str, item_ids: List[str]) -> None:
         state.anchor_id = anchor_id
         state.recent_item_ids = item_ids[:12]
         state.updated_at = time.time()
+
+    def add_message(self, state: SessionState, role: str, text: str, max_items: int) -> None:
+        role_value = (role or "").strip().lower()
+        text_value = (text or "").strip()
+        if not role_value or not text_value:
+            return
+        state.history.append({"role": role_value, "text": text_value})
+        if max_items > 0 and len(state.history) > max_items:
+            state.history = state.history[-max_items:]
+        state.updated_at = time.time()
+
+    def get_history(self, state: SessionState, max_items: int) -> List[Dict[str, str]]:
+        if max_items <= 0:
+            return []
+        return list(state.history[-max_items:])

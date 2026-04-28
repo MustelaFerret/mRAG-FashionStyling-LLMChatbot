@@ -12,27 +12,62 @@ class QdrantStore:
         self.collection_name = collection_name
         self.client = QdrantClient(path=db_path)
 
-    def _build_filter(self, constraints: Dict[str, str] | None) -> models.Filter | None:
-        if not constraints:
-            return None
-
+    def _build_filter(
+        self,
+        must_filters: Dict[str, str] | None,
+        must_not_filters: Dict[str, List[str] | str] | None,
+    ) -> models.Filter | None:
         must_conditions: List[models.FieldCondition] = []
-        for key, value in constraints.items():
-            if value is None:
-                continue
-            value_str = str(value).strip()
-            if not value_str:
-                continue
-            must_conditions.append(
-                models.FieldCondition(key=key, match=models.MatchValue(value=value_str))
-            )
+        must_not_conditions: List[models.FieldCondition] = []
 
-        if not must_conditions:
+        if must_filters:
+            for key, value in must_filters.items():
+                if value is None:
+                    continue
+                if isinstance(value, (list, tuple)):
+                    values = [str(v).strip() for v in value if str(v).strip()]
+                    if values:
+                        must_conditions.append(
+                            models.FieldCondition(key=key, match=models.MatchAny(any=values))
+                        )
+                    continue
+                value_str = str(value).strip()
+                if not value_str:
+                    continue
+                must_conditions.append(
+                    models.FieldCondition(key=key, match=models.MatchValue(value=value_str))
+                )
+
+        if must_not_filters:
+            for key, value in must_not_filters.items():
+                if value is None:
+                    continue
+                if isinstance(value, (list, tuple)):
+                    values = [str(v).strip() for v in value if str(v).strip()]
+                    if values:
+                        must_not_conditions.append(
+                            models.FieldCondition(key=key, match=models.MatchAny(any=values))
+                        )
+                    continue
+                value_str = str(value).strip()
+                if not value_str:
+                    continue
+                must_not_conditions.append(
+                    models.FieldCondition(key=key, match=models.MatchValue(value=value_str))
+                )
+
+        if not must_conditions and not must_not_conditions:
             return None
-        return models.Filter(must=must_conditions)
+        return models.Filter(must=must_conditions or None, must_not=must_not_conditions or None)
 
-    def query(self, query_vector: List[float], limit: int, constraints: Dict[str, str] | None = None):
-        query_filter = self._build_filter(constraints)
+    def query(
+        self,
+        query_vector: List[float],
+        limit: int,
+        must_filters: Dict[str, str] | None = None,
+        must_not_filters: Dict[str, List[str] | str] | None = None,
+    ):
+        query_filter = self._build_filter(must_filters, must_not_filters)
 
         if hasattr(self.client, "query_points"):
             try:

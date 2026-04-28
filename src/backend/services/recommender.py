@@ -76,10 +76,25 @@ class FashionAssistantService:
         point_id = getattr(point, "id", "")
         return normalize_article_id(payload.get("article_id", point_id))
 
-    def _pick_anchor_point(self, query_vector: List[float], query_filters: Dict[str, str] | None = None):
-        points = self.qdrant.query(query_vector, limit=8, constraints=query_filters)
-        if query_filters and not points:
-            points = self.qdrant.query(query_vector, limit=8, constraints=None)
+    def _pick_anchor_point(
+        self,
+        query_vector: List[float],
+        must_filters: Dict[str, str] | None = None,
+        must_not_filters: Dict[str, List[str] | str] | None = None,
+    ):
+        points = self.qdrant.query(
+            query_vector,
+            limit=8,
+            must_filters=must_filters,
+            must_not_filters=must_not_filters,
+        )
+        if must_filters and not points:
+            points = self.qdrant.query(
+                query_vector,
+                limit=8,
+                must_filters=None,
+                must_not_filters=must_not_filters,
+            )
 
         for point in points:
             aid = self._extract_article_id(point)
@@ -130,12 +145,23 @@ class FashionAssistantService:
         self,
         query_vector: List[float],
         anchor_id: str,
-        query_filters: Dict[str, str] | None,
+        must_filters: Dict[str, str] | None,
+        must_not_filters: Dict[str, List[str] | str] | None,
         limit: int,
     ) -> List[Dict]:
-        points = self.qdrant.query(query_vector, limit=limit + 12, constraints=query_filters)
-        if query_filters and not points and not self.settings.strict_metadata_filters:
-            points = self.qdrant.query(query_vector, limit=limit + 12, constraints=None)
+        points = self.qdrant.query(
+            query_vector,
+            limit=limit + 12,
+            must_filters=must_filters,
+            must_not_filters=must_not_filters,
+        )
+        if must_filters and not points and not self.settings.strict_metadata_filters:
+            points = self.qdrant.query(
+                query_vector,
+                limit=limit + 12,
+                must_filters=None,
+                must_not_filters=must_not_filters,
+            )
 
         items: List[Dict] = []
         seen = {normalize_article_id(anchor_id)}
@@ -259,7 +285,7 @@ class FashionAssistantService:
             return []
 
         proxy_vector = self.embedding.encode(anchor_hint, image=None)
-        proxy_points = self.qdrant.query(proxy_vector, limit=12, constraints=None)
+        proxy_points = self.qdrant.query(proxy_vector, limit=12)
 
         seen = {anchor_id}
         collected: List[Dict] = []
@@ -280,62 +306,6 @@ class FashionAssistantService:
 
         return collected
 
-    def _route_intent(self, user_query: str, has_image: bool, anchor_item: Dict | None = None) -> tuple[str, bool]:
-        query = normalize_text(user_query)
-
-        if not query:
-            return INTENT_SIMILAR if has_image else INTENT_SIMILAR, False
-
-        if not self.settings.use_llm_router:
-            return INTENT_SIMILAR if has_image else INTENT_SIMILAR, False
-
-        llm_intent = self.llm.route_intent(user_query, anchor_item=anchor_item)
-        if llm_intent in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT}:
-            if llm_intent == INTENT_SIMILAR and anchor_item is not None:
-                pairing_flag = self.llm.detect_pairing_request(user_query, anchor_item=anchor_item)
-                if pairing_flag is True:
-                    return INTENT_GRAPH, True
-            return llm_intent, False
-        return INTENT_SIMILAR if has_image else INTENT_SIMILAR, False
-
-    def _resolve_query_understanding(
-        self,
-        raw_query: str,
-        rewritten_query: str | None,
-        anchor_item: Dict | None = None,
-    ) -> Dict[str, Dict[str, str] | Dict[str, List[str]] | str]:
-        filters_raw = self.catalog.parse_query_filters(raw_query)
-        filters_rewritten = self.catalog.parse_query_filters(rewritten_query or "") if rewritten_query else {}
-        llm_constraints = self.llm.extract_query_constraints(raw_query, anchor_item=anchor_item) or {}
-
-        filters_llm_all = llm_constraints.get("include_filters") if isinstance(llm_constraints.get("include_filters"), dict) else {}
-        filters_llm = {
-            k: str(v).strip()
-            for k, v in filters_llm_all.items()
-            if str(v).strip()
-        }
-        exclude_filters = llm_constraints.get("exclude_filters") if isinstance(llm_constraints.get("exclude_filters"), dict) else {}
-
-        merged = dict(filters_raw)
-        for key, value in filters_rewritten.items():
-            merged[key] = value
-        for key, value in filters_llm.items():
-            merged[key] = value
-
-        search_query = rewritten_query or str(llm_constraints.get("search_query", "") or "").strip() or raw_query
-        intent_hint = str(llm_constraints.get("intent_hint", "") or "").strip()
-
-        return {
-            "search_query": search_query,
-            "filters_raw": filters_raw,
-            "filters_rewritten": filters_rewritten,
-            "filters_llm": filters_llm,
-            "filters_final": merged,
-            "exclude_filters": exclude_filters,
-            "intent_hint": intent_hint,
-            "llm_notes": str(llm_constraints.get("notes", "") or "").strip(),
-            "llm_model": str(llm_constraints.get("model", "") or "").strip(),
-        }
 
     @staticmethod
     def _normalize_joint_weights(text_weight: float, image_weight: float) -> tuple[float, float]:
@@ -403,6 +373,46 @@ class FashionAssistantService:
         merged_text = f"{user_query or ''} {anchor_hint}".strip() or anchor_hint or "fashion item"
         return self.embedding.encode(merged_text, image=None)
 
+    def _rule_based_intent(self, user_query: str) -> str:
+        query = normalize_text(user_query)
+        if not query:
+            return INTENT_SIMILAR
+        if any(k in query for k in ["match", "pair", "go with", "wear with", "mix", "phoi", "ket hop", "mix with"]):
+            return INTENT_GRAPH
+        if any(k in query for k in ["color", "colour", "mau", "darker", "lighter", "another color", "variant", "tone"]):
+            return INTENT_VARIANT
+        return INTENT_SIMILAR
+
+    def _rule_based_must_not(self, user_query: str) -> Dict[str, List[str]]:
+        query = normalize_text(user_query)
+        if not query:
+            return {}
+
+        neg_markers = ["not", "no", "without", "avoid", "khong", "ko", "khong muon", "khong can"]
+        if not any(k in query for k in neg_markers):
+            return {}
+
+        must_not: Dict[str, List[str]] = {}
+
+        color_values = getattr(self.catalog, "color_values", [])
+        for normalized, original in color_values:
+            if normalized and normalized in query:
+                must_not.setdefault("colour_group", []).append(original)
+
+        product_values = getattr(self.catalog, "product_type_values", [])
+        if any(k in query for k in ["denim", "jean", "jeans"]):
+            for normalized, original in product_values:
+                if "jean" in normalized or "denim" in normalized:
+                    must_not.setdefault("product_type", []).append(original)
+
+        for key, values in list(must_not.items()):
+            deduped = []
+            for value in values:
+                if value not in deduped:
+                    deduped.append(value)
+            must_not[key] = deduped
+        return must_not
+
     def _build_summary_images(self, items: List[Dict]) -> List[str]:
         paths = []
         for item in items:
@@ -415,6 +425,18 @@ class FashionAssistantService:
             if len(paths) >= self.settings.max_vision_images:
                 break
         return paths
+
+    def _build_simple_answer(self, intent: str, anchor_item: Dict, items: List[Dict]) -> str:
+        anchor_id = normalize_article_id(anchor_item.get("article_id", ""))
+        anchor_label = anchor_item.get("product_type") or "item"
+        total = len(items)
+        if intent == INTENT_GRAPH:
+            return f"Suggested pairing options for {anchor_label} #{anchor_id}."
+        if intent == INTENT_VARIANT:
+            return f"Color variants for {anchor_label} #{anchor_id}."
+        if total <= 1:
+            return f"Showing the closest matches for {anchor_label} #{anchor_id}."
+        return f"Showing {total - 1} similar items for {anchor_label} #{anchor_id}."
 
     @staticmethod
     def _resolve_ui_item_limit(req: ChatRequest) -> int:
@@ -650,25 +672,11 @@ class FashionAssistantService:
                 request_id=request_id,
             )
 
-        initial_query_filters = self.catalog.parse_query_filters(user_query)
         trace = {
-            "query_understanding": {
-                "search_query": user_query,
-                "filters_raw": initial_query_filters,
-                "filters_rewritten": {},
-                "filters_llm": {},
-                "filters_final": dict(initial_query_filters),
-                "exclude_filters": {},
-                "intent_hint": "",
-            },
+            "analysis": {},
             "anchor_source": "",
-            "intent_router": "llm_only",
-            "intent_initial": "",
             "intent_final": "",
-            "intent_override_reason": "",
-            "intent_refine_pairing": False,
             "graph_used_proxy": False,
-            "query_rewrite_applied": False,
             "joint_weights": {},
         }
 
@@ -677,7 +685,7 @@ class FashionAssistantService:
 
         if image is not None:
             image_anchor_vector = self.embedding.encode("", image=image, text_weight=0.0, image_weight=1.0)
-            anchor_point = self._pick_anchor_point(image_anchor_vector, query_filters=None)
+            anchor_point = self._pick_anchor_point(image_anchor_vector)
             if anchor_point is None:
                 return self._compose_response(
                     req=req,
@@ -718,7 +726,7 @@ class FashionAssistantService:
 
             if anchor_item is None and user_query:
                 text_vector = self.embedding.encode(user_query, image=None)
-                anchor_point = self._pick_anchor_point(text_vector, query_filters=initial_query_filters)
+                anchor_point = self._pick_anchor_point(text_vector)
                 if anchor_point is not None:
                     payload = getattr(anchor_point, "payload", {}) or {}
                     anchor_id = self._extract_article_id(anchor_point)
@@ -753,39 +761,37 @@ class FashionAssistantService:
                 trace=trace,
             )
 
-        intent, intent_refine_pairing = self._route_intent(user_query, has_image=image is not None, anchor_item=anchor_item)
-        trace["intent_refine_pairing"] = intent_refine_pairing
-        if intent_refine_pairing:
-            trace["intent_override_reason"] = "llm_pairing_refine"
-        trace["intent_initial"] = intent
-
-        rewritten_query = None
-        if self.settings.use_query_rewrite and image is not None and normalize_text(user_query):
-            rewritten_query = self.llm.rewrite_search_query(
-                user_query=user_query,
-                anchor_item=anchor_item,
-                intent_label=intent,
-                image=image,
-            )
-            if rewritten_query:
-                trace["query_rewrite_applied"] = True
-
-        query_understanding = self._resolve_query_understanding(user_query, rewritten_query, anchor_item=anchor_item)
-        search_query = str(query_understanding.get("search_query", "") or "")
-        query_filters = dict(query_understanding.get("filters_final", {}) or {})
-        exclude_filters = dict(query_understanding.get("exclude_filters", {}) or {})
-
-        intent_hint = str(query_understanding.get("intent_hint", "") or "")
-        if intent_hint in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT} and intent_hint != intent:
-            intent = intent_hint
-            trace["intent_override_reason"] = "llm_constraints_intent_hint"
-
-        trace["query_understanding"] = query_understanding
+        history = self.sessions.get_history(session, self.settings.session_history_max)
+        analysis = self.llm.analyze_request(
+            user_query=user_query,
+            history=history,
+            anchor_item=anchor_item,
+            session_id=session_id,
+        )
+        intent = str(analysis.get("intent", "") or "")
+        search_query = str(analysis.get("search_query", "") or "")
+        must_filters = dict(analysis.get("must_filters", {}) or {})
+        must_not_filters = dict(analysis.get("must_not_filters", {}) or {})
+        if intent not in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT}:
+            intent = ""
+        if not intent:
+            intent = self._rule_based_intent(user_query)
+        if intent == INTENT_SIMILAR:
+            rule_intent = self._rule_based_intent(user_query)
+            if rule_intent != INTENT_SIMILAR:
+                intent = rule_intent
+        if not search_query:
+            search_query = user_query
+        if not must_filters:
+            must_filters = self.catalog.parse_query_filters(search_query)
+        if not must_not_filters:
+            must_not_filters = self._rule_based_must_not(search_query)
+        trace["analysis"] = analysis
 
         text_weight, image_weight, weight_source = self._resolve_joint_weights(
             req,
             user_query=search_query,
-            query_filters=query_filters,
+            query_filters=must_filters,
             intent=intent,
             has_image=image is not None,
         )
@@ -795,24 +801,25 @@ class FashionAssistantService:
             "source": weight_source,
         }
         routed_items: List[Dict] = []
+        sim_vector: List[float] | None = None
 
         if intent == INTENT_GRAPH:
             routed_items = self._get_graph_items(anchor_id, search_query, self.settings.topk_graph)
-            if query_filters or exclude_filters:
+            if must_filters or must_not_filters:
                 routed_items = [
                     it
                     for it in routed_items
-                    if self._matches_hard_filters(it, query_filters)
-                    and self._matches_exclude_filters(it, exclude_filters)
+                    if self._matches_hard_filters(it, must_filters)
+                    and self._matches_exclude_filters(it, must_not_filters)
                 ]
             if not routed_items:
                 routed_items = self._get_graph_items_via_proxy(anchor_item, search_query, self.settings.topk_graph)
-                if query_filters or exclude_filters:
+                if must_filters or must_not_filters:
                     routed_items = [
                         it
                         for it in routed_items
-                        if self._matches_hard_filters(it, query_filters)
-                        and self._matches_exclude_filters(it, exclude_filters)
+                        if self._matches_hard_filters(it, must_filters)
+                        and self._matches_exclude_filters(it, must_not_filters)
                     ]
                 trace["graph_used_proxy"] = bool(routed_items)
             if not routed_items:
@@ -821,12 +828,12 @@ class FashionAssistantService:
         elif intent == INTENT_VARIANT:
             variant_ids = self.catalog.get_color_variant_ids(anchor_id, self.settings.topk_variants)
             routed_items = self._retrieve_items_by_ids(variant_ids)
-            if query_filters or exclude_filters:
+            if must_filters or must_not_filters:
                 routed_items = [
                     it
                     for it in routed_items
-                    if self._matches_hard_filters(it, query_filters)
-                    and self._matches_exclude_filters(it, exclude_filters)
+                    if self._matches_hard_filters(it, must_filters)
+                    and self._matches_exclude_filters(it, must_not_filters)
                 ]
             if not routed_items:
                 intent = INTENT_SIMILAR
@@ -842,15 +849,16 @@ class FashionAssistantService:
             routed_items = self._get_similar_items(
                 sim_vector,
                 anchor_id=anchor_id,
-                query_filters=query_filters,
+                must_filters=must_filters,
+                must_not_filters=must_not_filters,
                 limit=self.settings.topk_similar,
             )
-            if query_filters or exclude_filters:
+            if must_filters or must_not_filters:
                 routed_items = [
                     it
                     for it in routed_items
-                    if self._matches_hard_filters(it, query_filters)
-                    and self._matches_exclude_filters(it, exclude_filters)
+                    if self._matches_hard_filters(it, must_filters)
+                    and self._matches_exclude_filters(it, must_not_filters)
                 ]
 
         deduped: List[Dict] = []
@@ -860,26 +868,41 @@ class FashionAssistantService:
             if not aid or aid in seen_ids:
                 continue
             is_anchor = aid == anchor_id
-            if exclude_filters and not self._matches_exclude_filters(item, exclude_filters):
+            if (not is_anchor) and must_not_filters and not self._matches_exclude_filters(item, must_not_filters):
                 continue
-            if (not is_anchor) and query_filters and not self._matches_hard_filters(item, query_filters):
+            if (not is_anchor) and must_filters and not self._matches_hard_filters(item, must_filters):
                 continue
             seen_ids.add(aid)
             deduped.append(item)
 
-        summary_images = self._build_summary_images(deduped)
-        answer = self.llm.summarize(
-            user_query=user_query or search_query,
-            intent_label=intent,
-            anchor_item=anchor_item,
-            result_items=deduped,
-            image_paths=summary_images,
-            extra_images=[image] if image is not None else None,
-        )
+        if sim_vector is not None and len(deduped) <= 1:
+            fallback_items = self._get_similar_items(
+                sim_vector,
+                anchor_id=anchor_id,
+                must_filters=None,
+                must_not_filters=None,
+                limit=self.settings.topk_similar,
+            )
+            for item in fallback_items:
+                aid = normalize_article_id(item.get("article_id", ""))
+                if not aid or aid in seen_ids:
+                    continue
+                seen_ids.add(aid)
+                deduped.append(item)
+
+        if not deduped and anchor_item:
+            deduped = [anchor_item]
+
+        answer = self._build_simple_answer(intent, anchor_item, deduped)
         trace["intent_final"] = intent
         trace["result_count"] = len(deduped)
 
         self.sessions.touch_anchor(session, anchor_id=anchor_id, item_ids=[it["article_id"] for it in deduped])
+        history_user = (user_query or search_query or "").strip()
+        if history_user:
+            self.sessions.add_message(session, "user", history_user, self.settings.session_history_max)
+        if answer:
+            self.sessions.add_message(session, "assistant", answer, self.settings.session_history_max)
 
         return self._compose_response(
             req=req,

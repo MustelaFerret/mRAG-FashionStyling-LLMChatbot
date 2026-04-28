@@ -23,10 +23,11 @@ class Settings:
     meta_file: str = str(BASE_DIR / os.getenv("META_FILE", "data/processed/dataset_final_qwen_filled.csv"))
     image_dir: str = str(BASE_DIR / os.getenv("IMAGE_DIR", "data/raw/images"))
     frontend_dir: str = str(BASE_DIR / os.getenv("FRONTEND_DIR", "src/frontend"))
+    log_dir: str = str(BASE_DIR / os.getenv("LOG_DIR", "log"))
 
-    topk_similar: int = int(os.getenv("TOPK_SIMILAR", "4"))
-    topk_graph: int = int(os.getenv("TOPK_GRAPH", "4"))
-    topk_variants: int = int(os.getenv("TOPK_VARIANTS", "4"))
+    topk_similar: int = int(os.getenv("TOPK_SIMILAR", "8"))
+    topk_graph: int = int(os.getenv("TOPK_GRAPH", "6"))
+    topk_variants: int = int(os.getenv("TOPK_VARIANTS", "6"))
 
     graph_hard_min_weight: int = int(os.getenv("GRAPH_HARD_MIN_WEIGHT", "3"))
     graph_preferred_min_weight: int = int(os.getenv("GRAPH_PREFERRED_MIN_WEIGHT", "4"))
@@ -40,6 +41,7 @@ class Settings:
 
     session_ttl_seconds: int = int(os.getenv("SESSION_TTL_SECONDS", str(60 * 60 * 6)))
     max_session_context: int = int(os.getenv("MAX_SESSION_CONTEXT", "500"))
+    session_history_max: int = int(os.getenv("SESSION_HISTORY_MAX", "12"))
 
     clean_cuda_cache_each_request: bool = os.getenv("CLEAN_CUDA_CACHE_EACH_REQUEST", "1") == "1"
 
