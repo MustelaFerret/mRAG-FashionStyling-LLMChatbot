@@ -8,7 +8,7 @@ from typing import Dict, List
 
 import torch
 from PIL import Image
-from transformers import AutoModelForCausalLM, AutoProcessor, AutoTokenizer, Qwen2VLForConditionalGeneration
+from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoProcessor, AutoTokenizer, Qwen2VLForConditionalGeneration
 
 from src.backend.core.config import settings
 from src.backend.core.utils import get_local_model_path
@@ -69,6 +69,30 @@ class QwenMultimodalService:
                 self.using_text_llm_for_nlp = True
             except Exception:
                 pass
+
+        self.intent_tokenizer = None
+        self.intent_model = None
+        self.using_intent_classifier = False
+
+        if settings.use_intent_classifier:
+            try:
+                intent_model_path = settings.intent_classifier_dir
+                self.intent_tokenizer = AutoTokenizer.from_pretrained(
+                    intent_model_path,
+                    local_files_only=settings.llm_local_files_only,
+                )
+                self.intent_model = AutoModelForSequenceClassification.from_pretrained(
+                    intent_model_path,
+                    local_files_only=settings.llm_local_files_only,
+                    torch_dtype=model_dtype,
+                    device_map={"": 0} if self.device.type == "cuda" else "cpu",
+                )
+                self.intent_model.eval()
+                self.using_intent_classifier = True
+            except Exception:
+                self.intent_tokenizer = None
+                self.intent_model = None
+                self.using_intent_classifier = False
 
     def _load_images(self, image_paths: List[str]) -> List[Image.Image]:
         images: List[Image.Image] = []
@@ -287,6 +311,44 @@ class QwenMultimodalService:
             return INTENT_VARIANT
         return INTENT_SIMILAR
 
+    def _classify_intent_local(
+        self,
+        user_query: str,
+        history: List[Dict[str, str]],
+        anchor_item: Dict | None = None,
+        debug: Dict | None = None,
+    ) -> Dict:
+        if self.intent_model is None or self.intent_tokenizer is None:
+            return {"intent": INTENT_SIMILAR, "confidence": 0.0}
+
+        clean_query = user_query.strip()
+        if not clean_query:
+            return {"intent": INTENT_SIMILAR, "confidence": 1.0}
+
+        # CHỈ đưa câu query thuần túy vào mô hình, giới hạn đúng 32 tokens như lúc train
+        inputs = self.intent_tokenizer(clean_query, return_tensors="pt", truncation=True, max_length=32)
+        inputs = {k: v.to(self.device) if hasattr(v, "to") else v for k, v in inputs.items()}
+
+        with torch.no_grad():
+            logits = self.intent_model(**inputs).logits
+            probs = torch.softmax(logits, dim=-1)[0]
+
+        idx = int(torch.argmax(probs).item())
+        id2label = getattr(self.intent_model.config, "id2label", {}) or {}
+        
+        # Nếu model chưa lưu id2label, hardcode fallback dự phòng
+        fallback_map = {0: INTENT_SIMILAR, 1: INTENT_GRAPH, 2: INTENT_VARIANT}
+        raw_label = id2label.get(idx) or fallback_map.get(idx, INTENT_SIMILAR)
+        
+        label = self._normalize_intent(raw_label)
+        confidence = float(probs[idx].item())
+
+        if debug is not None:
+            debug["prompt"] = clean_query  # Chỉ log query sạch
+            debug["raw"] = json.dumps({"intent": label, "confidence": round(confidence, 4)}, ensure_ascii=False)
+
+        return {"intent": label, "confidence": confidence}
+
     def _normalize_analysis_output(self, obj: Dict | None, user_query: str) -> Dict:
         if not isinstance(obj, dict):
             obj = {}
@@ -316,48 +378,6 @@ class QwenMultimodalService:
             f.write("json=\n")
             f.write(json.dumps(result, ensure_ascii=False) + "\n")
             f.write("\n")
-
-    def _classify_intent_agent(
-        self,
-        query: str,
-        history: str,
-        anchor: str,
-        debug: Dict | None = None,
-    ) -> str:
-        prompt = (
-            "Task: Classify user intent for a fashion search system.\n"
-            "Options:\n"
-            "- 'graph_pairing': User wants an item to WEAR WITH or MATCH the anchor or previous items.\n"
-            "- 'color_variant': User wants a DIFFERENT COLOR of the anchor or previous items.\n"
-            "- 'similar_items': User is searching for a new item, or no clear pairing/variant intent.\n\n"
-            f"[Context]\nHistory: {history}\nAnchor: {anchor}\nQuery: {query}\n\n"
-            "Output ONLY the exact string from the options: graph_pairing, color_variant, or similar_items."
-        )
-        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-        raw = ""
-        try:
-            raw = self._chat_generate_text(
-                messages,
-                max_new_tokens=10,
-                temperature=0.0,
-                top_p=1.0,
-                do_sample=False,
-            ).strip()
-        except Exception:
-            raw = ""
-
-        if debug is not None:
-            debug["prompt"] = prompt
-            debug["raw"] = raw
-
-        lowered = raw.lower()
-        if "graph_pairing" in lowered:
-            return INTENT_GRAPH
-        if "color_variant" in lowered or "colour_variant" in lowered:
-            return INTENT_VARIANT
-        if "similar_items" in lowered:
-            return INTENT_SIMILAR
-        return INTENT_SIMILAR
 
     def _extract_filters_agent(
         self,
@@ -423,8 +443,8 @@ class QwenMultimodalService:
 
         intent_debug: Dict = {}
         extract_debug: Dict = {}
-        intent_raw = self._classify_intent_agent(user_query, history_text, anchor_text, debug=intent_debug)
-        intent = self._normalize_intent(intent_raw)
+        intent_result = self._classify_intent_local(user_query, history, anchor_item=anchor_item, debug=intent_debug)
+        intent = self._normalize_intent(intent_result.get("intent"))
         extraction = self._extract_filters_agent(intent, user_query, history_text, anchor_text, debug=extract_debug)
 
         result = {
@@ -450,46 +470,8 @@ class QwenMultimodalService:
         return result
 
     def route_intent(self, user_query: str, anchor_item: Dict | None = None) -> str | None:
-        anchor_text = ""
-        if anchor_item:
-            anchor_text = (
-                f"#{anchor_item.get('article_id', '')} "
-                f"{anchor_item.get('product_type', '')} "
-                f"{anchor_item.get('colour_group', '')}"
-            ).strip()
-
-        prompt = (
-            "Classify the user request into exactly one intent label: "
-            "similar_items, graph_pairing, color_variant.\n"
-            "Rules:\n"
-            "- color_variant: user asks for another color of the same design, or asks if a specific color is available.\n"
-            "- graph_pairing: user asks what items match/pair/go with the selected item (outfit building).\n"
-            "- similar_items: user asks for look-alike/similar items.\n"
-            "Disambiguation:\n"
-            "- If user asks for matching/pairing with current item, choose graph_pairing even if color words appear.\n"
-            "- If user only asks about color availability/change, choose color_variant.\n"
-            "- If user asks for lookalikes, choose similar_items.\n"
-            "Examples:\n"
-            "1) 'I want to find things to mix with this' -> graph_pairing\n"
-            "2) 'What can I wear with this hoodie?' -> graph_pairing\n"
-            "3) 'Show similar hoodies like this one' -> similar_items\n"
-            "4) 'Do you have this in black color?' -> color_variant\n"
-            "Return only JSON with key intent, example: {\"intent\":\"similar_items\"}. "
-            f"Anchor item: {anchor_text or 'unknown'}\n"
-            f"User request: {user_query}"
-        )
-        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-
-        try:
-            raw = self._chat_generate_text(messages, max_new_tokens=56, do_sample=False, temperature=0.0, top_p=1.0)
-        except Exception:
-            return None
-
-        obj = self._extract_json_object(raw)
-        if not obj:
-            return None
-
-        intent = obj.get("intent")
+        result = self._classify_intent_local(user_query, [], anchor_item=anchor_item)
+        intent = result.get("intent")
         if intent in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT}:
             return intent
         return None

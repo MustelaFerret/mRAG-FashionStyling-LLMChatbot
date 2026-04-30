@@ -823,7 +823,20 @@ class FashionAssistantService:
                     ]
                 trace["graph_used_proxy"] = bool(routed_items)
             if not routed_items:
-                intent = INTENT_SIMILAR
+                sim_vector = self._build_similar_vector(
+                    search_query,
+                    image,
+                    anchor_item,
+                    text_weight=text_weight,
+                    image_weight=image_weight,
+                )
+                routed_items = self._get_similar_items(
+                    sim_vector,
+                    anchor_id=anchor_id,
+                    must_filters=must_filters,
+                    must_not_filters=must_not_filters,
+                    limit=self.settings.topk_graph,
+                )
 
         elif intent == INTENT_VARIANT:
             variant_ids = self.catalog.get_color_variant_ids(anchor_id, self.settings.topk_variants)
@@ -836,7 +849,20 @@ class FashionAssistantService:
                     and self._matches_exclude_filters(it, must_not_filters)
                 ]
             if not routed_items:
-                intent = INTENT_SIMILAR
+                sim_vector = self._build_similar_vector(
+                    search_query,
+                    image,
+                    anchor_item,
+                    text_weight=text_weight,
+                    image_weight=image_weight,
+                )
+                routed_items = self._get_similar_items(
+                    sim_vector,
+                    anchor_id=anchor_id,
+                    must_filters=must_filters,
+                    must_not_filters=must_not_filters,
+                    limit=self.settings.topk_variants,
+                )
 
         if intent == INTENT_SIMILAR:
             sim_vector = self._build_similar_vector(
@@ -879,8 +905,8 @@ class FashionAssistantService:
             fallback_items = self._get_similar_items(
                 sim_vector,
                 anchor_id=anchor_id,
-                must_filters=None,
-                must_not_filters=None,
+                must_filters=must_filters,
+                must_not_filters=must_not_filters,
                 limit=self.settings.topk_similar,
             )
             for item in fallback_items:
