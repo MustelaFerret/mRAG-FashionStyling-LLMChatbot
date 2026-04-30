@@ -19,42 +19,51 @@ class QdrantStore:
     ) -> models.Filter | None:
         must_conditions: List[models.FieldCondition] = []
         must_not_conditions: List[models.FieldCondition] = []
+        key_aliases = {
+            "product_type": ["product_type", "product_type_name"],
+            "colour_group": ["colour_group", "colour_group_name"],
+        }
+
+        def _build_match(value):
+            if isinstance(value, (list, tuple)):
+                values = [str(v).strip() for v in value if str(v).strip()]
+                if not values:
+                    return None
+                return models.MatchAny(any=values)
+            value_str = str(value).strip()
+            if not value_str:
+                return None
+            return models.MatchValue(value=value_str)
+
+        def _build_conditions_for_key(key: str, match):
+            keys = key_aliases.get(key, [key])
+            return [models.FieldCondition(key=k, match=match) for k in keys]
 
         if must_filters:
             for key, value in must_filters.items():
                 if value is None:
                     continue
-                if isinstance(value, (list, tuple)):
-                    values = [str(v).strip() for v in value if str(v).strip()]
-                    if values:
-                        must_conditions.append(
-                            models.FieldCondition(key=key, match=models.MatchAny(any=values))
-                        )
+                match = _build_match(value)
+                if match is None:
                     continue
-                value_str = str(value).strip()
-                if not value_str:
-                    continue
-                must_conditions.append(
-                    models.FieldCondition(key=key, match=models.MatchValue(value=value_str))
-                )
+                conditions = _build_conditions_for_key(key, match)
+                if len(conditions) == 1:
+                    must_conditions.append(conditions[0])
+                else:
+                    must_conditions.append(models.Filter(should=conditions))
 
         if must_not_filters:
             for key, value in must_not_filters.items():
                 if value is None:
                     continue
-                if isinstance(value, (list, tuple)):
-                    values = [str(v).strip() for v in value if str(v).strip()]
-                    if values:
-                        must_not_conditions.append(
-                            models.FieldCondition(key=key, match=models.MatchAny(any=values))
-                        )
+                match = _build_match(value)
+                if match is None:
                     continue
-                value_str = str(value).strip()
-                if not value_str:
-                    continue
-                must_not_conditions.append(
-                    models.FieldCondition(key=key, match=models.MatchValue(value=value_str))
-                )
+                conditions = _build_conditions_for_key(key, match)
+                if len(conditions) == 1:
+                    must_not_conditions.append(conditions[0])
+                else:
+                    must_not_conditions.append(models.Filter(should=conditions))
 
         if not must_conditions and not must_not_conditions:
             return None

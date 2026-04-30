@@ -1,4 +1,4 @@
-timestamp=2026-04-30T09:35:50.974250
+timestamp=2026-04-30T09:45:04.962968
 session_id=anon
 prompt=
 ### intent_agent_prompt
@@ -11,7 +11,8 @@ Task: Extract constraints for a fashion database based on the intent 'graph_pair
 3. 'must_not_filters': Prohibited attributes from negative words like 'no', 'avoid', 'hate'.
 
 [Context]
-History: None
+History: User: what jacket goes well with this shirt?
+Assistant: Suggested pairing options for Sweater #0340546046.
 Anchor: #0340546046 Sweater Black
 Query: what jacket goes well with this shirt?
 
@@ -31,4 +32,110 @@ extraction_raw:
 ```
 json=
 {"intent": "graph_pairing", "search_query": "jacket", "must_filters": {"product_type": "jacket"}, "must_not_filters": {}}
+
+timestamp=2026-04-30T09:56:40.940115
+session_id=59cc6919-7d3f-4e7b-abbf-05576966cc7d
+prompt=
+### intent_agent_prompt
+I want to buy some formal shirt
+
+### extraction_agent_prompt
+Task: Extract constraints for a fashion database based on the intent 'graph_pairing'.
+1. 'search_query': A clean search string. Resolve pronouns (it/them) using History.
+2. 'must_filters': Required attributes (e.g., {'product_type': 'dress'}).
+3. 'must_not_filters': Prohibited attributes from negative words like 'no', 'avoid', 'hate'.
+
+[Context]
+History: None
+Anchor: #0394798002 Shirt White
+Query: I want to buy some formal shirt
+
+Output ONLY valid JSON:
+{"search_query": "...", "must_filters": {}, "must_not_filters": {}}
+raw=
+intent_raw:
+{"intent": "graph_pairing", "confidence": 1.0}
+
+extraction_raw:
+```json
+{
+  "search_query": "formal shirt",
+  "must_filters": {"product_type": "shirt"},
+  "must_not_filters": {}
+}
+```
+json=
+{"intent": "graph_pairing", "search_query": "formal shirt", "must_filters": {"product_type": "shirt"}, "must_not_filters": {}}
+
+timestamp=2026-04-30T09:57:18.208336
+session_id=59cc6919-7d3f-4e7b-abbf-05576966cc7d
+prompt=
+### intent_agent_prompt
+This one look good, do you have yellow colors?
+
+### extraction_agent_prompt
+Task: Extract constraints for a fashion database based on the intent 'color_variant'.
+1. 'search_query': A clean search string. Resolve pronouns (it/them) using History.
+2. 'must_filters': Required attributes (e.g., {'product_type': 'dress'}).
+3. 'must_not_filters': Prohibited attributes from negative words like 'no', 'avoid', 'hate'.
+
+[Context]
+History: User: I want to buy some formal shirt
+Assistant: Suggested pairing options for Shirt #0394798002.
+Anchor: #0699924003 Polo shirt Dark Blue
+Query: This one look good, do you have yellow colors?
+
+Output ONLY valid JSON:
+{"search_query": "...", "must_filters": {}, "must_not_filters": {}}
+raw=
+intent_raw:
+{"intent": "color_variant", "confidence": 1.0}
+
+extraction_raw:
+```json
+{
+  "search_query": "formal shirt",
+  "must_filters": {"product_type": "shirt"},
+  "must_not_filters": {}
+}
+```
+json=
+{"intent": "color_variant", "search_query": "formal shirt", "must_filters": {"product_type": "shirt"}, "must_not_filters": {}}
+
+timestamp=2026-04-30T09:57:44.215783
+session_id=59cc6919-7d3f-4e7b-abbf-05576966cc7d
+prompt=
+### intent_agent_prompt
+what trousers should match this one?
+
+### extraction_agent_prompt
+Task: Extract constraints for a fashion database based on the intent 'graph_pairing'.
+1. 'search_query': A clean search string. Resolve pronouns (it/them) using History.
+2. 'must_filters': Required attributes (e.g., {'product_type': 'dress'}).
+3. 'must_not_filters': Prohibited attributes from negative words like 'no', 'avoid', 'hate'.
+
+[Context]
+History: User: I want to buy some formal shirt
+Assistant: Suggested pairing options for Shirt #0394798002.
+User: This one look good, do you have yellow colors?
+Assistant: Color variants for Polo shirt #0699924003.
+Anchor: #0699924005 Polo shirt Black
+Query: what trousers should match this one?
+
+Output ONLY valid JSON:
+{"search_query": "...", "must_filters": {}, "must_not_filters": {}}
+raw=
+intent_raw:
+{"intent": "graph_pairing", "confidence": 1.0}
+
+extraction_raw:
+```json
+{
+  "search_query": "trousers matching this one",
+  "must_filters": {"product_type": "trouser"},
+  "must_not_filters": {}
+}
+```
+json=
+{"intent": "graph_pairing", "search_query": "trousers matching this one", "must_filters": {"product_type": "trouser"}, "must_not_filters": {}}
 

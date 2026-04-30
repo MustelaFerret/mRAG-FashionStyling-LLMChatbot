@@ -770,8 +770,6 @@ class FashionAssistantService:
         )
         intent = str(analysis.get("intent", "") or "")
         search_query = str(analysis.get("search_query", "") or "")
-        must_filters = dict(analysis.get("must_filters", {}) or {})
-        must_not_filters = dict(analysis.get("must_not_filters", {}) or {})
         if intent not in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT}:
             intent = ""
         if not intent:
@@ -782,10 +780,29 @@ class FashionAssistantService:
                 intent = rule_intent
         if not search_query:
             search_query = user_query
-        if not must_filters:
-            must_filters = self.catalog.parse_query_filters(search_query)
-        if not must_not_filters:
-            must_not_filters = self._rule_based_must_not(search_query)
+        must_filters = self.catalog.parse_query_filters(search_query)
+        raw_qwen_filters = dict(analysis.get("must_filters", {}) or {})
+        if not must_filters and raw_qwen_filters:
+            normalized_qwen_filters: Dict[str, str] = {}
+            for key, value in raw_qwen_filters.items():
+                value_str = str(value or "").strip()
+                if not value_str:
+                    continue
+                normalized_qwen_filters[key] = value_str.capitalize()
+            must_filters = normalized_qwen_filters
+        else:
+            for key, value in raw_qwen_filters.items():
+                if key not in must_filters and str(value or "").strip():
+                    must_filters[key] = str(value).strip().capitalize()
+
+        must_not_filters = self._rule_based_must_not(search_query)
+        raw_qwen_must_not = dict(analysis.get("must_not_filters", {}) or {})
+        if not must_not_filters and raw_qwen_must_not:
+            must_not_filters = raw_qwen_must_not
+        else:
+            for key, value in raw_qwen_must_not.items():
+                if key not in must_not_filters:
+                    must_not_filters[key] = value
         trace["analysis"] = analysis
 
         text_weight, image_weight, weight_source = self._resolve_joint_weights(
