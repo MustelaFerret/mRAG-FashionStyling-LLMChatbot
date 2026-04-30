@@ -1,0 +1,34 @@
+timestamp=2026-04-30T09:35:50.974250
+session_id=anon
+prompt=
+### intent_agent_prompt
+what jacket goes well with this shirt?
+
+### extraction_agent_prompt
+Task: Extract constraints for a fashion database based on the intent 'graph_pairing'.
+1. 'search_query': A clean search string. Resolve pronouns (it/them) using History.
+2. 'must_filters': Required attributes (e.g., {'product_type': 'dress'}).
+3. 'must_not_filters': Prohibited attributes from negative words like 'no', 'avoid', 'hate'.
+
+[Context]
+History: None
+Anchor: #0340546046 Sweater Black
+Query: what jacket goes well with this shirt?
+
+Output ONLY valid JSON:
+{"search_query": "...", "must_filters": {}, "must_not_filters": {}}
+raw=
+intent_raw:
+{"intent": "graph_pairing", "confidence": 1.0}
+
+extraction_raw:
+```json
+{
+  "search_query": "jacket",
+  "must_filters": {"product_type": "jacket"},
+  "must_not_filters": {}
+}
+```
+json=
+{"intent": "graph_pairing", "search_query": "jacket", "must_filters": {"product_type": "jacket"}, "must_not_filters": {}}
+
