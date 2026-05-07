@@ -53,19 +53,69 @@ function normalizeItems(items) {
         .filter((item) => item.article_id);
 }
 
-function ProductModal({ item, onClose }) {
+function ProductModal({ items, index, onClose, onNavigate }) {
+    if (!Array.isArray(items) || items.length === 0) return null;
+    const safeIndex = Math.max(0, Math.min(index || 0, items.length - 1));
+    const item = items[safeIndex];
     if (!item) return null;
 
     const aid = formatArticleId(item.article_id);
     const title = item.title || item.product_type || "Product";
     const subtitle = item.subtitle || item.colour_group || "-";
+    const hasNav = items.length > 1;
+    const prevIndex = (safeIndex - 1 + items.length) % items.length;
+    const nextIndex = (safeIndex + 1) % items.length;
+
+    useEffect(() => {
+        function onKeyDown(event) {
+            if (event.key === "Escape") {
+                onClose();
+                return;
+            }
+            if (!hasNav) return;
+            if (event.key === "ArrowLeft") {
+                onNavigate(prevIndex);
+            } else if (event.key === "ArrowRight") {
+                onNavigate(nextIndex);
+            }
+        }
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [hasNav, nextIndex, onClose, onNavigate, prevIndex]);
 
     return (
         <div id="product-modal" onClick={onClose}>
-            <div className="panel rounded-2xl w-full max-w-4xl p-6 md:p-8 grid grid-cols-1 md:grid-cols-[330px_1fr] gap-6 relative" onClick={(e) => e.stopPropagation()}>
+            {hasNav && (
+                <button
+                    className="product-modal-nav product-modal-prev"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigate(prevIndex);
+                    }}
+                    aria-label="Previous product"
+                >
+                    <span aria-hidden="true">&lt;</span>
+                </button>
+            )}
+            {hasNav && (
+                <button
+                    className="product-modal-nav product-modal-next"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigate(nextIndex);
+                    }}
+                    aria-label="Next product"
+                >
+                    <span aria-hidden="true">&gt;</span>
+                </button>
+            )}
+            <div className="panel product-modal-panel rounded-2xl p-6 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
                 <button className="absolute top-4 right-4 text-2xl text-white/60 hover:text-white" onClick={onClose}>&times;</button>
-                <img className="w-full h-80 object-cover rounded-xl border border-white/10" src={item.image_url || imagePathFromId(aid)} alt="Product" />
-                <div>
+                <div className="product-modal-media">
+                    <img className="product-modal-image rounded-xl border border-white/10" src={item.image_url || imagePathFromId(aid)} alt={title} />
+                </div>
+                <div className="product-modal-details">
                     <h3 className="font-display text-4xl leading-tight mb-1">{title}</h3>
                     <p className="text-sm text-[#b5a58c] mb-4 font-code">#{aid}</p>
                     <div className="grid sm:grid-cols-2 gap-3 text-sm">
@@ -208,7 +258,7 @@ function AiMessage({ message, onOpenItem }) {
             {Array.isArray(cards) && cards.length > 0 && (
                 <div className="cards-row w-full">
                     {cards.map((item, index) => (
-                        <ItemCard key={String(item.article_id) + "-" + index} item={item} onOpen={() => onOpenItem(item)} />
+                        <ItemCard key={String(item.article_id) + "-" + index} item={item} onOpen={() => onOpenItem(item, cards)} />
                     ))}
                 </div>
             )}
@@ -424,7 +474,8 @@ function App() {
     const [selectedAnchorId, setSelectedAnchorId] = useState("");
     const [anchorItems, setAnchorItems] = useState([]);
     const [quickActions, setQuickActions] = useState(DEFAULT_BOOTSTRAP.suggested_prompts.slice(0, 6));
-    const [modalItem, setModalItem] = useState(null);
+    const [modalItems, setModalItems] = useState([]);
+    const [modalIndex, setModalIndex] = useState(0);
     const [latestMeta, setLatestMeta] = useState(null);
 
     const chatBoxRef = useRef(null);
@@ -641,7 +692,13 @@ function App() {
                     selectedAnchorId={selectedAnchorId}
                     anchorItems={anchorItems}
                     onSelectAnchor={(aid) => setSelectedAnchorId(formatArticleId(aid))}
-                    onOpenItem={(item) => setModalItem(item)}
+                    onOpenItem={(item, items) => {
+                        const normalized = normalizeItems(items || []);
+                        const aid = formatArticleId(item.article_id);
+                        const idx = Math.max(0, normalized.findIndex((it) => formatArticleId(it.article_id) === aid));
+                        setModalItems(normalized);
+                        setModalIndex(idx);
+                    }}
                     onPickQuickAction={(text) => {
                         setChatInput(text);
                         if (textAreaRef.current) textAreaRef.current.focus();
@@ -662,7 +719,15 @@ function App() {
                 />
             )}
 
-            <ProductModal item={modalItem} onClose={() => setModalItem(null)} />
+            <ProductModal
+                items={modalItems}
+                index={modalIndex}
+                onNavigate={(nextIndex) => setModalIndex(nextIndex)}
+                onClose={() => {
+                    setModalItems([]);
+                    setModalIndex(0);
+                }}
+            />
         </>
     );
 }

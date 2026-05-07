@@ -585,6 +585,104 @@ body {
     background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(6px);
     padding: 16px;
+    overflow: auto;
+    opacity: 0;
+    animation: modalFadeIn 220ms ease forwards;
+}
+
+.product-modal-panel {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+    animation: modalPanelIn 260ms ease forwards;
+    max-height: none;
+    overflow: visible;
+    display: grid;
+    grid-template-columns: minmax(260px, 420px) minmax(320px, 1fr);
+    gap: 22px;
+    width: min(92vw, 1120px);
+    max-width: 1120px;
+}
+
+.product-modal-media {
+    overflow: visible;
+    border-radius: 16px;
+    max-height: none;
+    background: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.product-modal-image {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 56vh;
+    object-fit: contain;
+    background: transparent;
+}
+
+.product-modal-details {
+    overflow: auto;
+    max-height: none;
+    min-width: 0;
+}
+
+.product-modal-nav {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 81;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.55);
+    color: var(--fg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.product-modal-nav:hover {
+    border-color: rgba(212, 178, 122, 0.6);
+    background: rgba(0, 0, 0, 0.75);
+    transform: translateY(-50%) scale(1.06);
+}
+
+.product-modal-prev {
+    left: 18px;
+}
+
+.product-modal-next {
+    right: 18px;
+}
+
+@media (max-width: 768px) {
+    .product-modal-panel {
+        max-height: none;
+        width: min(94vw, 720px);
+        grid-template-columns: 1fr;
+    }
+
+    .product-modal-media {
+        max-height: none;
+    }
+
+    .product-modal-details {
+        max-height: none;
+    }
+
+    .product-modal-image {
+        max-width: 90vw;
+        max-height: 52vh;
+    }
 }
 
 .hidden {
@@ -649,6 +747,26 @@ body {
     100% {
         transform: scale(0.7);
         opacity: 0.35;
+    }
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalPanelIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
