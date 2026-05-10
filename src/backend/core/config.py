@@ -49,6 +49,8 @@ class Settings:
     qwen_model_id: str = os.getenv("QWEN_MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
     qwen_vl_model_id: str = os.getenv("QWEN_VL_MODEL_ID", "")
     qwen_text_model_id: str = os.getenv("QWEN_TEXT_MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
+    query_llm_model_id: str = os.getenv("QUERY_LLM_MODEL_ID", "")
+    query_llm_device_map: str = os.getenv("QUERY_LLM_DEVICE_MAP", "")
     intent_classifier_dir: str = str(LOCAL_CACHE_DIR / os.getenv("INTENT_CLASSIFIER_DIR", "intent_classifier_roberta"))
     use_intent_classifier: bool = os.getenv("USE_INTENT_CLASSIFIER", "1") == "1"
     use_vl_model: bool = os.getenv("USE_VL_MODEL", "0") == "1"

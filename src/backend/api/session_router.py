@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, Request
 
+from src.backend.core.config import settings
 from src.backend.core.exceptions import BackendNotReadyException, SessionIdRequiredException
+from src.backend.core.query_logger import clear_log_file
 from src.backend.models.schemas import SessionResetRequest
 from src.backend.services.session_manager import SessionStore
 
@@ -47,6 +49,7 @@ async def reset_session(req: SessionResetRequest, sessions: SessionStore = Depen
         raise SessionIdRequiredException()
 
     existed = sessions.reset_by_session_id(sid)
+    clear_log_file(settings.log_dir)
     return {
         "ok": True,
         "session_id": sid,

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import time
 from typing import Any, Dict, List
 
 from PIL import Image
 
-from src.backend.core.utils import normalize_text
+from src.backend.core.config import settings
+from src.backend.core.query_logger import append_log
+from src.backend.core.utils import extract_article_id_from_text, normalize_article_id, normalize_text
 from src.backend.retrieval.embeddings import HybridEmbeddingService
 from src.backend.retrieval.llm import QwenMultimodalService
 from src.backend.retrieval.qdrant import QdrantStore
@@ -101,33 +104,129 @@ class FashionRAGService:
             context_parts.append(part)
         return "\n---\n".join(context_parts)
 
-    async def chat(self, query: str, image: Image.Image | None = None) -> tuple[str, List[dict]]:
+    def _build_image_url(self, article_id: str) -> str:
+        aid = normalize_article_id(article_id)
+        if not aid:
+            return ""
+        return f"/images/{aid[:3]}/{aid}.jpg"
+
+    def _filter_points(self, points: List[Any], must_filters: Dict[str, str], must_not_filters: Dict[str, List[str]]) -> List[Any]:
+        filtered: List[Any] = []
+        for point in points or []:
+            payload = getattr(point, "payload", {}) or {}
+            ok = True
+            for key, value in (must_filters or {}).items():
+                expected = normalize_text(str(value))
+                actual = normalize_text(str(payload.get(key, "")))
+                if expected and actual and expected not in actual and actual not in expected:
+                    ok = False
+                    break
+            if not ok:
+                continue
+            excluded = False
+            for key, values in (must_not_filters or {}).items():
+                actual = normalize_text(str(payload.get(key, "")))
+                for value in values or []:
+                    expected = normalize_text(str(value))
+                    if expected and actual and (expected in actual or actual in expected):
+                        excluded = True
+                        break
+                if excluded:
+                    break
+            if excluded:
+                continue
+            filtered.append(point)
+        return filtered
+
+    async def chat(
+        self,
+        query: str,
+        image: Image.Image | None = None,
+        session_id: str | None = None,
+        request_id: str | None = None,
+    ) -> tuple[str, List[dict]]:
+        started_at = time.perf_counter()
         analysis = self.llm.analyze_user_query(query)
         search_query = str(analysis.get("search_query_en", "") or "").strip() or query
+        intent_hint = str(analysis.get("intent_hint", "") or "").strip()
         must_filters = self._validate_filters(analysis.get("must_filters", {}))
         must_not_filters = self._validate_must_not(analysis.get("must_not_filters", {}))
         dense_vec, sparse_idx, sparse_val = self.embedder.encode_hybrid(search_query, search_query, image=image)
-        results = self.store.hybrid_search(
-            dense_vector=dense_vec,
-            sparse_indices=sparse_idx,
-            sparse_values=sparse_val,
-            limit=self.limit,
-            must_filters=must_filters,
-            must_not_filters=must_not_filters,
-        )
-        points = results or []
+        points: List[Any] = []
+        anchor_id = ""
+
+        if intent_hint == "graph_pairing":
+            anchor_id = extract_article_id_from_text(query)
+            if not anchor_id:
+                anchor_points = self.store.hybrid_search(
+                    dense_vector=dense_vec,
+                    sparse_indices=sparse_idx,
+                    sparse_values=sparse_val,
+                    limit=1,
+                    must_filters=must_filters,
+                    must_not_filters=must_not_filters,
+                )
+                first = anchor_points[0] if anchor_points else None
+                anchor_id = str((getattr(first, "payload", {}) or {}).get("article_id", "")) if first else ""
+
+            anchor_id = normalize_article_id(anchor_id)
+            if anchor_id:
+                neighbor_ids = self.catalog.get_graph_neighbor_ids(
+                    anchor_id,
+                    limit=self.limit,
+                    preferred_min_weight=settings.graph_preferred_min_weight,
+                    hard_min_weight=settings.graph_hard_min_weight,
+                )
+                points = self.store.retrieve_by_article_ids(neighbor_ids)
+                points = self._filter_points(points, must_filters, must_not_filters)
+
+        if not points:
+            results = self.store.hybrid_search(
+                dense_vector=dense_vec,
+                sparse_indices=sparse_idx,
+                sparse_values=sparse_val,
+                limit=self.limit,
+                must_filters=must_filters,
+                must_not_filters=must_not_filters,
+            )
+            points = results or []
         items: List[dict] = []
         for point in points:
             payload = getattr(point, "payload", {}) or {}
             items.append({
                 "article_id": str(payload.get("article_id", "")),
                 "name": str(payload.get("prod_name", "") or payload.get("product_type", "") or ""),
-                "image_path": str(payload.get("image_path", "")),
+                "product_type": str(payload.get("product_type", "")),
+                "product_group": str(payload.get("product_group", "")),
+                "colour_group": str(payload.get("colour_group", "")),
+                "fit": str(payload.get("fit", "")),
+                "occasion": str(payload.get("occasion", "")),
+                "seasonality": str(payload.get("seasonality", "")),
+                "description": str(payload.get("description", "")),
+                "image_path": self._build_image_url(str(payload.get("article_id", ""))),
                 "price": str(payload.get("price", "") or ""),
             })
 
         context = self._format_context(points)
         if not context:
+            append_log(
+                settings.log_dir,
+                {
+                    "event": "chat",
+                    "request_id": request_id or "",
+                    "session_id": session_id or "",
+                    "query": query,
+                    "search_query": search_query,
+                    "intent_hint": intent_hint,
+                    "must_filters": must_filters,
+                    "must_not_filters": must_not_filters,
+                    "result_count": 0,
+                    "graph_anchor_id": anchor_id,
+                    "graph_used": intent_hint == "graph_pairing" and bool(anchor_id),
+                    "has_image": bool(image),
+                    "latency_ms": int((time.perf_counter() - started_at) * 1000),
+                },
+            )
             return "I could not find any matching items in the current inventory.", []
 
         system_prompt = (
@@ -141,4 +240,22 @@ class FashionRAGService:
         )
         full_prompt = f"{system_prompt}\n\nCustomer: {query}"
         message = self.llm.generate_answer(full_prompt, images=[image] if image else None)
+        append_log(
+            settings.log_dir,
+            {
+                "event": "chat",
+                "request_id": request_id or "",
+                "session_id": session_id or "",
+                "query": query,
+                "search_query": search_query,
+                "intent_hint": intent_hint,
+                "must_filters": must_filters,
+                "must_not_filters": must_not_filters,
+                "result_count": len(items),
+                "graph_anchor_id": anchor_id,
+                "graph_used": intent_hint == "graph_pairing" and bool(anchor_id),
+                "has_image": bool(image),
+                "latency_ms": int((time.perf_counter() - started_at) * 1000),
+            },
+        )
         return message, items

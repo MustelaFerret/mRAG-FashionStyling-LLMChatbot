@@ -1,4 +1,5 @@
 import traceback
+import uuid
 
 from pathlib import Path
 from fastapi import APIRouter, Depends, Request
@@ -6,6 +7,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.backend.core.config import Settings, settings
+from src.backend.core.query_logger import append_log
 from src.backend.core.exceptions import (
     BackendNotReadyException,
     InferenceFailedException,
@@ -44,9 +46,11 @@ def get_rag(request: Request) -> FashionRAGService:
 
 @chat_api_router.post("")
 async def chat(req: ChatRequest, rag: FashionRAGService = Depends(get_rag)):
+    request_id = uuid.uuid4().hex[:12]
+    session_id = (req.session_id or "").strip()
     try:
         image = FashionAssistantService.decode_image(req.image)
-        message, items = await rag.chat(req.text or "", image=image)
+        message, items = await rag.chat(req.text or "", image=image, session_id=session_id, request_id=request_id)
         return {
             "status": "success",
             "data": {
@@ -55,6 +59,17 @@ async def chat(req: ChatRequest, rag: FashionRAGService = Depends(get_rag)):
             },
         }
     except Exception as ex:
+        append_log(
+            settings.log_dir,
+            {
+                "event": "chat_error",
+                "request_id": request_id,
+                "session_id": session_id,
+                "query": req.text or "",
+                "has_image": bool(req.image),
+                "error": str(ex),
+            },
+        )
         traceback.print_exc()
         raise InferenceFailedException(str(ex)) from ex
 

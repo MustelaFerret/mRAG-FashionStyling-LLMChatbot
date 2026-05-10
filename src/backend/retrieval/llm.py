@@ -69,6 +69,31 @@ class QwenMultimodalService:
             except Exception:
                 pass
 
+        self.query_tokenizer = None
+        self.query_model = None
+        self.using_query_llm = False
+
+        if settings.query_llm_model_id:
+            try:
+                query_model_path = get_local_model_path(settings.cache_dir, settings.query_llm_model_id)
+                self.query_tokenizer = AutoTokenizer.from_pretrained(
+                    query_model_path,
+                    local_files_only=settings.llm_local_files_only,
+                )
+                device_map = settings.query_llm_device_map or ({"": 0} if self.device.type == "cuda" else "cpu")
+                self.query_model = AutoModelForCausalLM.from_pretrained(
+                    query_model_path,
+                    torch_dtype=model_dtype,
+                    device_map=device_map,
+                    local_files_only=settings.llm_local_files_only,
+                )
+                self.query_model.eval()
+                self.using_query_llm = True
+            except Exception:
+                self.query_tokenizer = None
+                self.query_model = None
+                self.using_query_llm = False
+
         self.intent_tokenizer = None
         self.intent_model = None
         self.using_intent_classifier = False
@@ -137,6 +162,36 @@ class QwenMultimodalService:
         output_ids = self.nlp_model.generate(**generation_kwargs)
         generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
         return self.nlp_tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
+
+    def _generate_with_query_llm(
+        self,
+        messages: List[Dict],
+        max_new_tokens: int,
+        temperature: float,
+        top_p: float,
+        do_sample: bool,
+    ) -> str:
+        if self.query_model is None or self.query_tokenizer is None:
+            raise RuntimeError("Query LLM is not available")
+
+        text_messages = self._strip_to_text_messages(messages)
+        prompt_text = self.query_tokenizer.apply_chat_template(
+            text_messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        inputs = self.query_tokenizer([prompt_text], return_tensors="pt", padding=True)
+        inputs = {k: v.to(self.device) if hasattr(v, "to") else v for k, v in inputs.items()}
+        generation_kwargs = {
+            **inputs,
+            "max_new_tokens": max_new_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "do_sample": do_sample,
+        }
+        output_ids = self.query_model.generate(**generation_kwargs)
+        generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
+        return self.query_tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
 
     @staticmethod
     def _strip_to_text_messages(messages: List[Dict]) -> List[Dict]:
@@ -364,12 +419,13 @@ class QwenMultimodalService:
         return {"intent": label, "confidence": confidence}
 
     def analyze_user_query(self, query: str) -> Dict:
+        intent_result = self._classify_intent_local(query, [], anchor_item=None)
+        intent_hint = self._normalize_intent(intent_result.get("intent"))
         prompt = (
             "You are a fashion query analyst. Rewrite the user request into English keywords suitable for search. "
-            "Extract intent and filters in one pass. Return JSON only with this schema:\n"
+            "Extract filters in one pass. Return JSON only with this schema:\n"
             "{\n"
             "  \"search_query_en\": string,\n"
-            "  \"intent_hint\": \"similar_items\" | \"graph_pairing\" | \"color_variant\" | \"\",\n"
             "  \"must_filters\": {\"product_type\":\"\",\"colour_group\":\"\",\"fit\":\"\",\"occasion\":\"\",\"seasonality\":\"\"},\n"
             "  \"must_not_filters\": {\"product_type\":[\"\"],\"colour_group\":[\"\"],\"fit\":[\"\"],\"occasion\":[\"\"],\"seasonality\":[\"\"]}\n"
             "}\n"
@@ -377,19 +433,27 @@ class QwenMultimodalService:
             "- search_query_en must be English keywords only.\n"
             "- Keep must_filters empty if unsure.\n"
             "- Put negations into must_not_filters.\n"
-            "- If the request asks for pairing with a current item, set intent_hint=graph_pairing.\n"
             f"User request: {query}"
         )
         messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
 
         try:
-            raw = self._chat_generate_text(
-                messages,
-                max_new_tokens=240,
-                temperature=0.0,
-                top_p=1.0,
-                do_sample=False,
-            )
+            if self.using_query_llm:
+                raw = self._generate_with_query_llm(
+                    messages,
+                    max_new_tokens=240,
+                    temperature=0.0,
+                    top_p=1.0,
+                    do_sample=False,
+                )
+            else:
+                raw = self._chat_generate_text(
+                    messages,
+                    max_new_tokens=240,
+                    temperature=0.0,
+                    top_p=1.0,
+                    do_sample=False,
+                )
         except Exception:
             raw = ""
 
@@ -405,8 +469,6 @@ class QwenMultimodalService:
         search_query = str(obj.get("search_query_en", "") or "").strip()
         if not search_query:
             search_query = query
-        raw_intent = str(obj.get("intent_hint", "") or "").strip()
-        intent_hint = self._normalize_intent(raw_intent) if raw_intent else ""
         must_filters = self._normalize_filters(obj.get("must_filters"))
         must_not_filters = self._normalize_must_not(obj.get("must_not_filters"))
 

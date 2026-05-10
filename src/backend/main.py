@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 from src.backend.api.chat_router import chat_router
 from src.backend.api.session_router import session_router
 from src.backend.core.config import settings, setup_environment
+from src.backend.core.query_logger import clear_log_file
 from src.backend.retrieval.embeddings import HybridEmbeddingService, SparseTfidfEncoder
 from src.backend.retrieval.llm import QwenMultimodalService
 from src.backend.retrieval.qdrant import QdrantStore
@@ -43,6 +44,7 @@ def configure_torch_runtime() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     configure_torch_runtime()
+    clear_log_file(settings.log_dir)
 
     catalog = FashionCatalog(settings.meta_file, settings.graph_file, settings.image_dir)
     qdrant = QdrantStore(settings.db_path, settings.collection_name)

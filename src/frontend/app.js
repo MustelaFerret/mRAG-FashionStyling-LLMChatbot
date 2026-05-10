@@ -49,7 +49,13 @@ function imagePathFromId(articleId) {
 
 function normalizeItems(items) {
     return (items || [])
-        .map((item) => ({ ...item, article_id: formatArticleId(item.article_id) }))
+        .map((item) => ({
+            ...item,
+            article_id: formatArticleId(item.article_id),
+            image_url: item.image_url || item.image_path || imagePathFromId(item.article_id),
+            title: item.title || item.name || item.product_type || "Item",
+            subtitle: item.subtitle || item.colour_group || "",
+        }))
         .filter((item) => item.article_id);
 }
 
@@ -594,7 +600,8 @@ function App() {
         setChatInput("");
         setCurrentImageBase64(null);
         setLatestMeta(null);
-        setModalItem(null);
+        setModalItems([]);
+        setModalIndex(0);
         clearFocusState();
         setQuickActions((bootstrap.suggested_prompts || DEFAULT_BOOTSTRAP.suggested_prompts).slice(0, 6));
     }
@@ -629,37 +636,34 @@ function App() {
                     body: JSON.stringify(requestPayload),
                 }).then((response) => response.json());
 
-            const normalizedItems = normalizeItems(data.items);
-            const ui = data.ui || {};
-            const cards = normalizeItems(ui.cards || normalizedItems);
-            const focusOptions = normalizeItems(ui.anchor_options || normalizedItems);
-            const actions = Array.isArray(ui.quick_actions) && ui.quick_actions.length > 0
-                ? ui.quick_actions.slice(0, 6)
-                : quickActions;
+            const payload = data && data.data ? data.data : data;
+            const normalizedItems = normalizeItems(payload && payload.items ? payload.items : []);
+            const cards = normalizedItems;
+            const focusOptions = normalizedItems;
+            const actions = quickActions;
 
             setMessages((prev) => prev.concat([
                 {
                     id: uid(),
                     role: "ai",
-                    text: data.answer || "",
-                    intent: data.intent || "",
-                    intentInfo: data.intent_info || null,
+                    text: payload && payload.message ? payload.message : "",
+                    intent: "",
+                    intentInfo: null,
                     items: normalizedItems,
                     cards: cards,
-                    meta: data.meta || null,
+                    meta: null,
                     error: false,
                 },
             ]));
 
             if (focusOptions.length > 0) {
                 setAnchorItems(focusOptions.slice(0, 10));
-                const preferredFocus = formatArticleId(data.anchor_article_id)
-                    || formatArticleId(focusOptions[0].article_id)
-                    || "";
-                setSelectedAnchorId(preferredFocus);
+                setSelectedAnchorId(formatArticleId(focusOptions[0].article_id) || "");
+            } else {
+                clearFocusState();
             }
 
-            setLatestMeta(data.meta || null);
+            setLatestMeta(null);
             setQuickActions(actions);
         } catch (_) {
             setMessages((prev) => prev.concat([
