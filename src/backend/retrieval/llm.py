@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import re
-from datetime import datetime
 from typing import Dict, List
 
 import torch
@@ -239,6 +238,21 @@ class QwenMultimodalService:
             do_sample=do_sample,
         )
 
+    def generate_answer(self, prompt: str, images: List[Image.Image] | None = None) -> str:
+        content_blocks: List[Dict] = []
+        for _ in images or []:
+            content_blocks.append({"type": "image"})
+        content_blocks.append({"type": "text", "text": prompt})
+        messages = [{"role": "user", "content": content_blocks}]
+        return self._chat_generate(
+            messages,
+            pil_images=images or None,
+            max_new_tokens=220,
+            temperature=0.2,
+            top_p=0.9,
+            do_sample=True,
+        )
+
     @staticmethod
     def _extract_json_object(raw_text: str) -> Dict | None:
         if not raw_text:
@@ -349,302 +363,59 @@ class QwenMultimodalService:
 
         return {"intent": label, "confidence": confidence}
 
-    def _normalize_analysis_output(self, obj: Dict | None, user_query: str) -> Dict:
-        if not isinstance(obj, dict):
-            obj = {}
-        search_query = str(obj.get("search_query", "") or "").strip()
-        if not search_query:
-            search_query = str(user_query or "").strip()
-        must_filters = self._normalize_filters(obj.get("must_filters"))
-        must_not_filters = self._normalize_must_not(obj.get("must_not_filters"))
-        return {
-            "search_query": search_query,
-            "must_filters": must_filters,
-            "must_not_filters": must_not_filters,
-        }
-
-    def _log_analysis(self, session_id: str, prompt: str, raw_text: str, result: Dict) -> None:
-        log_dir = settings.log_dir
-        os.makedirs(log_dir, exist_ok=True)
-        log_path = os.path.join(log_dir, "llm_router.log")
-        timestamp = datetime.utcnow().isoformat()
-        with open(log_path, "a", encoding="utf-8") as f:
-            f.write(f"timestamp={timestamp}\n")
-            f.write(f"session_id={session_id}\n")
-            f.write("prompt=\n")
-            f.write(prompt.strip() + "\n")
-            f.write("raw=\n")
-            f.write((raw_text or "").strip() + "\n")
-            f.write("json=\n")
-            f.write(json.dumps(result, ensure_ascii=False) + "\n")
-            f.write("\n")
-
-    def _extract_filters_agent(
-        self,
-        intent: str,
-        query: str,
-        history: str,
-        anchor: str,
-        debug: Dict | None = None,
-    ) -> Dict:
+    def analyze_user_query(self, query: str) -> Dict:
         prompt = (
-            f"Task: Extract constraints for a fashion database based on the intent '{intent}'.\n"
-            "1. 'search_query': A clean search string. Resolve pronouns (it/them) using History.\n"
-            "2. 'must_filters': Required attributes (e.g., {'product_type': 'dress'}).\n"
-            "3. 'must_not_filters': Prohibited attributes from negative words like 'no', 'avoid', 'hate'.\n\n"
-            f"[Context]\nHistory: {history}\nAnchor: {anchor}\nQuery: {query}\n\n"
-            "Output ONLY valid JSON:\n"
-            "{\"search_query\": \"...\", \"must_filters\": {}, \"must_not_filters\": {}}"
+            "You are a fashion query analyst. Rewrite the user request into English keywords suitable for search. "
+            "Extract intent and filters in one pass. Return JSON only with this schema:\n"
+            "{\n"
+            "  \"search_query_en\": string,\n"
+            "  \"intent_hint\": \"similar_items\" | \"graph_pairing\" | \"color_variant\" | \"\",\n"
+            "  \"must_filters\": {\"product_type\":\"\",\"colour_group\":\"\",\"fit\":\"\",\"occasion\":\"\",\"seasonality\":\"\"},\n"
+            "  \"must_not_filters\": {\"product_type\":[\"\"],\"colour_group\":[\"\"],\"fit\":[\"\"],\"occasion\":[\"\"],\"seasonality\":[\"\"]}\n"
+            "}\n"
+            "Rules:\n"
+            "- search_query_en must be English keywords only.\n"
+            "- Keep must_filters empty if unsure.\n"
+            "- Put negations into must_not_filters.\n"
+            "- If the request asks for pairing with a current item, set intent_hint=graph_pairing.\n"
+            f"User request: {query}"
         )
         messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-        raw = ""
+
         try:
             raw = self._chat_generate_text(
                 messages,
-                max_new_tokens=256,
+                max_new_tokens=240,
                 temperature=0.0,
                 top_p=1.0,
                 do_sample=False,
             )
-            obj = self._extract_json_object(raw)
-            normalized = self._normalize_analysis_output(obj, query) if obj else {}
         except Exception:
-            normalized = {}
+            raw = ""
 
-        if debug is not None:
-            debug["prompt"] = prompt
-            debug["raw"] = raw
-
-        return normalized
-
-    def analyze_request(
-        self,
-        user_query: str,
-        history: List[Dict[str, str]],
-        anchor_item: Dict | None = None,
-        session_id: str = "",
-    ) -> Dict:
-        anchor_text = ""
-        if anchor_item:
-            anchor_text = (
-                f"#{anchor_item.get('article_id', '')} "
-                f"{anchor_item.get('product_type', '')} "
-                f"{anchor_item.get('colour_group', '')}"
-            ).strip()
-
-        history_text = "None"
-        if history:
-            history_lines = []
-            for msg in history[-4:]:
-                role = msg.get("role", "user")
-                content = msg.get("text", msg.get("content", ""))
-                history_lines.append(f"{role.capitalize()}: {content}")
-            history_text = "\n".join(history_lines)
-
-        intent_debug: Dict = {}
-        extract_debug: Dict = {}
-        intent_result = self._classify_intent_local(user_query, history, anchor_item=anchor_item, debug=intent_debug)
-        intent = self._normalize_intent(intent_result.get("intent"))
-        extraction = self._extract_filters_agent(intent, user_query, history_text, anchor_text, debug=extract_debug)
-
-        result = {
-            "intent": intent,
-            "search_query": extraction.get("search_query", user_query),
-            "must_filters": extraction.get("must_filters", {}),
-            "must_not_filters": extraction.get("must_not_filters", {}),
-        }
-
-        prompt_log = (
-            "### intent_agent_prompt\n"
-            f"{intent_debug.get('prompt', '')}\n\n"
-            "### extraction_agent_prompt\n"
-            f"{extract_debug.get('prompt', '')}"
-        )
-        raw_log = (
-            "intent_raw:\n"
-            f"{intent_debug.get('raw', '')}\n\n"
-            "extraction_raw:\n"
-            f"{extract_debug.get('raw', '')}"
-        )
-        self._log_analysis(session_id, prompt_log, raw_log, result)
-        return result
-
-    def route_intent(self, user_query: str, anchor_item: Dict | None = None) -> str | None:
-        result = self._classify_intent_local(user_query, [], anchor_item=anchor_item)
-        intent = result.get("intent")
-        if intent in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT}:
-            return intent
-        return None
-
-    def detect_pairing_request(self, user_query: str, anchor_item: Dict | None = None) -> bool | None:
-        anchor_text = ""
-        if anchor_item:
-            anchor_text = (
-                f"#{anchor_item.get('article_id', '')} "
-                f"{anchor_item.get('product_type', '')} "
-                f"{anchor_item.get('colour_group', '')}"
-            ).strip()
-
-        prompt = (
-            "Determine if the user is asking for complementary items to wear/pair with the current anchor item.\n"
-            "Return only JSON: {\"pairing_request\": true} or {\"pairing_request\": false}.\n"
-            "Guidelines:\n"
-            "- true: asks to mix/match/pair/wear with this/that item, even if no target category (pants/shoes) is explicitly stated.\n"
-            "- false: asks for similar items or asks for color variants of the same item.\n"
-            "Examples:\n"
-            "1) 'I want to find things to mix with this' -> true\n"
-            "2) 'Find pants that go with this hoodie' -> true\n"
-            "3) 'Show similar hoodies like this' -> false\n"
-            "4) 'Do you have this in black?' -> false\n"
-            f"Anchor item: {anchor_text or 'unknown'}\n"
-            f"User request: {user_query}"
-        )
-        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-
-        try:
-            raw = self._chat_generate_text(messages, max_new_tokens=40, do_sample=False, temperature=0.0, top_p=1.0)
-        except Exception:
-            return None
-
-        obj = self._extract_json_object(raw)
+        obj = self._extract_json_object(raw) if raw else None
         if not obj:
-            return None
+            return {
+                "search_query_en": query,
+                "intent_hint": "",
+                "must_filters": {},
+                "must_not_filters": {},
+            }
 
-        value = obj.get("pairing_request")
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str):
-            lowered = value.strip().lower()
-            if lowered in {"true", "yes", "1"}:
-                return True
-            if lowered in {"false", "no", "0"}:
-                return False
-        return None
-
-    def extract_query_constraints(self, user_query: str, anchor_item: Dict | None = None) -> Dict | None:
-        anchor_text = ""
-        if anchor_item:
-            anchor_text = (
-                f"#{anchor_item.get('article_id', '')} "
-                f"{anchor_item.get('product_type', '')} "
-                f"{anchor_item.get('colour_group', '')}"
-            ).strip()
-
-        prompt = (
-            "Extract structured retrieval constraints from the user query for fashion search.\n"
-            "Return JSON only with this schema:\n"
-            "{\n"
-            "  \"search_query\": string,\n"
-            "  \"intent_hint\": \"similar_items\" | \"graph_pairing\" | \"color_variant\" | \"\",\n"
-            "  \"include_filters\": {\"product_type\":\"\",\"colour_group\":\"\",\"fit\":\"\",\"occasion\":\"\",\"seasonality\":\"\"},\n"
-            "  \"exclude_filters\": {\"colour_group\": [string]},\n"
-            "  \"notes\": string\n"
-            "}\n"
-            "Rules:\n"
-            "- Keep include_filters empty if unsure.\n"
-            "- Put negations like 'not black/white' into exclude_filters.colour_group.\n"
-            "- Preserve attribute binding in search_query (e.g., black jacket + white trousers).\n"
-            "- For queries asking what to mix/match with current item, set intent_hint=graph_pairing.\n"
-            f"Anchor item: {anchor_text or 'unknown'}\n"
-            f"User request: {user_query}"
-        )
-        messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
-
-        try:
-            raw = self._chat_generate_text(messages, max_new_tokens=180, do_sample=False, temperature=0.0, top_p=1.0)
-        except Exception:
-            return None
-
-        obj = self._extract_json_object(raw)
-        if not obj:
-            return None
-
-        include_filters = obj.get("include_filters") if isinstance(obj.get("include_filters"), dict) else {}
-        exclude_filters = obj.get("exclude_filters") if isinstance(obj.get("exclude_filters"), dict) else {}
-        intent_hint = str(obj.get("intent_hint", "") or "").strip()
-        search_query = str(obj.get("search_query", "") or "").strip()
-
-        normalized_exclude: Dict[str, List[str]] = {}
-        colour_excludes = exclude_filters.get("colour_group")
-        if isinstance(colour_excludes, list):
-            normalized_exclude["colour_group"] = [str(v).strip() for v in colour_excludes if str(v).strip()]
-        elif isinstance(colour_excludes, str) and colour_excludes.strip():
-            normalized_exclude["colour_group"] = [colour_excludes.strip()]
+        search_query = str(obj.get("search_query_en", "") or "").strip()
+        if not search_query:
+            search_query = query
+        raw_intent = str(obj.get("intent_hint", "") or "").strip()
+        intent_hint = self._normalize_intent(raw_intent) if raw_intent else ""
+        must_filters = self._normalize_filters(obj.get("must_filters"))
+        must_not_filters = self._normalize_must_not(obj.get("must_not_filters"))
 
         return {
-            "search_query": search_query,
+            "search_query_en": search_query,
             "intent_hint": intent_hint,
-            "include_filters": {
-                "product_type": str(include_filters.get("product_type", "") or "").strip(),
-                "colour_group": str(include_filters.get("colour_group", "") or "").strip(),
-                "fit": str(include_filters.get("fit", "") or "").strip(),
-                "occasion": str(include_filters.get("occasion", "") or "").strip(),
-                "seasonality": str(include_filters.get("seasonality", "") or "").strip(),
-            },
-            "exclude_filters": normalized_exclude,
-            "notes": str(obj.get("notes", "") or "").strip(),
-            "model": settings.qwen_text_model_id if self.using_text_llm_for_nlp else settings.qwen_vl_model_id,
+            "must_filters": must_filters,
+            "must_not_filters": must_not_filters,
         }
-
-    def rewrite_search_query(
-        self,
-        user_query: str,
-        anchor_item: Dict,
-        intent_label: str,
-        image: Image.Image | None = None,
-    ) -> str | None:
-        anchor_text = (
-            f"#{anchor_item.get('article_id', '')} "
-            f"{anchor_item.get('product_type', '')} "
-            f"{anchor_item.get('colour_group', '')} "
-            f"{anchor_item.get('description', '')}"
-        ).strip()
-
-        prompt = (
-            "Rewrite the user request into a short retrieval query for fashion item search. "
-            "Keep only concrete searchable attributes and item types. "
-            "Remove filler words and commands. "
-            "Return JSON only with key search_query. "
-            "Example: {\"search_query\":\"blue denim jeans black khaki pants smart casual\"}.\n"
-            f"Intent: {intent_label}\n"
-            f"Anchor item: {anchor_text or 'unknown'}\n"
-            f"User request: {user_query or 'match outfit from image'}"
-        )
-
-        content_blocks: List[Dict] = []
-        if image is not None:
-            content_blocks.append({"type": "image"})
-        content_blocks.append({"type": "text", "text": prompt})
-        messages = [{"role": "user", "content": content_blocks}]
-
-        try:
-            raw = self._chat_generate(
-                messages,
-                pil_images=[image] if image is not None else None,
-                max_new_tokens=96,
-                do_sample=False,
-                temperature=0.0,
-                top_p=1.0,
-            )
-        except Exception:
-            return None
-
-        if not raw:
-            return None
-
-        match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
-        if match:
-            try:
-                payload = json.loads(match.group(0))
-                query = str(payload.get("search_query", "")).strip()
-                return query[:160] if query else None
-            except json.JSONDecodeError:
-                pass
-
-        first_line = raw.splitlines()[0].strip().strip('"').strip("'")
-        if not first_line:
-            return None
-        return first_line[:160]
 
     def summarize(
         self,

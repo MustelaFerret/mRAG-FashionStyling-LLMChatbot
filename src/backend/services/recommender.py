@@ -761,15 +761,9 @@ class FashionAssistantService:
                 trace=trace,
             )
 
-        history = self.sessions.get_history(session, self.settings.session_history_max)
-        analysis = self.llm.analyze_request(
-            user_query=user_query,
-            history=history,
-            anchor_item=anchor_item,
-            session_id=session_id,
-        )
-        intent = str(analysis.get("intent", "") or "")
-        search_query = str(analysis.get("search_query", "") or "")
+        analysis = self.llm.analyze_user_query(user_query)
+        intent = str(analysis.get("intent_hint", "") or "")
+        search_query = str(analysis.get("search_query_en", "") or "")
         if intent not in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT}:
             intent = ""
         if not intent:

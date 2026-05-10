@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import os
+from pathlib import Path
 from contextlib import asynccontextmanager
 
 import torch
@@ -12,10 +13,11 @@ from fastapi.staticfiles import StaticFiles
 from src.backend.api.chat_router import chat_router
 from src.backend.api.session_router import session_router
 from src.backend.core.config import settings, setup_environment
-from src.backend.retrieval.embeddings import SiglipEmbeddingService
+from src.backend.retrieval.embeddings import HybridEmbeddingService, SparseTfidfEncoder
 from src.backend.retrieval.llm import QwenMultimodalService
 from src.backend.retrieval.qdrant import QdrantStore
 from src.backend.services.catalog import FashionCatalog
+from src.backend.services.rag_service import FashionRAGService
 from src.backend.services.recommender import FashionAssistantService
 from src.backend.services.session_manager import SessionStore
 
@@ -45,9 +47,12 @@ async def lifespan(app: FastAPI):
     catalog = FashionCatalog(settings.meta_file, settings.graph_file, settings.image_dir)
     qdrant = QdrantStore(settings.db_path, settings.collection_name)
     sessions = SessionStore(settings.session_ttl_seconds, settings.max_session_context)
-    embedding = SiglipEmbeddingService()
+    sparse_path = os.getenv("SPARSE_MODEL_PATH", str(Path(settings.meta_file).with_name("sparse_tfidf.json")))
+    sparse_encoder = SparseTfidfEncoder.load(sparse_path) if os.path.exists(sparse_path) else None
+    embedding = HybridEmbeddingService(sparse_encoder=sparse_encoder)
     llm = QwenMultimodalService()
     assistant = FashionAssistantService(settings, catalog, qdrant, embedding, llm, sessions)
+    rag = FashionRAGService(embedding, qdrant, llm, catalog, limit=5)
 
     app.state.settings = settings
     app.state.catalog = catalog
@@ -56,6 +61,7 @@ async def lifespan(app: FastAPI):
     app.state.embedding = embedding
     app.state.llm = llm
     app.state.assistant = assistant
+    app.state.rag = rag
 
     try:
         yield

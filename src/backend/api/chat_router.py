@@ -12,6 +12,7 @@ from src.backend.core.exceptions import (
     StaticAssetNotFoundException,
 )
 from src.backend.models.schemas import ChatRequest
+from src.backend.services.rag_service import FashionRAGService
 from src.backend.services.recommender import FashionAssistantService
 
 chat_api_router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -35,10 +36,24 @@ def get_assistant(request: Request) -> FashionAssistantService:
         raise BackendNotReadyException()
     return assistant
 
+def get_rag(request: Request) -> FashionRAGService:
+    rag = getattr(request.app.state, "rag", None)
+    if rag is None:
+        raise BackendNotReadyException()
+    return rag
+
 @chat_api_router.post("")
-async def chat(req: ChatRequest, assistant: FashionAssistantService = Depends(get_assistant)):
+async def chat(req: ChatRequest, rag: FashionRAGService = Depends(get_rag)):
     try:
-        return assistant.handle_chat(req)
+        image = FashionAssistantService.decode_image(req.image)
+        message, items = await rag.chat(req.text or "", image=image)
+        return {
+            "status": "success",
+            "data": {
+                "message": message,
+                "items": items,
+            },
+        }
     except Exception as ex:
         traceback.print_exc()
         raise InferenceFailedException(str(ex)) from ex
