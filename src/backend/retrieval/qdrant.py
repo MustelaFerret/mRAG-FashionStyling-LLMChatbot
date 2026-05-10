@@ -75,6 +75,7 @@ class QdrantStore:
         limit: int,
         must_filters: Dict[str, str] | None = None,
         must_not_filters: Dict[str, List[str] | str] | None = None,
+        vector_name: str | None = "dense",
     ):
         query_filter = self._build_filter(must_filters, must_not_filters)
 
@@ -85,22 +86,70 @@ class QdrantStore:
                     query=query_vector,
                     limit=limit,
                     query_filter=query_filter,
+                    vector_name=vector_name,
                 )
-            except TypeError:
-                response = self.client.query_points(
-                    collection_name=self.collection_name,
-                    query_vector=query_vector,
-                    limit=limit,
-                    query_filter=query_filter,
-                )
+            except (TypeError, Exception):
+                try:
+                    response = self.client.query_points(
+                        collection_name=self.collection_name,
+                        query_vector=query_vector,
+                        limit=limit,
+                        query_filter=query_filter,
+                        vector_name=vector_name,
+                    )
+                except (TypeError, Exception):
+                    response = self.client.query_points(
+                        collection_name=self.collection_name,
+                        query_vector=query_vector,
+                        limit=limit,
+                        query_filter=query_filter,
+                    )
             return response.points if hasattr(response, "points") else response
 
-        return self.client.search(
-            collection_name=self.collection_name,
-            query_vector=query_vector,
-            query_filter=query_filter,
-            limit=limit,
-        )
+        try:
+            return self.client.search(
+                collection_name=self.collection_name,
+                query_vector=query_vector,
+                query_filter=query_filter,
+                limit=limit,
+                vector_name=vector_name,
+            )
+        except (TypeError, Exception):
+            return self.client.search(
+                collection_name=self.collection_name,
+                query_vector=query_vector,
+                query_filter=query_filter,
+                limit=limit,
+            )
+
+    def ensure_collection(
+        self,
+        dense_name: str = "dense",
+        sparse_name: str = "sparse",
+        size: int = 768,
+        distance: models.Distance = models.Distance.COSINE,
+        reset: bool = False,
+        payload_index_fields: List[str] | None = None,
+    ) -> None:
+        if reset and self.client.collection_exists(self.collection_name):
+            self.client.delete_collection(self.collection_name)
+
+        if not self.client.collection_exists(self.collection_name):
+            self.client.create_collection(
+                collection_name=self.collection_name,
+                vectors_config={dense_name: models.VectorParams(size=size, distance=distance)},
+                sparse_vectors_config={sparse_name: models.SparseVectorParams()},
+            )
+
+        for field in payload_index_fields or []:
+            try:
+                self.client.create_payload_index(
+                    collection_name=self.collection_name,
+                    field_name=field,
+                    field_schema=models.PayloadSchemaType.KEYWORD,
+                )
+            except Exception:
+                pass
 
     def retrieve_by_article_ids(self, article_ids: List[str]):
         if not article_ids:
@@ -111,3 +160,35 @@ class QdrantStore:
             return []
 
         return self.client.retrieve(collection_name=self.collection_name, ids=point_ids)
+
+    def hybrid_search(
+        self,
+        dense_vector: List[float],
+        sparse_indices: List[int],
+        sparse_values: List[float],
+        limit: int = 10,
+        must_filters: Dict[str, str] | None = None,
+        must_not_filters: Dict[str, List[str] | str] | None = None,
+    ):
+        query_filter = self._build_filter(must_filters, must_not_filters)
+        prefetch = [
+            models.Prefetch(
+                query=dense_vector,
+                using="dense",
+                limit=limit * 3,
+                filter=query_filter,
+            ),
+            models.Prefetch(
+                query=models.SparseVector(indices=sparse_indices, values=sparse_values),
+                using="sparse",
+                limit=limit * 3,
+                filter=query_filter,
+            ),
+        ]
+        response = self.client.query_points(
+            collection_name=self.collection_name,
+            prefetch=prefetch,
+            query=models.FusionQuery(fusion=models.Fusion.RRF),
+            limit=limit,
+        )
+        return response.points if hasattr(response, "points") else response

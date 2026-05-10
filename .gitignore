@@ -7,3 +7,5 @@ EDA/
 model_cache/
 qdrant_local_db/
 new_FE(unsed yet)/
+temp/
+data_cleaning/
