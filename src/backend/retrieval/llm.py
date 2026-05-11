@@ -3,14 +3,14 @@ from __future__ import annotations
 import json
 import os
 import re
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import torch
 from PIL import Image
 from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoProcessor, AutoTokenizer, Qwen2VLForConditionalGeneration
 
 from src.backend.core.config import settings
-from src.backend.core.utils import get_local_model_path
+from src.backend.core.utils import get_local_model_path, normalize_text
 
 
 INTENT_SIMILAR = "similar_items"
@@ -380,6 +380,93 @@ class QwenMultimodalService:
             return INTENT_VARIANT
         return INTENT_SIMILAR
 
+    @staticmethod
+    def _has_anchor_reference(text: str) -> bool:
+        if not text:
+            return False
+        if re.search(r"(#|\b)\d{6,10}\b", text):
+            return True
+        anchor_markers = [
+            "this",
+            "that",
+            "these",
+            "those",
+            "my",
+            "this item",
+            "that item",
+            "this look",
+            "that look",
+            "this outfit",
+            "that outfit",
+            "the item",
+            "the look",
+            "the outfit",
+        ]
+        return any(marker in text for marker in anchor_markers)
+
+    @staticmethod
+    def _is_color_variant_request(text: str) -> bool:
+        if not text:
+            return False
+        color_terms = ["color", "colour"]
+        variant_terms = ["another", "other", "different", "variant", "colorway", "colourway"]
+        if not any(term in text for term in color_terms):
+            return False
+        if not any(term in text for term in variant_terms):
+            return False
+        return True
+
+    @staticmethod
+    def _is_graph_pairing_request(text: str) -> bool:
+        if not text:
+            return False
+        pairing_terms = [
+            "pair",
+            "pairing",
+            "match",
+            "matching",
+            "go with",
+            "goes with",
+            "wear with",
+            "style with",
+            "combine with",
+            "match with",
+        ]
+        return any(term in text for term in pairing_terms)
+
+    def _build_intent_rule_debug(self, query: str, intent_hint: str) -> Dict[str, Any]:
+        text = normalize_text(query)
+        has_anchor = self._has_anchor_reference(text)
+        is_color_variant = self._is_color_variant_request(text)
+        is_graph_pairing = self._is_graph_pairing_request(text)
+        return {
+            "query_normalized": text,
+            "classifier_intent": intent_hint,
+            "has_anchor_reference": has_anchor,
+            "is_color_variant_request": is_color_variant,
+            "is_graph_pairing_request": is_graph_pairing,
+        }
+
+    def _apply_intent_rules(self, query: str, intent_hint: str) -> tuple[str, Dict[str, Any]]:
+        debug = self._build_intent_rule_debug(query, intent_hint)
+        text = debug.get("query_normalized", "")
+        if not text:
+            debug["rule_applied"] = "empty_query_default_similar"
+            return INTENT_SIMILAR, debug
+
+        if debug.get("has_anchor_reference") and debug.get("is_color_variant_request"):
+            debug["rule_applied"] = "explicit_color_variant"
+            return INTENT_VARIANT, debug
+        if debug.get("has_anchor_reference") and debug.get("is_graph_pairing_request"):
+            debug["rule_applied"] = "explicit_graph_pairing"
+            return INTENT_GRAPH, debug
+        if intent_hint in {INTENT_GRAPH, INTENT_VARIANT}:
+            debug["rule_applied"] = "force_similar_no_explicit_pairing"
+            return INTENT_SIMILAR, debug
+
+        debug["rule_applied"] = "default_similar"
+        return INTENT_SIMILAR, debug
+
     def _classify_intent_local(
         self,
         user_query: str,
@@ -388,11 +475,23 @@ class QwenMultimodalService:
         debug: Dict | None = None,
     ) -> Dict:
         if self.intent_model is None or self.intent_tokenizer is None:
-            return {"intent": INTENT_SIMILAR, "confidence": 0.0}
+            return {
+                "intent": INTENT_SIMILAR,
+                "confidence": 0.0,
+                "raw_label": "",
+                "index": -1,
+                "source": "fallback_default",
+            }
 
         clean_query = user_query.strip()
         if not clean_query:
-            return {"intent": INTENT_SIMILAR, "confidence": 1.0}
+            return {
+                "intent": INTENT_SIMILAR,
+                "confidence": 1.0,
+                "raw_label": "",
+                "index": -1,
+                "source": "empty_query",
+            }
 
         # CHỈ đưa câu query thuần túy vào mô hình, giới hạn đúng 32 tokens như lúc train
         inputs = self.intent_tokenizer(clean_query, return_tensors="pt", truncation=True, max_length=32)
@@ -416,11 +515,18 @@ class QwenMultimodalService:
             debug["prompt"] = clean_query  # Chỉ log query sạch
             debug["raw"] = json.dumps({"intent": label, "confidence": round(confidence, 4)}, ensure_ascii=False)
 
-        return {"intent": label, "confidence": confidence}
+        return {
+            "intent": label,
+            "confidence": confidence,
+            "raw_label": str(raw_label),
+            "index": idx,
+            "source": "roberta",
+        }
 
     def analyze_user_query(self, query: str) -> Dict:
         intent_result = self._classify_intent_local(query, [], anchor_item=None)
-        intent_hint = self._normalize_intent(intent_result.get("intent"))
+        intent_hint_raw = self._normalize_intent(intent_result.get("intent"))
+        intent_hint, intent_rules = self._apply_intent_rules(query, intent_hint_raw)
         prompt = (
             "You are a fashion query analyst. Rewrite the user request into English keywords suitable for search. "
             "Extract filters in one pass. Return JSON only with this schema:\n"
@@ -433,6 +539,13 @@ class QwenMultimodalService:
             "- search_query_en must be English keywords only.\n"
             "- Keep must_filters empty if unsure.\n"
             "- Put negations into must_not_filters.\n"
+            "- intent_hint is handled by a separate classifier. Do not invent it here.\n"
+            "- If the user query contains a clothing item (e.g., parka, jacket, hat, dress), YOU MUST extract it into the \"product_type\" field. DO NOT leave it empty.\n"
+            "- OUTPUT ONLY VALID JSON. DO NOT output any conversational text, markdown formatting, or explanations.\n"
+            "RULES FOR \"intent_hint\":\n"
+            "- MUST output \"similar_items\" if the user is looking for a specific piece of clothing based on description, style, or need (e.g., \"I want to find...\", \"Looking for a jacket...\").\n"
+            "- MUST output \"graph_pairing\" ONLY if the user explicitly asks to find complementary items to pair with a given/referenced item (e.g., \"What pants go with this jacket?\", \"Find shoes matching this look\").\n"
+            "- MUST output \"color_variant\" ONLY if the user asks for the exact same item in a different color.\n"
             f"User request: {query}"
         )
         messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
@@ -441,7 +554,7 @@ class QwenMultimodalService:
             if self.using_query_llm:
                 raw = self._generate_with_query_llm(
                     messages,
-                    max_new_tokens=240,
+                    max_new_tokens=100,
                     temperature=0.0,
                     top_p=1.0,
                     do_sample=False,
@@ -449,7 +562,7 @@ class QwenMultimodalService:
             else:
                 raw = self._chat_generate_text(
                     messages,
-                    max_new_tokens=240,
+                    max_new_tokens=100,
                     temperature=0.0,
                     top_p=1.0,
                     do_sample=False,
@@ -459,24 +572,48 @@ class QwenMultimodalService:
 
         obj = self._extract_json_object(raw) if raw else None
         if not obj:
+            debug = {
+                "intent_classifier": intent_result,
+                "intent_rules": intent_rules,
+                "llm_raw": raw,
+                "llm_parsed": None,
+                "llm_parse_ok": False,
+                "using_query_llm": self.using_query_llm,
+                "query_llm_model_id": settings.query_llm_model_id or settings.qwen_text_model_id,
+            }
             return {
                 "search_query_en": query,
                 "intent_hint": "",
                 "must_filters": {},
                 "must_not_filters": {},
+                "debug": debug,
             }
 
         search_query = str(obj.get("search_query_en", "") or "").strip()
         if not search_query:
             search_query = query
-        must_filters = self._normalize_filters(obj.get("must_filters"))
-        must_not_filters = self._normalize_must_not(obj.get("must_not_filters"))
+        raw_filters = obj.get("must_filters") if isinstance(obj.get("must_filters"), dict) else {}
+        raw_must_not = obj.get("must_not_filters") if isinstance(obj.get("must_not_filters"), dict) else {}
+        must_filters = self._normalize_filters(raw_filters)
+        must_not_filters = self._normalize_must_not(raw_must_not)
+        debug = {
+            "intent_classifier": intent_result,
+            "intent_rules": intent_rules,
+            "llm_raw": raw,
+            "llm_parsed": obj,
+            "llm_parse_ok": True,
+            "llm_filters_raw": raw_filters,
+            "llm_must_not_raw": raw_must_not,
+            "using_query_llm": self.using_query_llm,
+            "query_llm_model_id": settings.query_llm_model_id or settings.qwen_text_model_id,
+        }
 
         return {
             "search_query_en": search_query,
             "intent_hint": intent_hint,
             "must_filters": must_filters,
             "must_not_filters": must_not_filters,
+            "debug": debug,
         }
 
     def summarize(

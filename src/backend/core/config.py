@@ -46,9 +46,9 @@ class Settings:
     clean_cuda_cache_each_request: bool = os.getenv("CLEAN_CUDA_CACHE_EACH_REQUEST", "1") == "1"
 
     siglip_model_id: str = os.getenv("SIGLIP_MODEL_ID", "google/siglip-base-patch16-224")
-    qwen_model_id: str = os.getenv("QWEN_MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
+    qwen_model_id: str = os.getenv("QWEN_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     qwen_vl_model_id: str = os.getenv("QWEN_VL_MODEL_ID", "")
-    qwen_text_model_id: str = os.getenv("QWEN_TEXT_MODEL_ID", "Qwen/Qwen2.5-0.5B-Instruct")
+    qwen_text_model_id: str = os.getenv("QWEN_TEXT_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     query_llm_model_id: str = os.getenv("QUERY_LLM_MODEL_ID", "")
     query_llm_device_map: str = os.getenv("QUERY_LLM_DEVICE_MAP", "")
     intent_classifier_dir: str = str(LOCAL_CACHE_DIR / os.getenv("INTENT_CLASSIFIER_DIR", "intent_classifier_roberta"))

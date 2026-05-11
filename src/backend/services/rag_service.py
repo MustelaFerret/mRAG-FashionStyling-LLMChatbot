@@ -21,53 +21,75 @@ class FashionRAGService:
         self.llm = llm
         self.catalog = catalog
         self.limit = max(1, int(limit))
-        self.filter_maps = self._build_filter_maps()
+        self.allowed_filters = self._build_allowed_filters()
 
-    def _build_filter_maps(self) -> Dict[str, Dict[str, str]]:
-        maps: Dict[str, Dict[str, str]] = {}
+    def _build_allowed_filters(self) -> Dict[str, List[str]]:
+        return {
+            "product_type": list(getattr(self.catalog, "valid_product_types", []) or []),
+            "colour_group": list(getattr(self.catalog, "valid_colors", []) or []),
+            "fit": list(getattr(self.catalog, "valid_fits", []) or []),
+            "occasion": list(getattr(self.catalog, "valid_occasions", []) or []),
+            "seasonality": list(getattr(self.catalog, "valid_seasonalities", []) or []),
+        }
 
-        def build_map(values: List[tuple[str, str]]) -> Dict[str, str]:
-            out: Dict[str, str] = {}
-            for normalized, original in values:
-                if not normalized or not original:
-                    continue
-                out[normalized] = original
-            return out
-
-        maps["product_type"] = build_map(getattr(self.catalog, "product_type_values", []))
-        maps["colour_group"] = build_map(getattr(self.catalog, "color_values", []))
-        maps["fit"] = build_map(getattr(self.catalog, "fit_values", []))
-        maps["occasion"] = build_map(getattr(self.catalog, "occasion_values", []))
-
-        seasonality_map: Dict[str, str] = {}
-        meta = getattr(self.catalog, "df_meta", None)
-        if meta is not None and "seasonality" in meta.columns:
-            for value in meta["seasonality"].dropna().unique():
-                raw = str(value).strip()
-                if not raw:
-                    continue
-                seasonality_map[normalize_text(raw)] = raw
-        maps["seasonality"] = seasonality_map
-        return maps
-
-    def _validate_filter_value(self, key: str, value: str) -> str:
-        if not value:
+    def _validate_filter_value(
+        self,
+        key: str,
+        value: str,
+        dropped: List[str] | None = None,
+        debug: List[Dict[str, Any]] | None = None,
+        scope: str = "must_filters",
+    ) -> str:
+        value_str = str(value).strip()
+        if not value_str:
             return ""
-        normalized = normalize_text(value)
-        if not normalized:
+        allowed = self.allowed_filters.get(key, [])
+        if not allowed:
             return ""
-        mapping = self.filter_maps.get(key, {})
-        return mapping.get(normalized, "")
+        value_lower = value_str.lower()
+        matched = next((v for v in allowed if v.lower() == value_lower), "")
+        if not matched:
+            if dropped is not None:
+                dropped.append(f"{key}={value_str}")
+            print(f"[WARNING] Dropping invalid filter: {key}={value_str}")
+        if debug is not None:
+            debug.append(
+                {
+                    "scope": scope,
+                    "key": key,
+                    "input": value_str,
+                    "matched": matched,
+                    "allowed_count": len(allowed),
+                    "allowed_has_value": bool(matched),
+                }
+            )
+        return matched
 
-    def _validate_filters(self, filters: Dict[str, str]) -> Dict[str, str]:
+    def _validate_filters(
+        self,
+        filters: Dict[str, str],
+        dropped: List[str] | None = None,
+        debug: List[Dict[str, Any]] | None = None,
+    ) -> Dict[str, str]:
         validated: Dict[str, str] = {}
         for key, value in (filters or {}).items():
-            cleaned = self._validate_filter_value(key, str(value).strip())
+            cleaned = self._validate_filter_value(
+                key,
+                str(value).strip(),
+                dropped=dropped,
+                debug=debug,
+                scope="must_filters",
+            )
             if cleaned:
                 validated[key] = cleaned
         return validated
 
-    def _validate_must_not(self, filters: Dict[str, List[str] | str]) -> Dict[str, List[str]]:
+    def _validate_must_not(
+        self,
+        filters: Dict[str, List[str] | str],
+        dropped: List[str] | None = None,
+        debug: List[Dict[str, Any]] | None = None,
+    ) -> Dict[str, List[str]]:
         validated: Dict[str, List[str]] = {}
         for key, value in (filters or {}).items():
             if isinstance(value, str):
@@ -76,7 +98,13 @@ class FashionRAGService:
                 values = list(value or [])
             cleaned_values: List[str] = []
             for item in values:
-                cleaned = self._validate_filter_value(key, str(item).strip())
+                cleaned = self._validate_filter_value(
+                    key,
+                    str(item).strip(),
+                    dropped=dropped,
+                    debug=debug,
+                    scope="must_not_filters",
+                )
                 if cleaned:
                     cleaned_values.append(cleaned)
             if cleaned_values:
@@ -146,18 +174,57 @@ class FashionRAGService:
         request_id: str | None = None,
     ) -> tuple[str, List[dict]]:
         started_at = time.perf_counter()
+        analysis_started = time.perf_counter()
         analysis = self.llm.analyze_user_query(query)
+        analysis_ms = int((time.perf_counter() - analysis_started) * 1000)
         search_query = str(analysis.get("search_query_en", "") or "").strip() or query
+        search_query_raw = search_query
         intent_hint = str(analysis.get("intent_hint", "") or "").strip()
-        must_filters = self._validate_filters(analysis.get("must_filters", {}))
-        must_not_filters = self._validate_must_not(analysis.get("must_not_filters", {}))
-        dense_vec, sparse_idx, sparse_val = self.embedder.encode_hybrid(search_query, search_query, image=image)
+        analysis_debug = analysis.get("debug", {}) if isinstance(analysis.get("debug"), dict) else {}
+        llm_filters_raw = analysis_debug.get("llm_filters_raw", analysis.get("must_filters", {}))
+        llm_must_not_raw = analysis_debug.get("llm_must_not_raw", analysis.get("must_not_filters", {}))
+        dropped_filters: List[str] = []
+        dropped_must_not: List[str] = []
+        filter_validation_debug: List[Dict[str, Any]] = []
+        must_not_validation_debug: List[Dict[str, Any]] = []
+        must_filters = self._validate_filters(
+            analysis.get("must_filters", {}),
+            dropped=dropped_filters,
+            debug=filter_validation_debug,
+        )
+        must_not_filters = self._validate_must_not(
+            analysis.get("must_not_filters", {}),
+            dropped=dropped_must_not,
+            debug=must_not_validation_debug,
+        )
+
+        dense_query = search_query
+        sparse_query = search_query
+        product_type = str(must_filters.get("product_type", "")).strip()
+        boost_applied = False
+        if product_type:
+            sparse_query = f"{product_type} {product_type} {product_type} {search_query}".strip()
+            boost_applied = True
+
+        embed_started = time.perf_counter()
+        dense_vec, sparse_idx, sparse_val = self.embedder.encode_hybrid(dense_query, sparse_query, image=image)
+        embed_ms = int((time.perf_counter() - embed_started) * 1000)
         points: List[Any] = []
         anchor_id = ""
+        graph_anchor_source = ""
+        graph_neighbor_ids: List[str] = []
+        graph_candidate_count = 0
+        graph_filtered_count = 0
+        hybrid_result_count = 0
+        retrieval_path: List[str] = []
 
         if intent_hint == "graph_pairing":
+            retrieval_path.append("intent_graph_pairing")
             anchor_id = extract_article_id_from_text(query)
+            if anchor_id:
+                graph_anchor_source = "query_reference"
             if not anchor_id:
+                retrieval_path.append("anchor_from_hybrid_top1")
                 anchor_points = self.store.hybrid_search(
                     dense_vector=dense_vec,
                     sparse_indices=sparse_idx,
@@ -168,19 +235,26 @@ class FashionRAGService:
                 )
                 first = anchor_points[0] if anchor_points else None
                 anchor_id = str((getattr(first, "payload", {}) or {}).get("article_id", "")) if first else ""
+                if anchor_id:
+                    graph_anchor_source = "hybrid_top1"
 
             anchor_id = normalize_article_id(anchor_id)
             if anchor_id:
+                retrieval_path.append("graph_neighbors")
                 neighbor_ids = self.catalog.get_graph_neighbor_ids(
                     anchor_id,
                     limit=self.limit,
                     preferred_min_weight=settings.graph_preferred_min_weight,
                     hard_min_weight=settings.graph_hard_min_weight,
                 )
-                points = self.store.retrieve_by_article_ids(neighbor_ids)
+                graph_neighbor_ids = list(neighbor_ids or [])
+                graph_candidate_count = len(graph_neighbor_ids)
+                points = self.store.retrieve_by_article_ids(graph_neighbor_ids)
                 points = self._filter_points(points, must_filters, must_not_filters)
+                graph_filtered_count = len(points)
 
         if not points:
+            retrieval_path.append("fallback_hybrid_search" if intent_hint == "graph_pairing" else "hybrid_search")
             results = self.store.hybrid_search(
                 dense_vector=dense_vec,
                 sparse_indices=sparse_idx,
@@ -190,6 +264,7 @@ class FashionRAGService:
                 must_not_filters=must_not_filters,
             )
             points = results or []
+            hybrid_result_count = len(points)
         items: List[dict] = []
         for point in points:
             payload = getattr(point, "payload", {}) or {}
@@ -207,26 +282,50 @@ class FashionRAGService:
                 "price": str(payload.get("price", "") or ""),
             })
 
+        result_ids = [item.get("article_id", "") for item in items if item.get("article_id")]
+        log_payload = {
+            "event": "chat",
+            "request_id": request_id or "",
+            "session_id": session_id or "",
+            "query": query,
+            "search_query": search_query,
+            "search_query_raw": search_query_raw,
+            "dense_query": dense_query,
+            "sparse_query": sparse_query,
+            "boosted_product_type": product_type,
+            "boost_applied": boost_applied,
+            "intent_hint": intent_hint,
+            "analysis_debug": analysis_debug,
+            "llm_filters_raw": llm_filters_raw,
+            "llm_must_not_raw": llm_must_not_raw,
+            "must_filters": must_filters,
+            "must_not_filters": must_not_filters,
+            "dropped_filters": dropped_filters,
+            "dropped_must_not": dropped_must_not,
+            "filter_validation_debug": filter_validation_debug,
+            "must_not_validation_debug": must_not_validation_debug,
+            "retrieval_path": retrieval_path,
+            "graph_anchor_id": anchor_id,
+            "graph_anchor_source": graph_anchor_source,
+            "graph_neighbor_ids": graph_neighbor_ids,
+            "graph_candidate_count": graph_candidate_count,
+            "graph_filtered_count": graph_filtered_count,
+            "hybrid_result_count": hybrid_result_count,
+            "has_image": bool(image),
+            "result_ids": result_ids,
+            "timing_ms": {
+                "analysis": analysis_ms,
+                "embedding": embed_ms,
+            },
+        }
+
         context = self._format_context(points)
         if not context:
-            append_log(
-                settings.log_dir,
-                {
-                    "event": "chat",
-                    "request_id": request_id or "",
-                    "session_id": session_id or "",
-                    "query": query,
-                    "search_query": search_query,
-                    "intent_hint": intent_hint,
-                    "must_filters": must_filters,
-                    "must_not_filters": must_not_filters,
-                    "result_count": 0,
-                    "graph_anchor_id": anchor_id,
-                    "graph_used": intent_hint == "graph_pairing" and bool(anchor_id),
-                    "has_image": bool(image),
-                    "latency_ms": int((time.perf_counter() - started_at) * 1000),
-                },
-            )
+            log_payload["result_count"] = 0
+            log_payload["graph_used"] = intent_hint == "graph_pairing" and bool(anchor_id)
+            log_payload["latency_ms"] = int((time.perf_counter() - started_at) * 1000)
+            log_payload["timing_ms"]["total"] = log_payload["latency_ms"]
+            append_log(settings.log_dir, log_payload)
             return "I could not find any matching items in the current inventory.", []
 
         system_prompt = (
@@ -240,22 +339,9 @@ class FashionRAGService:
         )
         full_prompt = f"{system_prompt}\n\nCustomer: {query}"
         message = self.llm.generate_answer(full_prompt, images=[image] if image else None)
-        append_log(
-            settings.log_dir,
-            {
-                "event": "chat",
-                "request_id": request_id or "",
-                "session_id": session_id or "",
-                "query": query,
-                "search_query": search_query,
-                "intent_hint": intent_hint,
-                "must_filters": must_filters,
-                "must_not_filters": must_not_filters,
-                "result_count": len(items),
-                "graph_anchor_id": anchor_id,
-                "graph_used": intent_hint == "graph_pairing" and bool(anchor_id),
-                "has_image": bool(image),
-                "latency_ms": int((time.perf_counter() - started_at) * 1000),
-            },
-        )
+        log_payload["result_count"] = len(items)
+        log_payload["graph_used"] = intent_hint == "graph_pairing" and bool(anchor_id)
+        log_payload["latency_ms"] = int((time.perf_counter() - started_at) * 1000)
+        log_payload["timing_ms"]["total"] = log_payload["latency_ms"]
+        append_log(settings.log_dir, log_payload)
         return message, items

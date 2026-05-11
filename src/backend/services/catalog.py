@@ -42,6 +42,11 @@ class FashionCatalog:
         self.color_values = self._build_search_values(self.df_meta["colour_group_name"])
         self.occasion_values = self._build_search_values(self.df_meta["occasion"])
         self.fit_values = self._build_search_values(self.df_meta["fit"])
+        self.valid_product_types = self._unique_values(self.df_meta["product_type_name"])
+        self.valid_colors = self._unique_values(self.df_meta["colour_group_name"])
+        self.valid_occasions = self._unique_values(self.df_meta["occasion"])
+        self.valid_fits = self._unique_values(self.df_meta["fit"])
+        self.valid_seasonalities = self._unique_values(self.df_meta["seasonality"])
         self.graph_adj = self._build_graph_adjacency()
 
     @staticmethod
@@ -49,6 +54,11 @@ class FashionCatalog:
         values = [str(v).strip() for v in series.dropna().unique() if str(v).strip()]
         values = sorted(values, key=lambda v: len(v), reverse=True)
         return [(normalize_text(v), v) for v in values]
+
+    @staticmethod
+    def _unique_values(series: pd.Series) -> List[str]:
+        values = [str(v).strip() for v in series.dropna().unique() if str(v).strip()]
+        return sorted(set(values))
 
     def _build_graph_adjacency(self) -> Dict[str, List[Tuple[str, float]]]:
         adjacency: Dict[str, Dict[str, float]] = {}

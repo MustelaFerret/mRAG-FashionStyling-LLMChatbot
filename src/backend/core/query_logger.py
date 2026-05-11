@@ -27,7 +27,7 @@ def append_log(log_dir: str, event: Dict[str, Any]) -> str:
     path = _resolve_log_path(log_dir)
     payload = dict(event or {})
     payload["timestamp_utc"] = datetime.now(timezone.utc).isoformat()
-    line = json.dumps(payload, ensure_ascii=True)
+    line = json.dumps(payload, ensure_ascii=True, indent=2, sort_keys=True)
     with open(path, "a", encoding="utf-8") as handle:
-        handle.write(line + "\n")
+        handle.write(line + "\n\n")
     return path
