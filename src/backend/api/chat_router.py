@@ -1,9 +1,11 @@
+import json
+import time
 import traceback
 import uuid
 
 from pathlib import Path
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
 from src.backend.core.config import Settings, settings
@@ -44,20 +46,65 @@ def get_rag(request: Request) -> FashionRAGService:
         raise BackendNotReadyException()
     return rag
 
+def _format_sse(event: str, data: dict) -> str:
+    payload = json.dumps(data or {}, ensure_ascii=True)
+    return f"event: {event}\ndata: {payload}\n\n"
+
 @chat_api_router.post("")
-async def chat(req: ChatRequest, rag: FashionRAGService = Depends(get_rag)):
+async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depends(get_rag)):
     request_id = uuid.uuid4().hex[:12]
     session_id = (req.session_id or "").strip()
+    wants_stream = bool(getattr(req, "stream", False)) or "text/event-stream" in request.headers.get("accept", "")
     try:
         image = FashionAssistantService.decode_image(req.image)
-        message, items = await rag.chat(req.text or "", image=image, session_id=session_id, request_id=request_id)
-        return {
-            "status": "success",
-            "data": {
-                "message": message,
-                "items": items,
-            },
+        if not wants_stream:
+            message, items = await rag.chat(req.text or "", image=image, session_id=session_id, request_id=request_id)
+            return {
+                "status": "success",
+                "data": {
+                    "message": message,
+                    "items": items,
+                },
+            }
+
+        started_at = time.perf_counter()
+        items, full_prompt, log_payload, has_context = rag.prepare_chat(
+            query=req.text or "",
+            image=image,
+            session_id=session_id,
+            request_id=request_id,
+            started_at=started_at,
+        )
+
+        def event_generator():
+            yield _format_sse("meta", {"request_id": request_id, "items": items})
+            if not has_context:
+                message = "I could not find any matching items in the current inventory."
+                rag.finalize_log(log_payload, started_at, 0)
+                yield _format_sse("delta", {"delta": message})
+                yield _format_sse("done", {"message": message})
+                return
+
+            message_parts: list[str] = []
+            try:
+                for token in rag.stream_answer(full_prompt, image=image):
+                    if not token:
+                        continue
+                    message_parts.append(token)
+                    yield _format_sse("delta", {"delta": token})
+                full_message = "".join(message_parts).strip()
+                rag.finalize_log(log_payload, started_at, len(items))
+                yield _format_sse("done", {"message": full_message})
+            except Exception as ex:
+                rag.finalize_log(log_payload, started_at, len(items))
+                yield _format_sse("error", {"error": str(ex)})
+
+        headers = {
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
         }
+        return StreamingResponse(event_generator(), media_type="text/event-stream", headers=headers)
     except Exception as ex:
         append_log(
             settings.log_dir,
@@ -68,6 +115,7 @@ async def chat(req: ChatRequest, rag: FashionRAGService = Depends(get_rag)):
                 "query": req.text or "",
                 "has_image": bool(req.image),
                 "error": str(ex),
+                "stream": wants_stream,
             },
         )
         traceback.print_exc()

@@ -615,6 +615,13 @@ function App() {
         setChatInput("");
         handleRemoveImage();
         setIsLoading(true);
+        let aiMessageId = "";
+        const updateMessageById = (id, patch) => {
+            if (!id) return;
+            setMessages((prev) => prev.map((msg) => (
+                msg.id === id ? { ...msg, ...patch } : msg
+            )));
+        };
 
         try {
             const requestPayload = {
@@ -626,59 +633,116 @@ function App() {
                 response_mode: "rich",
                 include_debug: true,
                 max_ui_items: 10,
+                stream: true,
             };
 
-            const data = api.chat
-                ? await api.chat(requestPayload)
-                : await fetch("/api/chat", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(requestPayload),
-                }).then((response) => response.json());
-
-            const payload = data && data.data ? data.data : data;
-            const normalizedItems = normalizeItems(payload && payload.items ? payload.items : []);
-            const cards = normalizedItems;
-            const focusOptions = normalizedItems;
-            const actions = quickActions;
-
+            aiMessageId = uid();
             setMessages((prev) => prev.concat([
                 {
-                    id: uid(),
+                    id: aiMessageId,
                     role: "ai",
-                    text: payload && payload.message ? payload.message : "",
-                    intent: "",
-                    intentInfo: null,
-                    items: normalizedItems,
-                    cards: cards,
-                    meta: null,
-                    error: false,
-                },
-            ]));
-
-            if (focusOptions.length > 0) {
-                setAnchorItems(focusOptions.slice(0, 10));
-                setSelectedAnchorId(formatArticleId(focusOptions[0].article_id) || "");
-            } else {
-                clearFocusState();
-            }
-
-            setLatestMeta(null);
-            setQuickActions(actions);
-        } catch (_) {
-            setMessages((prev) => prev.concat([
-                {
-                    id: uid(),
-                    role: "ai",
-                    text: "Cannot connect to the AI server.",
+                    text: "",
                     intent: "",
                     intentInfo: null,
                     items: [],
                     cards: [],
                     meta: null,
-                    error: true,
+                    error: false,
                 },
             ]));
+
+            const updateAiMessage = (patch) => updateMessageById(aiMessageId, patch);
+
+            const appendDelta = (delta) => {
+                if (!delta) return;
+                setMessages((prev) => prev.map((msg) => (
+                    msg.id === aiMessageId
+                        ? { ...msg, text: (msg.text || "") + delta }
+                        : msg
+                )));
+            };
+
+            if (api.chatStream) {
+                let streamError = null;
+                await api.chatStream(requestPayload, (eventName, data) => {
+                    if (eventName === "meta") {
+                        const normalizedItems = normalizeItems(data && data.items ? data.items : []);
+                        updateAiMessage({ items: normalizedItems, cards: normalizedItems });
+                        if (normalizedItems.length > 0) {
+                            setAnchorItems(normalizedItems.slice(0, 10));
+                            setSelectedAnchorId(formatArticleId(normalizedItems[0].article_id) || "");
+                        } else {
+                            clearFocusState();
+                        }
+                        return;
+                    }
+                    if (eventName === "delta") {
+                        appendDelta(data && data.delta ? data.delta : "");
+                        return;
+                    }
+                    if (eventName === "done") {
+                        if (data && data.message) {
+                            updateAiMessage({ text: data.message });
+                        }
+                        return;
+                    }
+                    if (eventName === "error") {
+                        streamError = data && data.error ? data.error : "Streaming error";
+                    }
+                });
+                if (streamError) {
+                    throw new Error(streamError);
+                }
+            } else {
+                const data = api.chat
+                    ? await api.chat({ ...requestPayload, stream: false })
+                    : await fetch("/api/chat", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ...requestPayload, stream: false }),
+                    }).then((response) => response.json());
+
+                const payload = data && data.data ? data.data : data;
+                const normalizedItems = normalizeItems(payload && payload.items ? payload.items : []);
+                updateAiMessage({
+                    text: payload && payload.message ? payload.message : "",
+                    items: normalizedItems,
+                    cards: normalizedItems,
+                });
+                if (normalizedItems.length > 0) {
+                    setAnchorItems(normalizedItems.slice(0, 10));
+                    setSelectedAnchorId(formatArticleId(normalizedItems[0].article_id) || "");
+                } else {
+                    clearFocusState();
+                }
+            }
+
+            setLatestMeta(null);
+            setQuickActions(quickActions);
+        } catch (_) {
+            if (aiMessageId) {
+                updateMessageById(aiMessageId, {
+                    text: "Cannot connect to the AI server.",
+                    items: [],
+                    cards: [],
+                    meta: null,
+                    error: true,
+                });
+            } else {
+                setMessages((prev) => prev.concat([
+                    {
+                        id: uid(),
+                        role: "ai",
+                        text: "Cannot connect to the AI server.",
+                        intent: "",
+                        intentInfo: null,
+                        items: [],
+                        cards: [],
+                        meta: null,
+                        error: true,
+                    },
+                ]));
+            }
         } finally {
             setIsLoading(false);
         }

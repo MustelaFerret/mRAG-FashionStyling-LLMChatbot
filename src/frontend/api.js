@@ -39,6 +39,67 @@
         });
     }
 
+    async function chatStream(payload, onEvent) {
+        const response = await fetch("/api/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream",
+            },
+            body: JSON.stringify({ ...(payload || {}), stream: true }),
+        });
+        if (!response.ok) {
+            const detail = await parseErrorResponse(response);
+            throw new Error(detail || ("HTTP " + response.status));
+        }
+        if (!response.body) {
+            throw new Error("Streaming not supported");
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        function emitEvent(block) {
+            const lines = block.split("\n");
+            let eventName = "message";
+            const dataLines = [];
+            for (const line of lines) {
+                if (line.startsWith("event:")) {
+                    eventName = line.replace("event:", "").trim();
+                } else if (line.startsWith("data:")) {
+                    dataLines.push(line.replace("data:", "").trimStart());
+                }
+            }
+            const dataStr = dataLines.join("\n");
+            let data = dataStr;
+            try {
+                data = JSON.parse(dataStr);
+            } catch (_) {
+                // keep raw string
+            }
+            if (typeof onEvent === "function") {
+                onEvent(eventName, data);
+            }
+        }
+
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split("\n\n");
+            buffer = parts.pop() || "";
+            for (const part of parts) {
+                if (part.trim()) {
+                    emitEvent(part);
+                }
+            }
+        }
+        if (buffer.trim()) {
+            emitEvent(buffer);
+        }
+    }
+
     function getSession(sessionId) {
         const sid = encodeURIComponent(String(sessionId || ""));
         return requestJson("/api/session/" + sid);
@@ -55,6 +116,7 @@
     global.MragApi = {
         getBootstrap: getBootstrap,
         chat: chat,
+        chatStream: chatStream,
         getSession: getSession,
         resetSession: resetSession,
     };

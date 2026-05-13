@@ -12,6 +12,7 @@ class ChatRequest(BaseModel):
     response_mode: str = "rich"
     include_debug: bool = True
     max_ui_items: int | None = None
+    stream: bool = False
 
 
 class SessionResetRequest(BaseModel):

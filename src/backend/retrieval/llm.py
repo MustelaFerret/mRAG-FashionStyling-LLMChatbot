@@ -3,11 +3,12 @@ from __future__ import annotations
 import json
 import os
 import re
+from threading import Thread
 from typing import Any, Dict, List
 
 import torch
 from PIL import Image
-from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoProcessor, AutoTokenizer, Qwen2VLForConditionalGeneration
+from transformers import AutoModelForCausalLM, AutoModelForSequenceClassification, AutoProcessor, AutoTokenizer, Qwen2VLForConditionalGeneration, TextIteratorStreamer
 
 from src.backend.core.config import settings
 from src.backend.core.utils import get_local_model_path, normalize_text
@@ -21,7 +22,12 @@ INTENT_VARIANT = "color_variant"
 class QwenMultimodalService:
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        model_dtype = torch.bfloat16 if self.device.type == "cuda" else torch.float32
+        if self.device.type == "cuda":
+            bf16_ok = hasattr(torch.cuda, "is_bf16_supported") and torch.cuda.is_bf16_supported()
+            model_dtype = torch.bfloat16 if bf16_ok else torch.float16
+        else:
+            model_dtype = torch.float32
+        self.use_torch_compile = os.getenv("TORCH_COMPILE_LLM", "0") == "1"
 
         self.processor = None
         self.model = None
@@ -64,6 +70,11 @@ class QwenMultimodalService:
                     device_map={"": 0} if self.device.type == "cuda" else "cpu",
                     local_files_only=settings.llm_local_files_only,
                 )
+                if self.use_torch_compile:
+                    try:
+                        self.nlp_model = torch.compile(self.nlp_model)
+                    except Exception:
+                        pass
                 self.nlp_model.eval()
                 self.using_text_llm_for_nlp = True
             except Exception:
@@ -87,6 +98,11 @@ class QwenMultimodalService:
                     device_map=device_map,
                     local_files_only=settings.llm_local_files_only,
                 )
+                if self.use_torch_compile:
+                    try:
+                        self.query_model = torch.compile(self.query_model)
+                    except Exception:
+                        pass
                 self.query_model.eval()
                 self.using_query_llm = True
             except Exception:
@@ -293,6 +309,44 @@ class QwenMultimodalService:
             do_sample=do_sample,
         )
 
+    def _chat_generate_text_stream(
+        self,
+        messages: List[Dict],
+        max_new_tokens: int = 120,
+        temperature: float = 0.0,
+        top_p: float = 1.0,
+        do_sample: bool = False,
+    ):
+        if self.nlp_model is None or self.nlp_tokenizer is None:
+            return
+
+        text_messages = self._strip_to_text_messages(messages)
+        prompt_text = self.nlp_tokenizer.apply_chat_template(
+            text_messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+        inputs = self.nlp_tokenizer([prompt_text], return_tensors="pt", padding=True)
+        inputs = {k: v.to(self.device) if hasattr(v, "to") else v for k, v in inputs.items()}
+        streamer = TextIteratorStreamer(self.nlp_tokenizer, skip_prompt=True, skip_special_tokens=True)
+        generation_kwargs = {
+            **inputs,
+            "max_new_tokens": max_new_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "do_sample": do_sample,
+            "streamer": streamer,
+        }
+
+        def _run_generate():
+            self.nlp_model.generate(**generation_kwargs)
+
+        thread = Thread(target=_run_generate, daemon=True)
+        thread.start()
+        for token in streamer:
+            if token:
+                yield token
+
     def generate_answer(self, prompt: str, images: List[Image.Image] | None = None) -> str:
         content_blocks: List[Dict] = []
         for _ in images or []:
@@ -307,6 +361,26 @@ class QwenMultimodalService:
             top_p=0.9,
             do_sample=True,
         )
+
+    def generate_answer_stream(self, prompt: str, images: List[Image.Image] | None = None):
+        if images:
+            yield self.generate_answer(prompt, images=images)
+            return
+
+        content_blocks: List[Dict] = [{"type": "text", "text": prompt}]
+        messages = [{"role": "user", "content": content_blocks}]
+        stream = self._chat_generate_text_stream(
+            messages,
+            max_new_tokens=220,
+            temperature=0.0,
+            top_p=1.0,
+            do_sample=False,
+        )
+        if stream is None:
+            yield self.generate_answer(prompt, images=None)
+            return
+        for token in stream:
+            yield token
 
     @staticmethod
     def _extract_json_object(raw_text: str) -> Dict | None:

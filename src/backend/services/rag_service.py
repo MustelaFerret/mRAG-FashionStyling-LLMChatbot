@@ -166,14 +166,21 @@ class FashionRAGService:
             filtered.append(point)
         return filtered
 
-    async def chat(
+    def _finalize_log(self, log_payload: Dict[str, Any], started_at: float, result_count: int) -> None:
+        log_payload["result_count"] = result_count
+        log_payload["graph_used"] = log_payload.get("intent_hint") == "graph_pairing" and bool(log_payload.get("graph_anchor_id"))
+        log_payload["latency_ms"] = int((time.perf_counter() - started_at) * 1000)
+        log_payload["timing_ms"]["total"] = log_payload["latency_ms"]
+        append_log(settings.log_dir, log_payload)
+
+    def _prepare_chat(
         self,
         query: str,
-        image: Image.Image | None = None,
-        session_id: str | None = None,
-        request_id: str | None = None,
-    ) -> tuple[str, List[dict]]:
-        started_at = time.perf_counter()
+        image: Image.Image | None,
+        session_id: str | None,
+        request_id: str | None,
+        started_at: float,
+    ) -> tuple[List[dict], str, Dict[str, Any], bool]:
         analysis_started = time.perf_counter()
         analysis = self.llm.analyze_user_query(query)
         analysis_ms = int((time.perf_counter() - analysis_started) * 1000)
@@ -265,6 +272,7 @@ class FashionRAGService:
             )
             points = results or []
             hybrid_result_count = len(points)
+
         items: List[dict] = []
         for point in points:
             payload = getattr(point, "payload", {}) or {}
@@ -321,12 +329,7 @@ class FashionRAGService:
 
         context = self._format_context(points)
         if not context:
-            log_payload["result_count"] = 0
-            log_payload["graph_used"] = intent_hint == "graph_pairing" and bool(anchor_id)
-            log_payload["latency_ms"] = int((time.perf_counter() - started_at) * 1000)
-            log_payload["timing_ms"]["total"] = log_payload["latency_ms"]
-            append_log(settings.log_dir, log_payload)
-            return "I could not find any matching items in the current inventory.", []
+            return items, "", log_payload, False
 
         system_prompt = (
             "You are a premium AI fashion stylist. The context below lists real products from inventory. "
@@ -338,10 +341,43 @@ class FashionRAGService:
             f"CONTEXT:\n{context}"
         )
         full_prompt = f"{system_prompt}\n\nCustomer: {query}"
+        return items, full_prompt, log_payload, True
+
+    def stream_answer(self, prompt: str, image: Image.Image | None = None):
+        return self.llm.generate_answer_stream(prompt, images=[image] if image else None)
+
+    def prepare_chat(
+        self,
+        query: str,
+        image: Image.Image | None,
+        session_id: str | None,
+        request_id: str | None,
+        started_at: float,
+    ) -> tuple[List[dict], str, Dict[str, Any], bool]:
+        return self._prepare_chat(query, image, session_id, request_id, started_at)
+
+    def finalize_log(self, log_payload: Dict[str, Any], started_at: float, result_count: int) -> None:
+        self._finalize_log(log_payload, started_at, result_count)
+
+    async def chat(
+        self,
+        query: str,
+        image: Image.Image | None = None,
+        session_id: str | None = None,
+        request_id: str | None = None,
+    ) -> tuple[str, List[dict]]:
+        started_at = time.perf_counter()
+        items, full_prompt, log_payload, has_context = self._prepare_chat(
+            query=query,
+            image=image,
+            session_id=session_id,
+            request_id=request_id,
+            started_at=started_at,
+        )
+        if not has_context:
+            self._finalize_log(log_payload, started_at, 0)
+            return "I could not find any matching items in the current inventory.", []
+
         message = self.llm.generate_answer(full_prompt, images=[image] if image else None)
-        log_payload["result_count"] = len(items)
-        log_payload["graph_used"] = intent_hint == "graph_pairing" and bool(anchor_id)
-        log_payload["latency_ms"] = int((time.perf_counter() - started_at) * 1000)
-        log_payload["timing_ms"]["total"] = log_payload["latency_ms"]
-        append_log(settings.log_dir, log_payload)
+        self._finalize_log(log_payload, started_at, len(items))
         return message, items
