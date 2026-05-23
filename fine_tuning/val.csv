@@ -1,0 +1,448 @@
+query,intent
+jacket for platform goth boots,graph_pairing
+thank you kindly,chit_chat
+schoolgirl sweater set,similar_items
+vintage busk corset,similar_items
+jacket w white tee,graph_pairing
+size help heels,chit_chat
+red laser stripe color pls,color_variant
+"good evening, I hope you're well",chit_chat
+this corset in black,color_variant
+what should I wear with this cardigan?,graph_pairing
+cancel order pls,chit_chat
+quarter zip workout pullover,similar_items
+do u have it in olive,color_variant
+"I would like a lookalike of this techwear bag, but in silver, please.",composite_intent
+lookalike of this visor in white and a fit to wear it with,composite_intent
+cheap blk party dres heels,composite_intent
+show me lookalikes of this handbag in cream,composite_intent
+why is my refund still pending,chit_chat
+can I get this in burgundy,color_variant
+need this bag in silver,color_variant
+sparkly skirt w black top,composite_intent
+reef goblin beep beep,chit_chat
+less expensive version in gray and maybe a shirt under it,composite_intent
+what to wear with these loafers,graph_pairing
+hat for beach dres beige,composite_intent
+same one in cream pls,color_variant
+shoes for this maternity midi pls,graph_pairing
+is it raining later,chit_chat
+packable drizzle shell dupe,similar_items
+lightweight day dress,similar_items
+mesh corset,similar_items
+blue tee pls,color_variant
+what scarf would work with this ostrich-effect top handle,graph_pairing
+belly-safe denim skirt dupe,similar_items
+cable crewneck sweater,similar_items
+running sheos budget ver,similar_items
+find a cheaper dupe for this neon parka and boots to go with it,composite_intent
+shoes for this tennis sweater look need now,graph_pairing
+Could you show me a black version of this armored coat and suggest boots to match it?,composite_intent
+same maternity tee in cream plz,color_variant
+joggers w crop gym top,graph_pairing
+cheaper dupe of this seamless bra in white,composite_intent
+does it come in blush pink,color_variant
+i need an order update,chit_chat
+bag for casual outfit,graph_pairing
+what coat should I pair with this luxe clutch,graph_pairing
+same shoe in tan,color_variant
+layering piece for this bralette pls,graph_pairing
+zzzz tomato socks,chit_chat
+chunky ring set match bag,composite_intent
+I am looking for a lower-cost alternative to this maxi dress plus sandals to wear with it.,composite_intent
+im bored,chit_chat
+dupe for this tux,similar_items
+can u hurry my order,chit_chat
+refund status maybe,chit_chat
+this one in blue,color_variant
+my discount code is not working hurry,chit_chat
+show me a same-style blazer in ivory and a tie that works with it,composite_intent
+skirt to wear with this argyle sweater vest fast,graph_pairing
+what's the weather,chit_chat
+got this knit in navy?,color_variant
+can you find this bag in chrome and a jacket to pair with it,composite_intent
+A dupe for this lace corset in pink and earrings for the look.,composite_intent
+gloves to pair with a navy military peacoat with brass buttons,graph_pairing
+affordable suit set,similar_items
+hello,chit_chat
+top to wear under this rain jacket,graph_pairing
+horsebit loafers,similar_items
+what shirt pairs with this tux jacket,graph_pairing
+east-west crocodile-embossed clutch dupe,similar_items
+earings for blk dress,graph_pairing
+lookalikes for this nursing top but in white,composite_intent
+ankle boots blk version,composite_intent
+order status gym set,chit_chat
+same bag in all black plus a tee to rock with it,composite_intent
+cheap platform boots,similar_items
+nautical stripe knitwear cheaper swap,similar_items
+in charcoal instead,color_variant
+accessories for a clean streetwear look,graph_pairing
+similar clunky loafers under budget and a jacket to wear with them,composite_intent
+good afternoon,chit_chat
+"This bag but in brown, and also a jacket that works with it",composite_intent
+cropped track jacket,similar_items
+do you have this storm jacket in navy to match my rubber boots right now,composite_intent
+same heels but emerald,color_variant
+zxzx neon potato,chit_chat
+blue denim wash,color_variant
+gloves for this hacker trench look,graph_pairing
+white color tank version,color_variant
+dupe of this outfit in beige with sunglasses for it,composite_intent
+show a more affordable version of this pullover in blush with shorts to wear with it,composite_intent
+I want a dupe for this robe that works with my satin sleep cami,composite_intent
+helpp return,chit_chat
+same leggings in espresso and a bra that works with them,composite_intent
+same bag in deep forest green,color_variant
+"A dupe for this pullover to wear with loafers, preferably in grey.",composite_intent
+thick winter jackt cheap,similar_items
+black version please,color_variant
+find me a cheaper version of this coat that goes with wide trousers,composite_intent
+find gloves for this chrome outfit,graph_pairing
+high rise training leggings,similar_items
+what kicks go with this bag,graph_pairing
+this boot in burgundy plus socks that go w it,composite_intent
+a dupe for this waist cincher and a blazer to pair it with,composite_intent
+petite pinstripe blazer set,similar_items
+this sling bag in orange and shoes to go with it,composite_intent
+thank you so much,chit_chat
+formal pant lookalike,similar_items
+is my parcel lost,chit_chat
+cheaper alternative to this knit set in black,composite_intent
+Find this corset style in white and a coat that works with it.,composite_intent
+need a shawl for this sleeveless dress urgently,graph_pairing
+need cargos like this but darker and a jacket for em,composite_intent
+navy blue one,color_variant
+sunglass for beach outfit,graph_pairing
+pink option sandal,color_variant
+return policy shoes,chit_chat
+what's the weather like today?,chit_chat
+similar linen dress and a belt to style it,composite_intent
+zara heel dupe shoe,similar_items
+double-breasted maxi parka,similar_items
+do u have the shawl in cream,color_variant
+Could you find socks that work with these wellies?,graph_pairing
+can i see it in gunmetal,color_variant
+smocked empire-waist maternity blouse lookalike,similar_items
+something like this shirt but darker and what pants with it,composite_intent
+dupe for this rugby pullover,similar_items
+a skirt to match this knit top,graph_pairing
+cheap alt boots,similar_items
+same boots in tan,color_variant
+same corset but in wine red,color_variant
+cheap blk puffer coat,composite_intent
+how late u open,chit_chat
+need this in cream,color_variant
+need a top for these biker shorts,graph_pairing
+swap to heather gray,color_variant
+similar poncho but green and something to wear under it,composite_intent
+affordable gym top similar,similar_items
+what sneakers work with this set,graph_pairing
+bump-accommodating shirt dress similar style,similar_items
+maternity wrap top replacement,similar_items
+formal penguin sparkles beep,chit_chat
+return policy jackets,chit_chat
+wheres my hat order,chit_chat
+accessories for a rainy night market fit,graph_pairing
+cheaper dupe of this armored jacket in black,composite_intent
+where my pakage at,chit_chat
+could you find gloves for this cyber street look?,graph_pairing
+vegan leather goth boots,similar_items
+show me pieces like this visor cap but in red,composite_intent
+find something similar to this pearl headband in ivory and matching earrings,composite_intent
+this exact purse in cream please,color_variant
+belted puffer coat,similar_items
+sunglass dupe blk frame,composite_intent
+I want a similar mini bag in silver and shoes to pair with it,composite_intent
+socks for this homewear outfit,graph_pairing
+accessories for a maternity photoshoot fit,graph_pairing
+layer ideas for this tactical skirt,graph_pairing
+white version hoodie,color_variant
+what trousers go with an argyle pullover?,graph_pairing
+same piece but in mocha,color_variant
+sup stylist,chit_chat
+white not beige,color_variant
+"cheaper alternative to this mesh jersey in green, and shorts that do not clash with it",composite_intent
+cowboy boots w mini dres,composite_intent
+oversized collared knit,similar_items
+need a cheap dupe of these boots in red and what pants go with them,composite_intent
+slim-cut navy suit separates,similar_items
+new balance look alike,similar_items
+make it peach,color_variant
+aritzia blazer lookalike,similar_items
+charcoal wool two-button suit,similar_items
+corset top white ver,color_variant
+cheaper version of these combat joggers,similar_items
+charcoal variant of this bikini top,color_variant
+"thanks, that's all",chit_chat
+do you offer it in cobalt blue?,color_variant
+find me a dupe for this bag and some shoes to go with it,composite_intent
+could you show me the blush color,color_variant
+pants that work with a satin corset,graph_pairing
+jacket to wear over my running dress,graph_pairing
+ankle-length slip skirt,similar_items
+alt for this silk scarf and a coat that works w it,composite_intent
+old money loafers,similar_items
+"Could I see a similar preppy jumper in green, along with accessories for the outfit?",composite_intent
+top for this satin midi,graph_pairing
+alt for this track jacket in navy and pants that match,composite_intent
+can this be made in forest green,color_variant
+show the navy colorway,color_variant
+lv wallet dupe low cost,similar_items
+dupe for this rain jacket,similar_items
+plain rib tank,similar_items
+return label help,chit_chat
+cheaper version of this flannel and pants that vibe w it,composite_intent
+same nursing tank in white plus a skirt to pair,composite_intent
+what kicks go with this maternity sweater dress,graph_pairing
+what pants go with a camel coat,graph_pairing
+sneekers for this gym set,graph_pairing
+is it windy today,chit_chat
+cheaper dupe for this rain jacket and boots to wear w it,composite_intent
+hm denim jacet alt,similar_items
+need this jumpsuit in black plus a jacket for over it,composite_intent
+blah blah beep,chit_chat
+same cardigan in lilac and a skirt to match,composite_intent
+this peacoat in cream if possible and loafers that go with the brass buttons,composite_intent
+show the pea coat in ink navy,color_variant
+ribbed sleep tank,similar_items
+green versoin active bra,color_variant
+what pants go with this yellow rain slicker hurry,graph_pairing
+Need a cheaper twin of this tote in chocolate and some shoes to rock with it,composite_intent
+what to rock with this circuit-print skirt,graph_pairing
+green velvet dres,color_variant
+Could you suggest trousers to wear with this rain jacket?,graph_pairing
+show me lookalikes of this nursing-friendly satin blouse but in burgundy,composite_intent
+thanksss,chit_chat
+lace-up bustier,similar_items
+Give me a similar tote in white and sandals that match the drip,composite_intent
+hmm not sure,chit_chat
+crunchy snow goblin spreadsheet,chit_chat
+bags to pair with these boots,graph_pairing
+brown casual dress,color_variant
+sparkly skirt alt,similar_items
+red version pls,color_variant
+green hat pls,color_variant
+can i get these in cream,color_variant
+switch this to neon orange,color_variant
+how's the weather looking,chit_chat
+brown one please,color_variant
+preppy cable-knit cardigan,similar_items
+textured bandeau bikini,similar_items
+white button up,color_variant
+need a knockoff in cherry red and a whole outfit to wear with it,composite_intent
+this maternity top in navy and pants to wear with it,composite_intent
+chunky black loafer copycat,similar_items
+same vibe as this bag in tan and shoes for it,composite_intent
+what earrings pair with a yellow sundress,graph_pairing
+what bag goes w this grunge skirt,graph_pairing
+find a simpler blazer like this to wear with wide trousers,composite_intent
+cheap lounge set beige,composite_intent
+wallet red ver low cost,composite_intent
+what cardigan goes over a corset,graph_pairing
+same fit in tan,color_variant
+dupe for these riding boots plus a bag to pair,composite_intent
+storm coat alternative,similar_items
+same one in coral,color_variant
+beep boop tea and crumpets,chit_chat
+halter summer frock replacement,similar_items
+chep theory dress pant,similar_items
+hat to wear with a linen suit,graph_pairing
+"same coat in grey, also what mask would match",composite_intent
+linen shirt to throw over this swimsuit,graph_pairing
+stompy loafers,similar_items
+what to wear w this v neck vest,graph_pairing
+black colorway of this bra,color_variant
+hat for this drizzle outfit,graph_pairing
+exchnge belt,chit_chat
+need it in beige,color_variant
+cheap dupe plz,similar_items
+soft mama tank dupe,similar_items
+show me the blue one,color_variant
+bag match denim skirt,graph_pairing
+jeans w puffer jacket,graph_pairing
+blac pencil skirt lookalike,similar_items
+knockoff for this maternity shacket,similar_items
+please suggest eyewear for this dark tech ensemble,graph_pairing
+designer saddle bag dupe,similar_items
+black pls,color_variant
+what loafers go with this cable-knit cardigan right now,graph_pairing
+jewelry for a boardroom look,graph_pairing
+lookalike of this mini dress and make it red,composite_intent
+can you find a dupe for this and a dress that matches,composite_intent
+monogram bag dupe,similar_items
+find a budget version of this office suit and loafers to go with it,composite_intent
+faux wool overcoat,similar_items
+tan instead,color_variant
+pants w brown boots,graph_pairing
+quilted down coat with storm cuffs and side vents,similar_items
+light blue option for this shirtt,color_variant
+this set in charcoal with socks that work,composite_intent
+bag for workout set,graph_pairing
+this but in taupe,color_variant
+cardi to wear with this bumpcon dress,graph_pairing
+how do i style this neon skirt,graph_pairing
+red sequin dress w heels,composite_intent
+"is there a navy version of this parka, and what mask would pair nicely with it?",composite_intent
+cable knit cashmere sweater,similar_items
+hey fam,chit_chat
+slingback heels to pair with my mini tote,graph_pairing
+sunglasses to match this set,graph_pairing
+mesh corset bodice,similar_items
+budget version of this bump-friendly wrap cardigan,similar_items
+cropped cardigan,similar_items
+barcode raccoon pavement soup,chit_chat
+shoes to wear with this dress,graph_pairing
+accessories for this umbrella and coat combo,graph_pairing
+cheap nike gym shorts alt,similar_items
+do these come in blush,color_variant
+is there a black one,color_variant
+show me this top in beige,color_variant
+is there a white one,color_variant
+asdf sun blob,chit_chat
+same cardigan in forest green plz,color_variant
+work outfit for interview,composite_intent
+what bag w this poncho,graph_pairing
+cancel my order asap,chit_chat
+in cobalt blue,color_variant
+which heels go with this chain-strap handbag,graph_pairing
+cute flats with this preggo jumpsuit,graph_pairing
+What accessories work with this armored vest?,graph_pairing
+work blouse lookalike,similar_items
+same kinda hoodie but in red,composite_intent
+same in yellow,color_variant
+same sheos in beige,color_variant
+stealthy neon-accent cargo shorts replacement,similar_items
+gold shade available?,color_variant
+can you cancel my return request,chit_chat
+black loafers for work,composite_intent
+white blouse w black pants,composite_intent
+gloves for this look,graph_pairing
+shoes for this jumpsuit,graph_pairing
+what coat works over a cream cardigan?,graph_pairing
+shirt to wear under this jacket,graph_pairing
+lightweight strappy dress dupe,similar_items
+cardigan for a corset set,graph_pairing
+jacket to go w these over belly jeans,graph_pairing
+are you there,chit_chat
+strappy summer frock,similar_items
+accessories for a neutral look,graph_pairing
+ribbed over-bump midi skirt alternative,similar_items
+my tracking link keeps spinning like a loading screen,chit_chat
+blue wallet option,color_variant
+lace up corset,similar_items
+pinstripe blazer,similar_items
+cowboy boots dupe,similar_items
+can i see the gray one,color_variant
+which pocket square complements this midnight tux for a candlelit ballroom event,graph_pairing
+"a lower-priced option for this modular backpack, please",similar_items
+PVC corset,similar_items
+cheaper penny loafer lookalikes,similar_items
+top for cargo pants,graph_pairing
+what top w pencil skirt,graph_pairing
+pants that go w my yellow slicker,graph_pairing
+blk mini dress lookalike,similar_items
+jewelry to vibe with my baby bump gown,graph_pairing
+what should i layer over this tank,graph_pairing
+navy version of this please,color_variant
+same sundress in ivory,color_variant
+cheaper lookalike for this bamboo-handle tote plus a silk scarf that goes with it,composite_intent
+slicker thing,similar_items
+need a lookalike of this visor hoodie plus gloves that go with it,composite_intent
+white version pls urgent,color_variant
+what top with this skort,graph_pairing
+sup,chit_chat
+Need a similar tote in gray and accessories for a stormy day,composite_intent
+"dupe for this varsity cardi, also bag that works",composite_intent
+socks for these gym shorts,graph_pairing
+skirt ideas for goth boots,graph_pairing
+similar biker shorts,similar_items
+tan pants,color_variant
+layer for this nursing tank,graph_pairing
+track my order asap,chit_chat
+mesh corset top,similar_items
+red floral base instead of pink,color_variant
+blk version pls,color_variant
+lol this app is slow,chit_chat
+wet socks ew,chit_chat
+brown lounge set,color_variant
+pale blush version only,color_variant
+skrrt banana chrome goblin,chit_chat
+"budget copy of this trench in silver, then show me shades for the fit",composite_intent
+cheaper alt for this nursing bra,similar_items
+what heels eat with this fancy bag,graph_pairing
+what wear w corset top,graph_pairing
+cheap dupe pls,similar_items
+what goes with this camel coat,graph_pairing
+gry pant,color_variant
+what bottoms would go with this collared knit?,graph_pairing
+copy of this sundress in ivory and a cute purse,composite_intent
+can you track my refund,chit_chat
+give me a dupe for this picnic dress in black and something to wear over it at sunset,composite_intent
+designer pump lookalke,similar_items
+velvet dress red cheap,composite_intent
+asdf suit banana,chit_chat
+silver one instead,color_variant
+cheap blk sweatshirt,similar_items
+"same vest, dusty rose",color_variant
+red version of this top,color_variant
+jewelry ideas for this preggo look,graph_pairing
+soft bump maxi skirt,similar_items
+same bracelet in slvr,color_variant
+Could you show comparable waterproof coats in grey and scarves that complement them?,composite_intent
+boots w leather skirt,graph_pairing
+transparent rain mac similar,similar_items
+brown boots match coat,composite_intent
+my package says delivered but I don't have it,chit_chat
+neon-accented combat boots,similar_items
+i need this now,chit_chat
+lol idk,chit_chat
+need this skirt in blue plus shoes for it,composite_intent
+embrodiered tunic top,similar_items
+Could you find a cheaper alternative to this hoodie and a mask to wear with it?,composite_intent
+do you have this umbrella in cobalt,color_variant
+bag for casual dress,graph_pairing
+gym shorts in navy,color_variant
+does it come in plum,color_variant
+square neck picnic dress,similar_items
+blanket scarf that works with this sweatsuit,graph_pairing
+socks for these penny loafers,graph_pairing
+heels for this sharp navy suit,graph_pairing
+shipping time gym shorts,chit_chat
+this but burgundy,color_variant
+same leggings in black,color_variant
+silver sandal in blk,composite_intent
+something to go with this gray set,graph_pairing
+same dress in blue,color_variant
+bag that goes w these tech boots,graph_pairing
+oversized denim vest,similar_items
+red heels dress match,composite_intent
+cheap gold hoop earings alt,similar_items
+wrap skirt for this bathing suit,graph_pairing
+black trouser w blazer,composite_intent
+bag for gym set pink,graph_pairing
+jacket over this maxi?,graph_pairing
+find a cheaper version of this trench and sandals to pair with it,composite_intent
+sup lol,chit_chat
+Do you have the same pants in olive?,color_variant
+tweed blazer but less pricey,similar_items
+lol my keyboard is broken,chit_chat
+do you have it in forest green,color_variant
+cheap blk bag w chain,composite_intent
+brown riding boots alternative,similar_items
+milkmaid sundress dupe,similar_items
+what can i wear with this matching lounge pant,graph_pairing
+preppy tennis skirt replacement,similar_items
+please,chit_chat
+collegiate V-neck jumper duplicate,similar_items
+white blouse match w skirt,composite_intent
+can i get this coat in deep red,color_variant
+gym set in blk,color_variant
+need it in neon green,color_variant
+can you find lookalikes of this blazer and a belt to style with it,composite_intent
+the exact maternity bodysuit in midnight blue,color_variant
+h m work pant dupes,similar_items
+same knit in cream ASAP,color_variant
+cancel order blouse,chit_chat
+I would like this dress in red and a belt to complete the outfit.,composite_intent
+wheres my stuff,chit_chat

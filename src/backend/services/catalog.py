@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import csv
 import os
 import re
-from typing import Dict, List, Tuple
-
-import pandas as pd
+from typing import Dict, Iterable, List, Tuple
 
 from src.backend.core.utils import normalize_article_id, normalize_text
 
@@ -15,64 +14,118 @@ class FashionCatalog:
         self.graph_file = graph_file
         self.image_dir = image_dir
 
-        self.df_graph = pd.read_csv(self.graph_file, dtype={"item_a": str, "item_b": str, "weight": float})
-        self.df_graph["item_a"] = self.df_graph["item_a"].apply(normalize_article_id)
-        self.df_graph["item_b"] = self.df_graph["item_b"].apply(normalize_article_id)
+        self.meta_by_article: Dict[str, Dict] = {}
+        self.product_code_to_articles: Dict[str, List[str]] = {}
+        self.product_type_values: List[Tuple[str, str]] = []
+        self.color_values: List[Tuple[str, str]] = []
+        self.occasion_values: List[Tuple[str, str]] = []
+        self.fit_values: List[Tuple[str, str]] = []
+        self.valid_product_types: List[str] = []
+        self.valid_colors: List[str] = []
+        self.valid_occasions: List[str] = []
+        self.valid_fits: List[str] = []
+        self.valid_seasonalities: List[str] = []
+        self.graph_adj: Dict[str, List[Tuple[str, float]]] = {}
 
-        meta_cols = [
-            "article_id",
-            "product_code",
-            "product_type_name",
-            "colour_group_name",
-            "fit",
-            "occasion",
-            "seasonality",
-            "refined_description",
-        ]
-        self.df_meta = pd.read_csv(self.meta_file, usecols=meta_cols, dtype={"article_id": str, "product_code": str})
-        self.df_meta["article_id"] = self.df_meta["article_id"].apply(normalize_article_id)
-        self.df_meta["product_code"] = self.df_meta["product_code"].fillna("").astype(str).str.zfill(6)
-
-        self.meta_by_article: Dict[str, Dict] = self.df_meta.set_index("article_id").to_dict("index")
-        self.product_code_to_articles: Dict[str, List[str]] = (
-            self.df_meta.groupby("product_code")["article_id"].apply(list).to_dict()
-        )
-
-        self.product_type_values = self._build_search_values(self.df_meta["product_type_name"])
-        self.color_values = self._build_search_values(self.df_meta["colour_group_name"])
-        self.occasion_values = self._build_search_values(self.df_meta["occasion"])
-        self.fit_values = self._build_search_values(self.df_meta["fit"])
-        self.valid_product_types = self._unique_values(self.df_meta["product_type_name"])
-        self.valid_colors = self._unique_values(self.df_meta["colour_group_name"])
-        self.valid_occasions = self._unique_values(self.df_meta["occasion"])
-        self.valid_fits = self._unique_values(self.df_meta["fit"])
-        self.valid_seasonalities = self._unique_values(self.df_meta["seasonality"])
+        self._load_meta()
         self.graph_adj = self._build_graph_adjacency()
 
     @staticmethod
-    def _build_search_values(series: pd.Series) -> List[tuple[str, str]]:
-        values = [str(v).strip() for v in series.dropna().unique() if str(v).strip()]
-        values = sorted(values, key=lambda v: len(v), reverse=True)
-        return [(normalize_text(v), v) for v in values]
+    def _build_search_values(values: Iterable[str]) -> List[tuple[str, str]]:
+        unique_values: List[str] = []
+        seen: set[str] = set()
+        for value in values:
+            raw = str(value).strip()
+            if not raw or raw in seen:
+                continue
+            seen.add(raw)
+            unique_values.append(raw)
+        unique_values.sort(key=lambda v: len(v), reverse=True)
+        return [(normalize_text(v), v) for v in unique_values]
 
     @staticmethod
-    def _unique_values(series: pd.Series) -> List[str]:
-        values = [str(v).strip() for v in series.dropna().unique() if str(v).strip()]
-        return sorted(set(values))
+    def _unique_values(values: Iterable[str]) -> List[str]:
+        cleaned = {str(v).strip() for v in values if str(v).strip()}
+        return sorted(cleaned)
+
+    def _load_meta(self) -> None:
+        product_type_values: set[str] = set()
+        color_values: set[str] = set()
+        occasion_values: set[str] = set()
+        fit_values: set[str] = set()
+        seasonality_values: set[str] = set()
+
+        with open(self.meta_file, newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                article_id = normalize_article_id(row.get("article_id", ""))
+                if not article_id:
+                    continue
+
+                product_code = str(row.get("product_code", "") or "").strip()
+                if product_code:
+                    product_code = product_code.zfill(6)
+
+                product_type = str(row.get("product_type_name", "") or "").strip()
+                colour_group = str(row.get("colour_group_name", "") or "").strip()
+                fit = str(row.get("fit", "") or "").strip()
+                occasion = str(row.get("occasion", "") or "").strip()
+                seasonality = str(row.get("seasonality", "") or "").strip()
+                description = str(row.get("refined_description", "") or "").strip()
+
+                self.meta_by_article[article_id] = {
+                    "article_id": article_id,
+                    "product_code": product_code,
+                    "product_type_name": product_type,
+                    "colour_group_name": colour_group,
+                    "fit": fit,
+                    "occasion": occasion,
+                    "seasonality": seasonality,
+                    "refined_description": description,
+                }
+
+                if product_code:
+                    self.product_code_to_articles.setdefault(product_code, []).append(article_id)
+
+                if product_type:
+                    product_type_values.add(product_type)
+                if colour_group:
+                    color_values.add(colour_group)
+                if occasion:
+                    occasion_values.add(occasion)
+                if fit:
+                    fit_values.add(fit)
+                if seasonality:
+                    seasonality_values.add(seasonality)
+
+        self.product_type_values = self._build_search_values(product_type_values)
+        self.color_values = self._build_search_values(color_values)
+        self.occasion_values = self._build_search_values(occasion_values)
+        self.fit_values = self._build_search_values(fit_values)
+        self.valid_product_types = self._unique_values(product_type_values)
+        self.valid_colors = self._unique_values(color_values)
+        self.valid_occasions = self._unique_values(occasion_values)
+        self.valid_fits = self._unique_values(fit_values)
+        self.valid_seasonalities = self._unique_values(seasonality_values)
 
     def _build_graph_adjacency(self) -> Dict[str, List[Tuple[str, float]]]:
         adjacency: Dict[str, Dict[str, float]] = {}
-        for row in self.df_graph.itertuples(index=False):
-            a = normalize_article_id(getattr(row, "item_a", ""))
-            b = normalize_article_id(getattr(row, "item_b", ""))
-            w = float(getattr(row, "weight", 0.0) or 0.0)
-            if not a or not b or a == b:
-                continue
+        with open(self.graph_file, newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                a = normalize_article_id(row.get("item_a", ""))
+                b = normalize_article_id(row.get("item_b", ""))
+                try:
+                    w = float(row.get("weight", 0.0) or 0.0)
+                except (TypeError, ValueError):
+                    w = 0.0
+                if not a or not b or a == b:
+                    continue
 
-            adjacency.setdefault(a, {})
-            adjacency.setdefault(b, {})
-            adjacency[a][b] = max(w, adjacency[a].get(b, 0.0))
-            adjacency[b][a] = max(w, adjacency[b].get(a, 0.0))
+                adjacency.setdefault(a, {})
+                adjacency.setdefault(b, {})
+                adjacency[a][b] = max(w, adjacency[a].get(b, 0.0))
+                adjacency[b][a] = max(w, adjacency[b].get(a, 0.0))
 
         out: Dict[str, List[Tuple[str, float]]] = {}
         for aid, neighbors in adjacency.items():

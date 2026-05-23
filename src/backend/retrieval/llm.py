@@ -347,6 +347,68 @@ class QwenMultimodalService:
             if token:
                 yield token
 
+    def _chat_generate_stream(
+        self,
+        messages: List[Dict],
+        image_paths: List[str] | None = None,
+        pil_images: List[Image.Image] | None = None,
+        max_new_tokens: int = 180,
+        temperature: float = 0.2,
+        top_p: float = 0.9,
+        do_sample: bool = True,
+    ):
+        if not self.using_vl_model or self.processor is None or self.model is None:
+            return self._chat_generate_text_stream(
+                messages,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                do_sample=do_sample,
+            )
+
+        tokenizer = getattr(self.processor, "tokenizer", None)
+        if tokenizer is None:
+            return None
+
+        chat_text = self.processor.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+        image_inputs: List[Image.Image] = []
+        for img in pil_images or []:
+            if img is None:
+                continue
+            rgb = img.convert("RGB")
+            rgb.thumbnail((768, 768))
+            image_inputs.append(rgb.copy())
+        image_inputs.extend(self._load_images(image_paths or []))
+
+        processor_kwargs = {
+            "text": [chat_text],
+            "padding": True,
+            "return_tensors": "pt",
+        }
+        if image_inputs:
+            processor_kwargs["images"] = image_inputs
+
+        inputs = self.processor(**processor_kwargs)
+        inputs = {k: v.to(self.device) if hasattr(v, "to") else v for k, v in inputs.items()}
+        streamer = TextIteratorStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
+        generation_kwargs = {
+            **inputs,
+            "max_new_tokens": max_new_tokens,
+            "temperature": temperature,
+            "top_p": top_p,
+            "do_sample": do_sample,
+            "streamer": streamer,
+        }
+
+        def _run_generate():
+            self.model.generate(**generation_kwargs)
+
+        thread = Thread(target=_run_generate, daemon=True)
+        thread.start()
+        for token in streamer:
+            if token:
+                yield token
+
     def generate_answer(self, prompt: str, images: List[Image.Image] | None = None) -> str:
         content_blocks: List[Dict] = []
         for _ in images or []:
@@ -364,7 +426,24 @@ class QwenMultimodalService:
 
     def generate_answer_stream(self, prompt: str, images: List[Image.Image] | None = None):
         if images:
-            yield self.generate_answer(prompt, images=images)
+            content_blocks: List[Dict] = []
+            for _ in images or []:
+                content_blocks.append({"type": "image"})
+            content_blocks.append({"type": "text", "text": prompt})
+            messages = [{"role": "user", "content": content_blocks}]
+            stream = self._chat_generate_stream(
+                messages,
+                pil_images=images,
+                max_new_tokens=220,
+                temperature=0.2,
+                top_p=0.9,
+                do_sample=True,
+            )
+            if stream is None:
+                yield self.generate_answer(prompt, images=images)
+                return
+            for token in stream:
+                yield token
             return
 
         content_blocks: List[Dict] = [{"type": "text", "text": prompt}]
