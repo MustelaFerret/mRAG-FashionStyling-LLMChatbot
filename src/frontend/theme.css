@@ -350,6 +350,65 @@ body {
     gap: 8px;
 }
 
+.intent-picker {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.intent-picker-title {
+    margin: 0 0 10px;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: #cdb79a;
+}
+
+.intent-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.intent-option {
+    text-align: left;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 10px 12px;
+    color: var(--fg);
+    transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.intent-option:hover {
+    transform: translateY(-1px);
+    border-color: rgba(212, 178, 122, 0.6);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.intent-option:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.intent-option-title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #f0e2c8;
+}
+
+.intent-option-desc {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #b9a587;
+    line-height: 1.4;
+}
+
 .typing {
     color: var(--muted);
     font-style: italic;

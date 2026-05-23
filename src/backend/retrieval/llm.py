@@ -17,6 +17,15 @@ from src.backend.core.utils import get_local_model_path, normalize_text
 INTENT_SIMILAR = "similar_items"
 INTENT_GRAPH = "graph_pairing"
 INTENT_VARIANT = "color_variant"
+INTENT_CHAT = "chit_chat"
+INTENT_COMPOSITE = "composite_intent"
+
+CHIT_CHAT_SYSTEM_PROMPT = (
+    "You are a fashion assistant. Reply in English. "
+    "You must never answer the user's question. "
+    "If the user greets or says hello, reply: \"Hello! How can I help you?\". "
+    "Otherwise, reply exactly: \"Sorry, I can't help with that request because I'm only a clothing recommendation system.\""
+)
 
 
 class QwenMultimodalService:
@@ -461,6 +470,38 @@ class QwenMultimodalService:
         for token in stream:
             yield token
 
+    def generate_chitchat_response(self, user_query: str) -> str:
+        messages = [
+            {"role": "system", "content": CHIT_CHAT_SYSTEM_PROMPT},
+            {"role": "user", "content": user_query or ""},
+        ]
+        return self._chat_generate_text(
+            messages,
+            max_new_tokens=120,
+            temperature=0.0,
+            top_p=1.0,
+            do_sample=False,
+        )
+
+    def generate_chitchat_stream(self, user_query: str):
+        messages = [
+            {"role": "system", "content": CHIT_CHAT_SYSTEM_PROMPT},
+            {"role": "user", "content": user_query or ""},
+        ]
+        stream = self._chat_generate_text_stream(
+            messages,
+            max_new_tokens=120,
+            temperature=0.0,
+            top_p=1.0,
+            do_sample=False,
+        )
+        if stream is None:
+            yield self.generate_chitchat_response(user_query)
+            return
+        for token in stream:
+            if token:
+                yield token
+
     @staticmethod
     def _extract_json_object(raw_text: str) -> Dict | None:
         if not raw_text:
@@ -523,8 +564,12 @@ class QwenMultimodalService:
 
     def _normalize_intent(self, intent: str | None) -> str:
         value = str(intent or "").strip().lower()
-        if value in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT}:
+        if value in {INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT, INTENT_CHAT, INTENT_COMPOSITE}:
             return value
+        if value in {"chit_chat", "chitchat", "chit-chat", "smalltalk", "greeting"}:
+            return INTENT_CHAT
+        if value in {"composite_intent", "composite", "composite intent", "multi_intent", "ambiguous"}:
+            return INTENT_COMPOSITE
         if value in {"matching", "match", "pairing", "pair"}:
             return INTENT_GRAPH
         if value in {"similar", "lookalike"}:
@@ -587,6 +632,59 @@ class QwenMultimodalService:
         ]
         return any(term in text for term in pairing_terms)
 
+    @staticmethod
+    def _looks_like_fashion_query(text: str) -> bool:
+        value = normalize_text(text)
+        if not value:
+            return False
+        fashion_terms = [
+            "outfit",
+            "wear",
+            "style",
+            "match",
+            "pair",
+            "shirt",
+            "t shirt",
+            "tshirt",
+            "tee",
+            "pyjama",
+            "pyjamas",
+            "pajama",
+            "pajamas",
+            "sleepwear",
+            "nightwear",
+            "loungewear",
+            "top",
+            "hoodie",
+            "sweater",
+            "jacket",
+            "coat",
+            "blazer",
+            "dress",
+            "skirt",
+            "pants",
+            "trouser",
+            "jean",
+            "short",
+            "legging",
+            "shoe",
+            "sneaker",
+            "boot",
+            "sandal",
+            "loafer",
+            "heel",
+            "bag",
+            "handbag",
+            "belt",
+            "hat",
+            "cap",
+            "scarf",
+            "accessory",
+            "color",
+            "colour",
+        ]
+        return any(term in value for term in fashion_terms) or QwenMultimodalService._has_anchor_reference(value)
+
     def _build_intent_rule_debug(self, query: str, intent_hint: str) -> Dict[str, Any]:
         text = normalize_text(query)
         has_anchor = self._has_anchor_reference(text)
@@ -602,6 +700,12 @@ class QwenMultimodalService:
 
     def _apply_intent_rules(self, query: str, intent_hint: str) -> tuple[str, Dict[str, Any]]:
         debug = self._build_intent_rule_debug(query, intent_hint)
+        if intent_hint in {INTENT_CHAT, INTENT_COMPOSITE}:
+            if intent_hint == INTENT_CHAT and self._looks_like_fashion_query(query):
+                debug["rule_applied"] = "override_chit_chat_to_similar"
+                return INTENT_SIMILAR, debug
+            debug["rule_applied"] = "pass_through"
+            return intent_hint, debug
         text = debug.get("query_normalized", "")
         if not text:
             debug["rule_applied"] = "empty_query_default_similar"
@@ -658,8 +762,18 @@ class QwenMultimodalService:
         id2label = getattr(self.intent_model.config, "id2label", {}) or {}
         
         # Nếu model chưa lưu id2label, hardcode fallback dự phòng
-        fallback_map = {0: INTENT_SIMILAR, 1: INTENT_GRAPH, 2: INTENT_VARIANT}
-        raw_label = id2label.get(idx) or fallback_map.get(idx, INTENT_SIMILAR)
+        fallback_map = {
+            0: INTENT_SIMILAR,
+            1: INTENT_GRAPH,
+            2: INTENT_VARIANT,
+            3: INTENT_CHAT,
+            4: INTENT_COMPOSITE,
+        }
+        raw_label = id2label.get(idx)
+        if raw_label is None:
+            raw_label = id2label.get(str(idx))
+        if raw_label is None:
+            raw_label = fallback_map.get(idx, INTENT_SIMILAR)
         
         label = self._normalize_intent(raw_label)
         confidence = float(probs[idx].item())
@@ -695,10 +809,6 @@ class QwenMultimodalService:
             "- intent_hint is handled by a separate classifier. Do not invent it here.\n"
             "- If the user query contains a clothing item (e.g., parka, jacket, hat, dress), YOU MUST extract it into the \"product_type\" field. DO NOT leave it empty.\n"
             "- OUTPUT ONLY VALID JSON. DO NOT output any conversational text, markdown formatting, or explanations.\n"
-            "RULES FOR \"intent_hint\":\n"
-            "- MUST output \"similar_items\" if the user is looking for a specific piece of clothing based on description, style, or need (e.g., \"I want to find...\", \"Looking for a jacket...\").\n"
-            "- MUST output \"graph_pairing\" ONLY if the user explicitly asks to find complementary items to pair with a given/referenced item (e.g., \"What pants go with this jacket?\", \"Find shoes matching this look\").\n"
-            "- MUST output \"color_variant\" ONLY if the user asks for the exact same item in a different color.\n"
             f"User request: {query}"
         )
         messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
@@ -743,12 +853,17 @@ class QwenMultimodalService:
             }
 
         search_query = str(obj.get("search_query_en", "") or "").strip()
+        parsed_search_query = search_query
         if not search_query:
             search_query = query
         raw_filters = obj.get("must_filters") if isinstance(obj.get("must_filters"), dict) else {}
         raw_must_not = obj.get("must_not_filters") if isinstance(obj.get("must_not_filters"), dict) else {}
         must_filters = self._normalize_filters(raw_filters)
         must_not_filters = self._normalize_must_not(raw_must_not)
+        if intent_hint == INTENT_CHAT and (parsed_search_query or raw_filters or raw_must_not):
+            intent_hint = INTENT_SIMILAR
+            if isinstance(intent_rules, dict):
+                intent_rules["rule_applied"] = "override_chit_chat_from_llm"
         debug = {
             "intent_classifier": intent_result,
             "intent_rules": intent_rules,

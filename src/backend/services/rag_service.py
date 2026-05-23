@@ -9,9 +9,22 @@ from src.backend.core.config import settings
 from src.backend.core.query_logger import append_log
 from src.backend.core.utils import extract_article_id_from_text, normalize_article_id, normalize_text
 from src.backend.retrieval.embeddings import HybridEmbeddingService
-from src.backend.retrieval.llm import QwenMultimodalService
+from src.backend.retrieval.llm import (
+    INTENT_CHAT,
+    INTENT_COMPOSITE,
+    INTENT_GRAPH,
+    INTENT_SIMILAR,
+    INTENT_VARIANT,
+    QwenMultimodalService,
+)
 from src.backend.retrieval.qdrant import QdrantStore
 from src.backend.services.catalog import FashionCatalog
+
+INTENT_CONFIRM_OPTIONS = [INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT]
+COMPOSITE_INTENT_MESSAGE = (
+    "Sorry, I'm a little confused by your last request. "
+    "Could you help me confirm your intent so I can assist you better?"
+)
 
 
 class FashionRAGService:
@@ -21,6 +34,7 @@ class FashionRAGService:
         self.llm = llm
         self.catalog = catalog
         self.limit = max(1, int(limit))
+        self.intent_confirm_options = list(INTENT_CONFIRM_OPTIONS)
         self.allowed_filters = self._build_allowed_filters()
 
     def _build_allowed_filters(self) -> Dict[str, List[str]]:
@@ -180,7 +194,8 @@ class FashionRAGService:
         session_id: str | None,
         request_id: str | None,
         started_at: float,
-    ) -> tuple[List[dict], str, Dict[str, Any], bool]:
+        confirmed_intent: str | None = None,
+    ) -> tuple[List[dict], str, Dict[str, Any], bool, Dict[str, Any] | None]:
         analysis_started = time.perf_counter()
         analysis = self.llm.analyze_user_query(query)
         analysis_ms = int((time.perf_counter() - analysis_started) * 1000)
@@ -205,6 +220,67 @@ class FashionRAGService:
             debug=must_not_validation_debug,
         )
 
+        confirmed_value = str(confirmed_intent or "").strip().lower()
+        if confirmed_value in self.intent_confirm_options:
+            intent_hint = confirmed_value
+            if isinstance(analysis_debug, dict):
+                analysis_debug["intent_override"] = {
+                    "source": "user_confirmed",
+                    "value": confirmed_value,
+                }
+
+        retrieval_path: List[str] = []
+        direct_response: Dict[str, Any] | None = None
+        if intent_hint == INTENT_COMPOSITE:
+            retrieval_path.append("intent_composite")
+            direct_response = {
+                "type": INTENT_COMPOSITE,
+                "message": COMPOSITE_INTENT_MESSAGE,
+                "intent_options": self.intent_confirm_options,
+                "intent_query": query,
+            }
+        elif intent_hint == INTENT_CHAT:
+            retrieval_path.append("intent_chit_chat")
+            direct_response = {"type": INTENT_CHAT}
+
+        if direct_response is not None:
+            log_payload = {
+                "event": "chat",
+                "request_id": request_id or "",
+                "session_id": session_id or "",
+                "query": query,
+                "search_query": search_query,
+                "search_query_raw": search_query_raw,
+                "dense_query": search_query,
+                "sparse_query": search_query,
+                "boosted_product_type": "",
+                "boost_applied": False,
+                "intent_hint": intent_hint,
+                "analysis_debug": analysis_debug,
+                "llm_filters_raw": llm_filters_raw,
+                "llm_must_not_raw": llm_must_not_raw,
+                "must_filters": must_filters,
+                "must_not_filters": must_not_filters,
+                "dropped_filters": dropped_filters,
+                "dropped_must_not": dropped_must_not,
+                "filter_validation_debug": filter_validation_debug,
+                "must_not_validation_debug": must_not_validation_debug,
+                "retrieval_path": retrieval_path,
+                "graph_anchor_id": "",
+                "graph_anchor_source": "",
+                "graph_neighbor_ids": [],
+                "graph_candidate_count": 0,
+                "graph_filtered_count": 0,
+                "hybrid_result_count": 0,
+                "has_image": bool(image),
+                "result_ids": [],
+                "timing_ms": {
+                    "analysis": analysis_ms,
+                    "embedding": 0,
+                },
+            }
+            return [], "", log_payload, False, direct_response
+
         dense_query = search_query
         sparse_query = search_query
         product_type = str(must_filters.get("product_type", "")).strip()
@@ -223,7 +299,7 @@ class FashionRAGService:
         graph_candidate_count = 0
         graph_filtered_count = 0
         hybrid_result_count = 0
-        retrieval_path: List[str] = []
+        retrieval_path = []
 
         if intent_hint == "graph_pairing":
             retrieval_path.append("intent_graph_pairing")
@@ -341,7 +417,7 @@ class FashionRAGService:
             f"CONTEXT:\n{context}"
         )
         full_prompt = f"{system_prompt}\n\nCustomer: {query}"
-        return items, full_prompt, log_payload, True
+        return items, full_prompt, log_payload, True, None
 
     def stream_answer(self, prompt: str, image: Image.Image | None = None):
         return self.llm.generate_answer_stream(prompt, images=[image] if image else None)
@@ -353,8 +429,9 @@ class FashionRAGService:
         session_id: str | None,
         request_id: str | None,
         started_at: float,
-    ) -> tuple[List[dict], str, Dict[str, Any], bool]:
-        return self._prepare_chat(query, image, session_id, request_id, started_at)
+        confirmed_intent: str | None = None,
+    ) -> tuple[List[dict], str, Dict[str, Any], bool, Dict[str, Any] | None]:
+        return self._prepare_chat(query, image, session_id, request_id, started_at, confirmed_intent)
 
     def finalize_log(self, log_payload: Dict[str, Any], started_at: float, result_count: int) -> None:
         self._finalize_log(log_payload, started_at, result_count)
@@ -365,19 +442,39 @@ class FashionRAGService:
         image: Image.Image | None = None,
         session_id: str | None = None,
         request_id: str | None = None,
-    ) -> tuple[str, List[dict]]:
+        confirmed_intent: str | None = None,
+    ) -> tuple[str, List[dict], Dict[str, Any]]:
         started_at = time.perf_counter()
-        items, full_prompt, log_payload, has_context = self._prepare_chat(
+        items, full_prompt, log_payload, has_context, direct_response = self._prepare_chat(
             query=query,
             image=image,
             session_id=session_id,
             request_id=request_id,
             started_at=started_at,
+            confirmed_intent=confirmed_intent,
         )
+
+        if direct_response is not None:
+            intent_type = direct_response.get("type")
+            if intent_type == INTENT_COMPOSITE:
+                message = direct_response.get("message", COMPOSITE_INTENT_MESSAGE)
+                self._finalize_log(log_payload, started_at, 0)
+                return message, [], {
+                    "intent": INTENT_COMPOSITE,
+                    "intent_options": direct_response.get("intent_options", self.intent_confirm_options),
+                    "intent_query": direct_response.get("intent_query", query),
+                }
+            if intent_type == INTENT_CHAT:
+                message = self.llm.generate_chitchat_response(query)
+                self._finalize_log(log_payload, started_at, 0)
+                return message, [], {"intent": INTENT_CHAT}
+
         if not has_context:
             self._finalize_log(log_payload, started_at, 0)
-            return "I could not find any matching items in the current inventory.", []
+            return "I could not find any matching items in the current inventory.", [], {
+                "intent": log_payload.get("intent_hint", ""),
+            }
 
         message = self.llm.generate_answer(full_prompt, images=[image] if image else None)
         self._finalize_log(log_payload, started_at, len(items))
-        return message, items
+        return message, items, {"intent": log_payload.get("intent_hint", "")}

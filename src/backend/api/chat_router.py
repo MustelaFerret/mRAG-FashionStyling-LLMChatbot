@@ -16,6 +16,7 @@ from src.backend.core.exceptions import (
     StaticAssetNotFoundException,
 )
 from src.backend.models.schemas import ChatRequest
+from src.backend.retrieval.llm import INTENT_CHAT, INTENT_COMPOSITE
 from src.backend.services.rag_service import FashionRAGService
 from src.backend.services.recommender import FashionAssistantService
 
@@ -54,35 +55,83 @@ def _format_sse(event: str, data: dict) -> str:
 async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depends(get_rag)):
     request_id = uuid.uuid4().hex[:12]
     session_id = (req.session_id or "").strip()
+    confirmed_intent = (req.confirmed_intent or "").strip()
     wants_stream = bool(getattr(req, "stream", False)) or "text/event-stream" in request.headers.get("accept", "")
     try:
         image = FashionAssistantService.decode_image(req.image)
         if not wants_stream:
-            message, items = await rag.chat(req.text or "", image=image, session_id=session_id, request_id=request_id)
+            message, items, extra = await rag.chat(
+                req.text or "",
+                image=image,
+                session_id=session_id,
+                request_id=request_id,
+                confirmed_intent=confirmed_intent,
+            )
+            payload = {"message": message, "items": items}
+            payload.update(extra or {})
             return {
                 "status": "success",
                 "data": {
-                    "message": message,
-                    "items": items,
+                    **payload,
                 },
             }
 
         started_at = time.perf_counter()
-        items, full_prompt, log_payload, has_context = rag.prepare_chat(
+        items, full_prompt, log_payload, has_context, direct_response = rag.prepare_chat(
             query=req.text or "",
             image=image,
             session_id=session_id,
             request_id=request_id,
             started_at=started_at,
+            confirmed_intent=confirmed_intent,
         )
+        intent_hint = log_payload.get("intent_hint", "")
 
         def event_generator():
-            yield _format_sse("meta", {"request_id": request_id, "items": items})
+            if direct_response is not None:
+                response_type = direct_response.get("type")
+                if response_type == INTENT_COMPOSITE:
+                    message = direct_response.get("message", "")
+                    payload = {
+                        "request_id": request_id,
+                        "items": [],
+                        "intent": INTENT_COMPOSITE,
+                        "intent_options": direct_response.get("intent_options", []),
+                        "intent_query": direct_response.get("intent_query", req.text or ""),
+                    }
+                    yield _format_sse("meta", payload)
+                    rag.finalize_log(log_payload, started_at, 0)
+                    yield _format_sse("done", {"message": message, **payload})
+                    return
+                if response_type == INTENT_CHAT:
+                    yield _format_sse(
+                        "meta",
+                        {"request_id": request_id, "items": [], "intent": INTENT_CHAT},
+                    )
+                    message_parts: list[str] = []
+                    try:
+                        for token in rag.llm.generate_chitchat_stream(req.text or ""):
+                            if not token:
+                                continue
+                            message_parts.append(token)
+                            yield _format_sse("delta", {"delta": token})
+                        full_message = "".join(message_parts).strip()
+                        rag.finalize_log(log_payload, started_at, 0)
+                        yield _format_sse("done", {"message": full_message, "intent": INTENT_CHAT})
+                    except Exception as ex:
+                        rag.finalize_log(log_payload, started_at, 0)
+                        yield _format_sse("error", {"error": str(ex)})
+                    return
+
+            yield _format_sse(
+                "meta",
+                {"request_id": request_id, "items": items, "intent": intent_hint},
+            )
             if not has_context:
                 message = "I could not find any matching items in the current inventory."
                 rag.finalize_log(log_payload, started_at, 0)
                 yield _format_sse("delta", {"delta": message})
-                yield _format_sse("done", {"message": message})
+                yield _format_sse("done", {"message": message, "intent": intent_hint})
                 return
 
             message_parts: list[str] = []
@@ -94,7 +143,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
                     yield _format_sse("delta", {"delta": token})
                 full_message = "".join(message_parts).strip()
                 rag.finalize_log(log_payload, started_at, len(items))
-                yield _format_sse("done", {"message": full_message})
+                yield _format_sse("done", {"message": full_message, "intent": intent_hint})
             except Exception as ex:
                 rag.finalize_log(log_payload, started_at, len(items))
                 yield _format_sse("error", {"error": str(ex)})

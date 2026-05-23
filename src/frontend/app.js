@@ -4,7 +4,27 @@ const INTENT_LABELS = {
     similar_items: "Similar Picks",
     color_variant: "Color Variants",
     graph_pairing: "Outfit Pairing",
+    chit_chat: "Chit Chat",
+    composite_intent: "Intent Confirmation",
 };
+
+const INTENT_OPTIONS = [
+    {
+        id: "similar_items",
+        label: "Similar Items",
+        description: "Find items similar to the reference or description.",
+    },
+    {
+        id: "graph_pairing",
+        label: "Outfit Pairing",
+        description: "Find complementary pieces to wear with the reference item.",
+    },
+    {
+        id: "color_variant",
+        label: "Color Variant",
+        description: "Find the same item in a different color.",
+    },
+];
 
 const DEFAULT_BOOTSTRAP = {
     app: {
@@ -250,16 +270,51 @@ function ItemCard({ item, onOpen }) {
     );
 }
 
-function AiMessage({ message, onOpenItem }) {
+function IntentPicker({ options, onSelect, disabled }) {
+    const optionSet = new Set(Array.isArray(options) ? options : []);
+    const available = INTENT_OPTIONS.filter((opt) => optionSet.has(opt.id));
+    if (available.length === 0) return null;
+
+    return (
+        <div className="intent-picker">
+            <p className="intent-picker-title">Confirm intent</p>
+            <div className="intent-picker-grid">
+                {available.map((opt) => (
+                    <button
+                        key={opt.id}
+                        className="intent-option"
+                        disabled={disabled}
+                        onClick={() => onSelect(opt.id)}
+                    >
+                        <span className="intent-option-title">{opt.label}</span>
+                        <span className="intent-option-desc">{opt.description}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function AiMessage({ message, onOpenItem, onConfirmIntent }) {
     const intentLabel = (message.intentInfo && message.intentInfo.label) || INTENT_LABELS[message.intent] || "";
     const intentDescription = (message.intentInfo && message.intentInfo.description) || "";
     const cards = Array.isArray(message.cards) && message.cards.length > 0 ? message.cards : (message.items || []);
+    const intentOptions = Array.isArray(message.intentOptions) ? message.intentOptions : [];
+    const showIntentPicker = message.intent === "composite_intent" && intentOptions.length > 0 && !message.intentResolved;
 
     return (
         <div className="chat-message flex flex-col items-start gap-3">
             <div className={"msg-ai " + (message.error ? "text-red-300" : "")}>{message.text}</div>
             {intentLabel && <span className="intent-chip">{intentLabel}</span>}
             {intentDescription && <p className="text-xs text-[#baa98d] -mt-1">{intentDescription}</p>}
+
+            {showIntentPicker && (
+                <IntentPicker
+                    options={intentOptions}
+                    disabled={message.intentResolved}
+                    onSelect={(intentId) => onConfirmIntent && onConfirmIntent(message, intentId)}
+                />
+            )}
 
             {Array.isArray(cards) && cards.length > 0 && (
                 <div className="cards-row w-full">
@@ -406,6 +461,7 @@ function Workspace({
     onOpenItem,
     onPickQuickAction,
     onResetSession,
+    onConfirmIntent,
     onSend,
     chatInput,
     setChatInput,
@@ -442,7 +498,7 @@ function Workspace({
                         {messages.map((message) => (
                             message.role === "user"
                                 ? <UserMessage key={message.id} message={message} />
-                                : <AiMessage key={message.id} message={message} onOpenItem={onOpenItem} />
+                                : <AiMessage key={message.id} message={message} onOpenItem={onOpenItem} onConfirmIntent={onConfirmIntent} />
                         ))}
                         {isLoading && <div className="typing">Generating outfit suggestions...</div>}
                     </div>
@@ -488,6 +544,7 @@ function App() {
     const fileInputRef = useRef(null);
     const textAreaRef = useRef(null);
     const sessionIdRef = useRef(getSessionId());
+    const lastUserImageRef = useRef(null);
 
     const api = useMemo(() => window.MragApi || {}, []);
 
@@ -606,22 +663,33 @@ function App() {
         setQuickActions((bootstrap.suggested_prompts || DEFAULT_BOOTSTRAP.suggested_prompts).slice(0, 6));
     }
 
-    async function sendMessage() {
-        const payloadText = chatInput.trim();
-        const payloadImage = currentImageBase64;
+    const updateMessageById = (id, patch) => {
+        if (!id) return;
+        setMessages((prev) => prev.map((msg) => (
+            msg.id === id ? { ...msg, ...patch } : msg
+        )));
+    };
+
+    async function sendRequest({ text, image, confirmedIntent, userDisplayText }) {
+        const payloadText = String(text || "").trim();
+        const explicitImage = image === undefined ? null : image;
+        const payloadImage = explicitImage || (confirmedIntent ? lastUserImageRef.current : null);
         if (!payloadText && !payloadImage) return;
 
-        setMessages((prev) => prev.concat([{ id: uid(), role: "user", text: payloadText, image: payloadImage }]));
-        setChatInput("");
-        handleRemoveImage();
+        const displayText = userDisplayText || payloadText;
+        setMessages((prev) => prev.concat([{ id: uid(), role: "user", text: displayText, image: payloadImage }]));
+
+        if (!userDisplayText) {
+            setChatInput("");
+            handleRemoveImage();
+        }
+
+        if (payloadImage) {
+            lastUserImageRef.current = payloadImage;
+        }
+
         setIsLoading(true);
         let aiMessageId = "";
-        const updateMessageById = (id, patch) => {
-            if (!id) return;
-            setMessages((prev) => prev.map((msg) => (
-                msg.id === id ? { ...msg, ...patch } : msg
-            )));
-        };
 
         try {
             const requestPayload = {
@@ -629,7 +697,8 @@ function App() {
                 image: payloadImage,
                 session_id: sessionIdRef.current,
                 selected_anchor_id: selectedAnchorId || null,
-                new_image_context: Boolean(payloadImage),
+                confirmed_intent: confirmedIntent || null,
+                new_image_context: Boolean(payloadImage && !confirmedIntent),
                 response_mode: "rich",
                 include_debug: true,
                 max_ui_items: 10,
@@ -644,6 +713,9 @@ function App() {
                     text: "",
                     intent: "",
                     intentInfo: null,
+                    intentOptions: [],
+                    intentQuery: "",
+                    intentResolved: false,
                     items: [],
                     cards: [],
                     meta: null,
@@ -653,27 +725,38 @@ function App() {
 
             const updateAiMessage = (patch) => updateMessageById(aiMessageId, patch);
 
+            const applyIntentPayload = (payload) => {
+                const patch = {};
+                if (payload && payload.intent) {
+                    patch.intent = payload.intent;
+                }
+                if (payload && Array.isArray(payload.intent_options)) {
+                    patch.intentOptions = payload.intent_options;
+                    patch.intentResolved = false;
+                }
+                if (payload && payload.intent_query) {
+                    patch.intentQuery = payload.intent_query;
+                }
+                if (Object.keys(patch).length > 0) {
+                    updateAiMessage(patch);
+                }
+            };
+
+            let streamedText = "";
+
             const appendDelta = (delta) => {
                 if (!delta) return;
-                setMessages((prev) => prev.map((msg) => (
-                    msg.id === aiMessageId
-                        ? { ...msg, text: (msg.text || "") + delta }
-                        : msg
-                )));
+                streamedText += delta;
             };
 
             if (api.chatStream) {
                 let streamError = null;
+                let pendingItems = [];
                 await api.chatStream(requestPayload, (eventName, data) => {
                     if (eventName === "meta") {
                         const normalizedItems = normalizeItems(data && data.items ? data.items : []);
-                        updateAiMessage({ items: normalizedItems, cards: normalizedItems });
-                        if (normalizedItems.length > 0) {
-                            setAnchorItems(normalizedItems.slice(0, 10));
-                            setSelectedAnchorId(formatArticleId(normalizedItems[0].article_id) || "");
-                        } else {
-                            clearFocusState();
-                        }
+                        pendingItems = normalizedItems;
+                        applyIntentPayload(data);
                         return;
                     }
                     if (eventName === "delta") {
@@ -681,12 +764,22 @@ function App() {
                         return;
                     }
                     if (eventName === "done") {
-                        if (data && data.message) {
-                            updateAiMessage({ text: data.message });
+                        const finalText = data && data.message ? data.message : streamedText;
+                        updateAiMessage({ text: finalText, items: pendingItems, cards: pendingItems });
+                        applyIntentPayload(data);
+                        if (pendingItems.length > 0) {
+                            setAnchorItems(pendingItems.slice(0, 10));
+                            setSelectedAnchorId(formatArticleId(pendingItems[0].article_id) || "");
+                        } else {
+                            clearFocusState();
                         }
+                        streamedText = "";
+                        pendingItems = [];
                         return;
                     }
                     if (eventName === "error") {
+                        streamedText = "";
+                        pendingItems = [];
                         streamError = data && data.error ? data.error : "Streaming error";
                     }
                 });
@@ -708,6 +801,10 @@ function App() {
                     text: payload && payload.message ? payload.message : "",
                     items: normalizedItems,
                     cards: normalizedItems,
+                    intent: payload && payload.intent ? payload.intent : "",
+                    intentOptions: Array.isArray(payload && payload.intent_options) ? payload.intent_options : [],
+                    intentQuery: payload && payload.intent_query ? payload.intent_query : "",
+                    intentResolved: false,
                 });
                 if (normalizedItems.length > 0) {
                     setAnchorItems(normalizedItems.slice(0, 10));
@@ -748,6 +845,24 @@ function App() {
         }
     }
 
+    async function sendMessage() {
+        const payloadText = chatInput.trim();
+        const payloadImage = currentImageBase64;
+        if (!payloadText && !payloadImage) return;
+        await sendRequest({ text: payloadText, image: payloadImage });
+    }
+
+    function handleConfirmIntent(message, intentId) {
+        const intentInfo = INTENT_OPTIONS.find((opt) => opt.id === intentId);
+        updateMessageById(message.id, { intentResolved: true });
+        const queryText = message.intentQuery || message.text || "";
+        sendRequest({
+            text: queryText,
+            confirmedIntent: intentId,
+            userDisplayText: intentInfo ? `Intent confirmed: ${intentInfo.label}` : "Intent confirmed",
+        });
+    }
+
     return (
         <>
             {!started && <HeroScreen bootstrap={bootstrap} onStart={() => setStarted(true)} />}
@@ -772,6 +887,7 @@ function App() {
                         if (textAreaRef.current) textAreaRef.current.focus();
                     }}
                     onResetSession={handleResetSession}
+                        onConfirmIntent={handleConfirmIntent}
                     onSend={sendMessage}
                     chatInput={chatInput}
                     setChatInput={setChatInput}

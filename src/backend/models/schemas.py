@@ -6,6 +6,7 @@ class ChatRequest(BaseModel):
     image: str | None = None
     session_id: str | None = None
     selected_anchor_id: str | None = None
+    confirmed_intent: str | None = None
     new_image_context: bool = False
     embedding_text_weight: float | None = None
     embedding_image_weight: float | None = None
