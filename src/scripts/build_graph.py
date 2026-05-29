@@ -14,6 +14,8 @@ from typing import Dict, Iterable, List, Tuple
 
 import pandas as pd
 
+from src.scripts.outfit_slots import get_slot, slot_pair_allowed
+
 log = logging.getLogger(__name__)
 
 
@@ -166,6 +168,23 @@ class OutfitGraphBuilder:
         garment_group_b = str(meta_b.get("garment_group_name", "") or "")
         product_type_a = str(meta_a.get("product_type_name", "") or "")
         product_type_b = str(meta_b.get("product_type_name", "") or "")
+
+        if mode == "redesigned":
+            slot_a = get_slot(product_type_a, product_group_a)
+            slot_b = get_slot(product_type_b, product_group_b)
+            if slot_a in {"other", "nightwear", "inner"} or slot_b in {"other", "nightwear", "inner"}:
+                return False
+            if not slot_pair_allowed(slot_a, slot_b):
+                return False
+            if product_type_a and product_type_a == product_type_b:
+                return False
+            if a[:6] == b[:6]:
+                return False
+            colour_a = str(meta_a.get("colour_group_name", "") or "")
+            colour_b = str(meta_b.get("colour_group_name", "") or "")
+            if not self._colours_compatible(colour_a, colour_b, garment_group_a, garment_group_b):
+                return False
+            return True
 
         allowed_same = product_group_a in self.ALLOWED_SAME_GROUPS
 

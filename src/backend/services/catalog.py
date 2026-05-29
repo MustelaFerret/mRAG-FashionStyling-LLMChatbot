@@ -391,6 +391,34 @@ class FashionCatalog:
         neighbors = self._weighted_neighbors(anchor_id, preferred_min_weight, hard_min_weight)
         return [normalize_article_id(i) for i, _ in neighbors[:limit]]
 
+    def get_graph_diverse_neighbors(
+        self,
+        anchor_id: str,
+        limit: int,
+        max_per_pt: int,
+        preferred_min_weight: int,
+        hard_min_weight: int,
+    ) -> List[str]:
+        aid = normalize_article_id(anchor_id)
+        all_neighbors = [(n, w) for n, w in self.graph_adj.get(aid, []) if w >= hard_min_weight]
+        if not all_neighbors:
+            return []
+        pt_count: Dict[str, int] = {}
+        selected: List[str] = []
+        for nid, _ in all_neighbors:
+            cid = normalize_article_id(nid)
+            if not cid:
+                continue
+            pt = self.get_meta(cid).get("product_type_name", "")
+            if pt and pt_count.get(pt, 0) >= max_per_pt:
+                continue
+            selected.append(cid)
+            if pt:
+                pt_count[pt] = pt_count.get(pt, 0) + 1
+            if len(selected) >= limit:
+                break
+        return selected
+
     def get_graph_multihop_outfit_ids(
         self,
         anchor_id: str,
@@ -460,11 +488,21 @@ class FashionCatalog:
                 return selected
 
         ranked_candidates.sort(key=lambda x: x[0], reverse=True)
+        pt_count: Dict[str, int] = {}
+        anchor_pt = self.get_meta(aid).get("product_type_name", "")
+        max_per_pt = 2
         for _, nid, _, _ in ranked_candidates:
             if nid in used:
                 continue
+            cand_pt = self.get_meta(nid).get("product_type_name", "")
+            if cand_pt and cand_pt == anchor_pt:
+                continue
+            if cand_pt and pt_count.get(cand_pt, 0) >= max_per_pt:
+                continue
             selected.append(nid)
             used.add(nid)
+            if cand_pt:
+                pt_count[cand_pt] = pt_count.get(cand_pt, 0) + 1
             if len(selected) >= limit:
                 break
 

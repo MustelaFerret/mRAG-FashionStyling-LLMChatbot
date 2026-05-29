@@ -324,9 +324,10 @@ class FashionRAGService:
             anchor_id = normalize_article_id(anchor_id)
             if anchor_id:
                 retrieval_path.append("graph_neighbors")
-                neighbor_ids = self.catalog.get_graph_neighbor_ids(
+                neighbor_ids = self.catalog.get_graph_diverse_neighbors(
                     anchor_id,
                     limit=self.limit,
+                    max_per_pt=settings.graph_max_per_pt,
                     preferred_min_weight=settings.graph_preferred_min_weight,
                     hard_min_weight=settings.graph_hard_min_weight,
                 )
