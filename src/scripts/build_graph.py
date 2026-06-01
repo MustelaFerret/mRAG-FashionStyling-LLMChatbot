@@ -14,7 +14,7 @@ from typing import Dict, Iterable, List, Tuple
 
 import pandas as pd
 
-from src.scripts.outfit_slots import get_slot, slot_pair_allowed
+from src.scripts.outfit_slots import get_slot, slot_pair_allowed, same_pt_family
 
 log = logging.getLogger(__name__)
 
@@ -70,6 +70,8 @@ class OutfitGraphBuilder:
             "garment_group_name",
             "index_name",
             "section_name",
+            "department_name",
+            "prod_name",
             "colour_group_name",
             "seasonality",
         ]
@@ -170,13 +172,21 @@ class OutfitGraphBuilder:
         product_type_b = str(meta_b.get("product_type_name", "") or "")
 
         if mode == "redesigned":
-            slot_a = get_slot(product_type_a, product_group_a)
-            slot_b = get_slot(product_type_b, product_group_b)
+            prod_name_a = str(meta_a.get("prod_name", "") or "")
+            prod_name_b = str(meta_b.get("prod_name", "") or "")
+            section_a = str(meta_a.get("section_name", "") or "")
+            section_b = str(meta_b.get("section_name", "") or "")
+            dept_a = str(meta_a.get("department_name", "") or "")
+            dept_b = str(meta_b.get("department_name", "") or "")
+            slot_a = get_slot(product_type_a, product_group_a, garment_group_a, prod_name_a, section_a, dept_a)
+            slot_b = get_slot(product_type_b, product_group_b, garment_group_b, prod_name_b, section_b, dept_b)
             if slot_a in {"other", "nightwear", "inner"} or slot_b in {"other", "nightwear", "inner"}:
                 return False
             if not slot_pair_allowed(slot_a, slot_b):
                 return False
             if product_type_a and product_type_a == product_type_b:
+                return False
+            if same_pt_family(product_type_a, product_type_b):
                 return False
             if a[:6] == b[:6]:
                 return False
