@@ -20,7 +20,7 @@ class Settings:
     db_path: str = str(BASE_DIR / os.getenv("QDRANT_DB_PATH", "db/qdrant_local_db"))
     collection_name: str = os.getenv("QDRANT_COLLECTION_NAME", "fashion_products")
     graph_file: str = str(BASE_DIR / os.getenv("GRAPH_FILE", "data/processed/final_outfit_graph.csv"))
-    meta_file: str = str(BASE_DIR / os.getenv("META_FILE", "data/processed/dataset_final_qwen_filled.csv"))
+    meta_file: str = str(BASE_DIR / os.getenv("META_FILE", "data/processed/dataset_qwen_completed.csv"))
     image_dir: str = str(BASE_DIR / os.getenv("IMAGE_DIR", "data/raw/images"))
     frontend_dir: str = str(BASE_DIR / os.getenv("FRONTEND_DIR", "src/frontend"))
     log_dir: str = str(BASE_DIR / os.getenv("LOG_DIR", "log"))

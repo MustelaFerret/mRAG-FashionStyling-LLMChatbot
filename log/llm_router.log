@@ -1,0 +1,296 @@
+{
+  "analysis_debug": {
+    "intent_classifier": {
+      "confidence": 0.54296875,
+      "index": 4,
+      "intent": "composite_intent",
+      "raw_label": "composite_intent",
+      "source": "roberta"
+    },
+    "intent_rules": {
+      "classifier_intent": "composite_intent",
+      "has_anchor_reference": true,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": false,
+      "query_normalized": "i want to find light gray hoodie (jacket) like this",
+      "rule_applied": "pass_through"
+    },
+    "llm_filters_raw": {
+      "product_type": [
+        "hoodie",
+        "jacket"
+      ]
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": [
+          "hoodie",
+          "jacket"
+        ]
+      },
+      "must_not_filters": {},
+      "search_query_en": "light gray hoodie"
+    },
+    "llm_raw": "```json\n{\n  \"search_query_en\": \"light gray hoodie\",\n  \"must_filters\": {\n    \"product_type\": [\"hoodie\", \"jacket\"]\n  },\n  \"must_not_filters\": {}\n}\n```",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "using_query_llm": false
+  },
+  "boost_applied": false,
+  "boosted_product_type": "",
+  "dense_query": "light gray hoodie",
+  "dropped_filters": [
+    "product_type=['hoodie', 'jacket']"
+  ],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": false,
+      "input": "['hoodie', 'jacket']",
+      "key": "product_type",
+      "matched": "",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "",
+  "graph_anchor_source": "",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": true,
+  "hybrid_result_count": 0,
+  "intent_hint": "composite_intent",
+  "latency_ms": 4245,
+  "llm_filters_raw": {
+    "product_type": [
+      "hoodie",
+      "jacket"
+    ]
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {},
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "query": "I want to find light gray hoodie (jacket) like this",
+  "request_id": "96167d3ac0f6",
+  "result_count": 0,
+  "result_ids": [],
+  "retrieval_path": [
+    "intent_composite"
+  ],
+  "search_query": "light gray hoodie",
+  "search_query_raw": "light gray hoodie",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "sparse_query": "light gray hoodie",
+  "timestamp_utc": "2026-06-02T08:15:22.748947+00:00",
+  "timing_ms": {
+    "analysis": 4243,
+    "embedding": 0,
+    "total": 4245
+  }
+}
+
+{
+  "analysis_debug": {
+    "intent_classifier": {
+      "confidence": 0.54296875,
+      "index": 4,
+      "intent": "composite_intent",
+      "raw_label": "composite_intent",
+      "source": "roberta"
+    },
+    "intent_override": {
+      "source": "user_confirmed",
+      "value": "similar_items"
+    },
+    "intent_rules": {
+      "classifier_intent": "composite_intent",
+      "has_anchor_reference": true,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": false,
+      "query_normalized": "i want to find light gray hoodie (jacket) like this",
+      "rule_applied": "pass_through"
+    },
+    "llm_filters_raw": {
+      "product_type": [
+        "hoodie",
+        "jacket"
+      ]
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": [
+          "hoodie",
+          "jacket"
+        ]
+      },
+      "must_not_filters": {},
+      "search_query_en": "light gray hoodie"
+    },
+    "llm_raw": "```json\n{\n  \"search_query_en\": \"light gray hoodie\",\n  \"must_filters\": {\n    \"product_type\": [\"hoodie\", \"jacket\"]\n  },\n  \"must_not_filters\": {}\n}\n```",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "using_query_llm": false
+  },
+  "boost_applied": false,
+  "boosted_product_type": "",
+  "dense_query": "light gray hoodie",
+  "dropped_filters": [
+    "product_type=['hoodie', 'jacket']"
+  ],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": false,
+      "input": "['hoodie', 'jacket']",
+      "key": "product_type",
+      "matched": "",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "",
+  "graph_anchor_source": "",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": true,
+  "hybrid_result_count": 5,
+  "intent_hint": "similar_items",
+  "latency_ms": 6451,
+  "llm_filters_raw": {
+    "product_type": [
+      "hoodie",
+      "jacket"
+    ]
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {},
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "query": "I want to find light gray hoodie (jacket) like this",
+  "request_id": "410e8a119eed",
+  "result_count": 5,
+  "result_ids": [
+    "0685814062",
+    "0721266008",
+    "0237347055",
+    "0721266006",
+    "0622370002"
+  ],
+  "retrieval_path": [
+    "hybrid_search"
+  ],
+  "search_query": "light gray hoodie",
+  "search_query_raw": "light gray hoodie",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "sparse_query": "light gray hoodie",
+  "timestamp_utc": "2026-06-02T08:15:33.934052+00:00",
+  "timing_ms": {
+    "analysis": 4129,
+    "embedding": 631,
+    "total": 6451
+  }
+}
+
+{
+  "analysis_debug": {
+    "intent_classifier": {
+      "confidence": 1.0,
+      "index": 2,
+      "intent": "color_variant",
+      "raw_label": "color_variant",
+      "source": "roberta"
+    },
+    "intent_rules": {
+      "classifier_intent": "color_variant",
+      "has_anchor_reference": false,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": false,
+      "query_normalized": "black color pls",
+      "rule_applied": "force_similar_no_explicit_pairing"
+    },
+    "llm_filters_raw": {
+      "product_type": ""
+    },
+    "llm_must_not_raw": {
+      "product_type": [
+        ""
+      ]
+    },
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": ""
+      },
+      "must_not_filters": {
+        "product_type": [
+          ""
+        ]
+      },
+      "search_query_en": "black"
+    },
+    "llm_raw": "```json\n{\n  \"search_query_en\": \"black\",\n  \"must_filters\": {\n    \"product_type\": \"\"\n  },\n  \"must_not_filters\": {\n    \"product_type\": [\"\"]\n  }\n}\n```",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "using_query_llm": false
+  },
+  "boost_applied": false,
+  "boosted_product_type": "",
+  "dense_query": "black",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [],
+  "graph_anchor_id": "",
+  "graph_anchor_source": "",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": false,
+  "hybrid_result_count": 5,
+  "intent_hint": "similar_items",
+  "latency_ms": 14286,
+  "llm_filters_raw": {
+    "product_type": ""
+  },
+  "llm_must_not_raw": {
+    "product_type": [
+      ""
+    ]
+  },
+  "must_filters": {},
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "query": "black color pls",
+  "request_id": "d9b32939c2a4",
+  "result_count": 5,
+  "result_ids": [
+    "0587231002",
+    "0898434001",
+    "0648703003",
+    "0756433001",
+    "0629420002"
+  ],
+  "retrieval_path": [
+    "hybrid_search"
+  ],
+  "search_query": "black",
+  "search_query_raw": "black",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "sparse_query": "black",
+  "timestamp_utc": "2026-06-02T08:15:59.214579+00:00",
+  "timing_ms": {
+    "analysis": 4046,
+    "embedding": 157,
+    "total": 14286
+  }
+}
+

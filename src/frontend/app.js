@@ -26,6 +26,8 @@ const INTENT_OPTIONS = [
     },
 ];
 
+const UI_ITEM_LIMIT = 4;
+
 const DEFAULT_BOOTSTRAP = {
     app: {
         name: "Atelier mRAG",
@@ -77,6 +79,11 @@ function normalizeItems(items) {
             subtitle: item.subtitle || item.colour_group || "",
         }))
         .filter((item) => item.article_id);
+}
+
+function limitItems(items) {
+    if (!Array.isArray(items)) return [];
+    return items.slice(0, UI_ITEM_LIMIT);
 }
 
 function ProductModal({ items, index, onClose, onNavigate }) {
@@ -299,6 +306,7 @@ function AiMessage({ message, onOpenItem, onConfirmIntent }) {
     const intentLabel = (message.intentInfo && message.intentInfo.label) || INTENT_LABELS[message.intent] || "";
     const intentDescription = (message.intentInfo && message.intentInfo.description) || "";
     const cards = Array.isArray(message.cards) && message.cards.length > 0 ? message.cards : (message.items || []);
+    const displayCards = limitItems(cards);
     const intentOptions = Array.isArray(message.intentOptions) ? message.intentOptions : [];
     const showIntentPicker = message.intent === "composite_intent" && intentOptions.length > 0 && !message.intentResolved;
 
@@ -316,10 +324,10 @@ function AiMessage({ message, onOpenItem, onConfirmIntent }) {
                 />
             )}
 
-            {Array.isArray(cards) && cards.length > 0 && (
+            {Array.isArray(displayCards) && displayCards.length > 0 && (
                 <div className="cards-row w-full">
-                    {cards.map((item, index) => (
-                        <ItemCard key={String(item.article_id) + "-" + index} item={item} onOpen={() => onOpenItem(item, cards)} />
+                    {displayCards.map((item, index) => (
+                        <ItemCard key={String(item.article_id) + "-" + index} item={item} onOpen={() => onOpenItem(item, displayCards)} />
                     ))}
                 </div>
             )}
@@ -765,11 +773,12 @@ function App() {
                     }
                     if (eventName === "done") {
                         const finalText = data && data.message ? data.message : streamedText;
-                        updateAiMessage({ text: finalText, items: pendingItems, cards: pendingItems });
+                        const displayItems = limitItems(pendingItems);
+                        updateAiMessage({ text: finalText, items: pendingItems, cards: displayItems });
                         applyIntentPayload(data);
-                        if (pendingItems.length > 0) {
-                            setAnchorItems(pendingItems.slice(0, 10));
-                            setSelectedAnchorId(formatArticleId(pendingItems[0].article_id) || "");
+                        if (displayItems.length > 0) {
+                            setAnchorItems(displayItems);
+                            setSelectedAnchorId(formatArticleId(displayItems[0].article_id) || "");
                         } else {
                             clearFocusState();
                         }
@@ -797,18 +806,19 @@ function App() {
 
                 const payload = data && data.data ? data.data : data;
                 const normalizedItems = normalizeItems(payload && payload.items ? payload.items : []);
+                const displayItems = limitItems(normalizedItems);
                 updateAiMessage({
                     text: payload && payload.message ? payload.message : "",
                     items: normalizedItems,
-                    cards: normalizedItems,
+                    cards: displayItems,
                     intent: payload && payload.intent ? payload.intent : "",
                     intentOptions: Array.isArray(payload && payload.intent_options) ? payload.intent_options : [],
                     intentQuery: payload && payload.intent_query ? payload.intent_query : "",
                     intentResolved: false,
                 });
-                if (normalizedItems.length > 0) {
-                    setAnchorItems(normalizedItems.slice(0, 10));
-                    setSelectedAnchorId(formatArticleId(normalizedItems[0].article_id) || "");
+                if (displayItems.length > 0) {
+                    setAnchorItems(displayItems);
+                    setSelectedAnchorId(formatArticleId(displayItems[0].article_id) || "");
                 } else {
                     clearFocusState();
                 }
