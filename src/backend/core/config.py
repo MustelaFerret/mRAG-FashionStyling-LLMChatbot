@@ -46,6 +46,16 @@ class Settings:
 
     clean_cuda_cache_each_request: bool = os.getenv("CLEAN_CUDA_CACHE_EACH_REQUEST", "1") == "1"
 
+    # Multi-named-vectors retrieval (Step 4 SOTA refactor)
+    vector_name_text: str = os.getenv("VECTOR_NAME_TEXT", "text_emb")
+    vector_name_image: str = os.getenv("VECTOR_NAME_IMAGE", "image_emb")
+    vector_name_sparse: str = os.getenv("VECTOR_NAME_SPARSE", "sparse_bm25")
+    sparse_model_path: str = str(BASE_DIR / os.getenv("SPARSE_MODEL_PATH", "data/processed/sparse_tfidf.json"))
+    hnsw_m: int = int(os.getenv("HNSW_M", "32"))
+    hnsw_ef_construct: int = int(os.getenv("HNSW_EF_CONSTRUCT", "256"))
+    encode_batch_text: int = int(os.getenv("ENCODE_BATCH_TEXT", "64"))
+    encode_batch_image: int = int(os.getenv("ENCODE_BATCH_IMAGE", "32"))
+
     siglip_model_id: str = os.getenv("SIGLIP_MODEL_ID", "google/siglip-base-patch16-224")
     qwen_model_id: str = os.getenv("QWEN_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     qwen_vl_model_id: str = os.getenv("QWEN_VL_MODEL_ID", "")

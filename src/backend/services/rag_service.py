@@ -8,7 +8,7 @@ from PIL import Image
 from src.backend.core.config import settings
 from src.backend.core.query_logger import append_log
 from src.backend.core.utils import extract_article_id_from_text, normalize_article_id, normalize_text
-from src.backend.retrieval.embeddings import HybridEmbeddingService
+from src.backend.retrieval.encoders import QueryEncoder
 from src.backend.retrieval.llm import (
     INTENT_CHAT,
     INTENT_COMPOSITE,
@@ -28,7 +28,7 @@ COMPOSITE_INTENT_MESSAGE = (
 
 
 class FashionRAGService:
-    def __init__(self, embedder: HybridEmbeddingService, store: QdrantStore, llm: QwenMultimodalService, catalog: FashionCatalog, limit: int = 5):
+    def __init__(self, embedder: QueryEncoder, store: QdrantStore, llm: QwenMultimodalService, catalog: FashionCatalog, limit: int = 5):
         self.embedder = embedder
         self.store = store
         self.llm = llm
@@ -290,7 +290,11 @@ class FashionRAGService:
             boost_applied = True
 
         embed_started = time.perf_counter()
-        dense_vec, sparse_idx, sparse_val = self.embedder.encode_hybrid(dense_query, sparse_query, image=image)
+        q = self.embedder.encode(text=dense_query, image=image, sparse_text=sparse_query)
+        text_dense = q.get("text_dense")
+        image_dense = q.get("image_dense")
+        sparse_idx = q.get("sparse_indices", [])
+        sparse_val = q.get("sparse_values", [])
         embed_ms = int((time.perf_counter() - embed_started) * 1000)
         points: List[Any] = []
         anchor_id = ""
@@ -309,7 +313,8 @@ class FashionRAGService:
             if not anchor_id:
                 retrieval_path.append("anchor_from_hybrid_top1")
                 anchor_points = self.store.hybrid_search(
-                    dense_vector=dense_vec,
+                    text_dense=text_dense,
+                    image_dense=image_dense,
                     sparse_indices=sparse_idx,
                     sparse_values=sparse_val,
                     limit=1,
@@ -340,7 +345,8 @@ class FashionRAGService:
         if not points:
             retrieval_path.append("fallback_hybrid_search" if intent_hint == "graph_pairing" else "hybrid_search")
             results = self.store.hybrid_search(
-                dense_vector=dense_vec,
+                text_dense=text_dense,
+                image_dense=image_dense,
                 sparse_indices=sparse_idx,
                 sparse_values=sparse_val,
                 limit=self.limit,

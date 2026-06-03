@@ -6,15 +6,15 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Dict, List
 
-from src.scripts.build_graph import BuilderConfig, OutfitGraphBuilder
-from src.scripts.eval_graph import (
+from src.scripts.graph.build_graph import BuilderConfig, OutfitGraphBuilder
+from src.scripts.graph.eval_graph import (
     AdjacencyMap,
     EvalConfig,
     EvaluationResult,
     OutfitGraphEvaluator,
     OutfitGraphLoader,
 )
-from src.scripts.profile_graph import GraphProfile, GraphProfiler
+from src.scripts.graph.profile_graph import GraphProfile, GraphProfiler
 
 log = logging.getLogger(__name__)
 

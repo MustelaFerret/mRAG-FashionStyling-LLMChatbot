@@ -14,7 +14,7 @@ from typing import Dict, Iterable, List, Tuple
 
 import pandas as pd
 
-from src.scripts.outfit_slots import get_slot, slot_pair_allowed, same_pt_family
+from src.scripts.graph.outfit_slots import get_slot, slot_pair_allowed, same_pt_family
 
 log = logging.getLogger(__name__)
 

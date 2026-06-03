@@ -1,6 +1,22 @@
+"""Qdrant store với multi-named-vectors + RRF native fusion.
+
+Schema:
+    named vectors:
+        - text_emb (768, COSINE) : SigLIP-text(prod_name + description + metadata)
+        - image_emb (768, COSINE): SigLIP-image(product photo)
+    sparse vectors:
+        - sparse_bm25 : TF-IDF trên rich text
+
+Search modes:
+    - text query → RRF(text_emb + sparse_bm25)
+    - image query → image_emb only (no text input)
+    - hybrid query (text + image) → RRF(text_emb + image_emb + sparse_bm25)
+
+HNSW tuned cho thesis recall (M=32, ef_construct=256, ef_search=128).
+"""
 from __future__ import annotations
 
-from typing import Dict, List
+from typing import Dict, List, Sequence
 
 from qdrant_client import QdrantClient, models
 
@@ -69,76 +85,32 @@ class QdrantStore:
             return None
         return models.Filter(must=must_conditions or None, must_not=must_not_conditions or None)
 
-    def query(
-        self,
-        query_vector: List[float],
-        limit: int,
-        must_filters: Dict[str, str] | None = None,
-        must_not_filters: Dict[str, List[str] | str] | None = None,
-        vector_name: str | None = "dense",
-    ):
-        query_filter = self._build_filter(must_filters, must_not_filters)
-
-        if hasattr(self.client, "query_points"):
-            try:
-                response = self.client.query_points(
-                    collection_name=self.collection_name,
-                    query=query_vector,
-                    limit=limit,
-                    query_filter=query_filter,
-                    vector_name=vector_name,
-                )
-            except (TypeError, Exception):
-                try:
-                    response = self.client.query_points(
-                        collection_name=self.collection_name,
-                        query_vector=query_vector,
-                        limit=limit,
-                        query_filter=query_filter,
-                        vector_name=vector_name,
-                    )
-                except (TypeError, Exception):
-                    response = self.client.query_points(
-                        collection_name=self.collection_name,
-                        query_vector=query_vector,
-                        limit=limit,
-                        query_filter=query_filter,
-                    )
-            return response.points if hasattr(response, "points") else response
-
-        try:
-            return self.client.search(
-                collection_name=self.collection_name,
-                query_vector=query_vector,
-                query_filter=query_filter,
-                limit=limit,
-                vector_name=vector_name,
-            )
-        except (TypeError, Exception):
-            return self.client.search(
-                collection_name=self.collection_name,
-                query_vector=query_vector,
-                query_filter=query_filter,
-                limit=limit,
-            )
-
     def ensure_collection(
         self,
-        dense_name: str = "dense",
-        sparse_name: str = "sparse",
-        size: int = 768,
+        text_vector_name: str = "text_emb",
+        image_vector_name: str = "image_emb",
+        sparse_vector_name: str = "sparse_bm25",
+        embed_dim: int = 768,
         distance: models.Distance = models.Distance.COSINE,
         reset: bool = False,
-        payload_index_fields: List[str] | None = None,
+        hnsw_m: int = 32,
+        hnsw_ef_construct: int = 256,
+        payload_index_fields: Sequence[str] | None = None,
     ) -> None:
         if reset and self.client.collection_exists(self.collection_name):
             self.client.delete_collection(self.collection_name)
 
         if not self.client.collection_exists(self.collection_name):
+            hnsw = models.HnswConfigDiff(m=hnsw_m, ef_construct=hnsw_ef_construct)
             self.client.create_collection(
                 collection_name=self.collection_name,
-                vectors_config={dense_name: models.VectorParams(size=size, distance=distance)},
-                sparse_vectors_config={sparse_name: models.SparseVectorParams()},
+                vectors_config={
+                    text_vector_name: models.VectorParams(size=embed_dim, distance=distance, hnsw_config=hnsw),
+                    image_vector_name: models.VectorParams(size=embed_dim, distance=distance, hnsw_config=hnsw),
+                },
+                sparse_vectors_config={
+                    sparse_vector_name: models.SparseVectorParams(),
+                },
             )
 
         for field in payload_index_fields or []:
@@ -151,44 +123,94 @@ class QdrantStore:
             except Exception:
                 pass
 
-    def retrieve_by_article_ids(self, article_ids: List[str]):
-        if not article_ids:
-            return []
-
-        point_ids = parse_numeric_ids(article_ids)
-        if not point_ids:
-            return []
-
-        return self.client.retrieve(collection_name=self.collection_name, ids=point_ids)
-
     def hybrid_search(
         self,
-        dense_vector: List[float],
-        sparse_indices: List[int],
-        sparse_values: List[float],
+        text_dense: List[float] | None,
+        image_dense: List[float] | None,
+        sparse_indices: List[int] | None,
+        sparse_values: List[float] | None,
+        limit: int = 10,
+        must_filters: Dict[str, str] | None = None,
+        must_not_filters: Dict[str, List[str] | str] | None = None,
+        text_vector_name: str = "text_emb",
+        image_vector_name: str = "image_emb",
+        sparse_vector_name: str = "sparse_bm25",
+        prefetch_multiplier: int = 4,
+    ):
+        query_filter = self._build_filter(must_filters, must_not_filters)
+        prefetch: List[models.Prefetch] = []
+        prefetch_limit = max(limit * prefetch_multiplier, limit + 5)
+
+        if text_dense:
+            prefetch.append(
+                models.Prefetch(
+                    query=text_dense,
+                    using=text_vector_name,
+                    limit=prefetch_limit,
+                    filter=query_filter,
+                )
+            )
+        if image_dense:
+            prefetch.append(
+                models.Prefetch(
+                    query=image_dense,
+                    using=image_vector_name,
+                    limit=prefetch_limit,
+                    filter=query_filter,
+                )
+            )
+        if sparse_indices and sparse_values:
+            prefetch.append(
+                models.Prefetch(
+                    query=models.SparseVector(indices=sparse_indices, values=sparse_values),
+                    using=sparse_vector_name,
+                    limit=prefetch_limit,
+                    filter=query_filter,
+                )
+            )
+
+        if not prefetch:
+            return []
+
+        if len(prefetch) == 1:
+            response = self.client.query_points(
+                collection_name=self.collection_name,
+                query=prefetch[0].query,
+                using=prefetch[0].using,
+                limit=limit,
+                query_filter=query_filter,
+            )
+        else:
+            response = self.client.query_points(
+                collection_name=self.collection_name,
+                prefetch=prefetch,
+                query=models.FusionQuery(fusion=models.Fusion.RRF),
+                limit=limit,
+            )
+        return response.points if hasattr(response, "points") else response
+
+    def single_vector_search(
+        self,
+        vector: List[float],
+        vector_name: str,
         limit: int = 10,
         must_filters: Dict[str, str] | None = None,
         must_not_filters: Dict[str, List[str] | str] | None = None,
     ):
         query_filter = self._build_filter(must_filters, must_not_filters)
-        prefetch = [
-            models.Prefetch(
-                query=dense_vector,
-                using="dense",
-                limit=limit * 3,
-                filter=query_filter,
-            ),
-            models.Prefetch(
-                query=models.SparseVector(indices=sparse_indices, values=sparse_values),
-                using="sparse",
-                limit=limit * 3,
-                filter=query_filter,
-            ),
-        ]
         response = self.client.query_points(
             collection_name=self.collection_name,
-            prefetch=prefetch,
-            query=models.FusionQuery(fusion=models.Fusion.RRF),
+            query=vector,
+            using=vector_name,
             limit=limit,
+            query_filter=query_filter,
         )
         return response.points if hasattr(response, "points") else response
+
+    def retrieve_by_article_ids(self, article_ids: List[str]):
+        if not article_ids:
+            return []
+        point_ids = parse_numeric_ids(article_ids)
+        if not point_ids:
+            return []
+        return self.client.retrieve(collection_name=self.collection_name, ids=point_ids)

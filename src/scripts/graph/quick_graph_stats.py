@@ -4,7 +4,7 @@ from __future__ import annotations
 import pandas as pd
 from pathlib import Path
 
-from src.scripts.outfit_slots import get_slot, PT_FAMILY
+from src.scripts.graph.outfit_slots import get_slot, PT_FAMILY
 
 
 def analyze(graph_path: str, meta_path: str, label: str):

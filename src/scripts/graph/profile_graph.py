@@ -11,7 +11,7 @@ from typing import Dict, List, Tuple
 
 import pandas as pd
 
-from src.scripts.eval_graph import AdjacencyMap, OutfitGraphLoader
+from src.scripts.graph.eval_graph import AdjacencyMap, OutfitGraphLoader
 
 log = logging.getLogger(__name__)
 

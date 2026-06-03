@@ -11,7 +11,7 @@ from typing import Dict, List
 import numpy as np
 import pandas as pd
 
-from src.scripts.build_graph import BuilderConfig, OutfitGraphBuilder
+from src.scripts.graph.build_graph import BuilderConfig, OutfitGraphBuilder
 
 log = logging.getLogger(__name__)
 

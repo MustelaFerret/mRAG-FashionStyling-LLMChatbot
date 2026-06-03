@@ -11,7 +11,7 @@ import pandas as pd
 from pathlib import Path
 from collections import Counter
 
-from src.scripts.outfit_slots import get_slot, PT_TO_SLOT
+from src.scripts.graph.outfit_slots import get_slot, PT_TO_SLOT
 
 
 def main():

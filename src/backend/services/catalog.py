@@ -136,7 +136,11 @@ class FashionCatalog:
     def _contains_phrase(query: str, phrase: str) -> bool:
         if not query or not phrase:
             return False
-        return re.search(rf"(?<!\\w){re.escape(phrase)}(?!\\w)", query) is not None
+        # hyphen/underscore/slash → space để 'off-white' khớp color value 'off white',
+        # 'v-neck'/'wide-leg' khớp tương tự. Áp cả 2 vế để giữ tính đối xứng.
+        q = query.replace("-", " ").replace("_", " ").replace("/", " ")
+        p = phrase.replace("-", " ").replace("_", " ").replace("/", " ")
+        return re.search(rf"(?<!\\w){re.escape(p)}(?!\\w)", q) is not None
 
     @staticmethod
     def _match_first_value(query: str, values: List[Tuple[str, str]]) -> str:
