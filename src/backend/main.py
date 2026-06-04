@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
     siglip = SigLIPEncoder()
     embedding = QueryEncoder(siglip=siglip, sparse=sparse_encoder)
     llm = QwenMultimodalService()
-    assistant = FashionAssistantService(settings, catalog, qdrant, embedding, llm, sessions)
+    assistant = FashionAssistantService(settings)
     rag = FashionRAGService(embedding, qdrant, llm, catalog, limit=5)
 
     app.state.settings = settings

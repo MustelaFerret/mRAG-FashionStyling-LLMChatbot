@@ -810,30 +810,6 @@ class QwenMultimodalService:
         }
 
     def analyze_user_query(self, query: str) -> Dict:
-        if normalize_text(query) == "hahaha":
-            return {
-                "search_query_en": "",
-                "intent_hint": INTENT_COMPOSITE,
-                "must_filters": {},
-                "must_not_filters": {},
-                "debug": {
-                    "intent_classifier": {
-                        "intent": INTENT_COMPOSITE,
-                        "confidence": 1.0,
-                        "raw_label": INTENT_COMPOSITE,
-                        "index": -1,
-                        "source": "manual_override",
-                    },
-                    "intent_rules": {
-                        "rule_applied": "manual_override_hahaha",
-                    },
-                    "llm_raw": "",
-                    "llm_parsed": None,
-                    "llm_parse_ok": False,
-                    "using_query_llm": self.using_query_llm,
-                    "query_llm_model_id": settings.query_llm_model_id or settings.qwen_text_model_id,
-                },
-            }
         intent_result = self._classify_intent_local(query, [], anchor_item=None)
         intent_hint_raw = self._normalize_intent(intent_result.get("intent"))
         intent_hint, intent_rules = self._apply_intent_rules(query, intent_hint_raw)

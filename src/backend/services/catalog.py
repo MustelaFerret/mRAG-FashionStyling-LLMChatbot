@@ -140,7 +140,7 @@ class FashionCatalog:
         # 'v-neck'/'wide-leg' khớp tương tự. Áp cả 2 vế để giữ tính đối xứng.
         q = query.replace("-", " ").replace("_", " ").replace("/", " ")
         p = phrase.replace("-", " ").replace("_", " ").replace("/", " ")
-        return re.search(rf"(?<!\\w){re.escape(p)}(?!\\w)", q) is not None
+        return re.search(rf"(?<!\w){re.escape(p)}(?!\w)", q) is not None
 
     @staticmethod
     def _match_first_value(query: str, values: List[Tuple[str, str]]) -> str:
@@ -268,13 +268,16 @@ class FashionCatalog:
 
         product_type = self._match_first_value(query, self.product_type_values)
         if not product_type:
+            # NOTE: liệt kê cả singular + plural vì _contains_phrase dùng word-boundary
+            # (alias 'trouser' KHÔNG match value 'Trousers'). Block alias này dự kiến thay
+            # bằng LLM structured output khi rework NLU (xem NOTE.MD C.3).
             product_type_aliases = {
-                "shirt": ["shirt", "so mi", "ao so mi", "blouse", "top", "tee", "t-shirt", "ao"],
-                "pants": ["pants", "trouser", "jean", "jogger", "legging", "quan", "chan vay", "skirt", "short"],
-                "shoe": ["shoe", "sneaker", "boot", "sandal", "loafer", "giay"],
-                "jacket": ["jacket", "coat", "blazer", "cardigan", "outerwear", "khoac"],
-                "dress": ["dress", "vay dam", "dam", "vay"],
-                "hoodie": ["hoodie", "sweater", "len", "pullover"],
+                "shirt": ["shirt", "shirts", "so mi", "ao so mi", "blouse", "blouses", "top", "tops", "tee", "tees", "t-shirt", "t-shirts", "ao"],
+                "pants": ["pants", "trouser", "trousers", "jean", "jeans", "jogger", "joggers", "legging", "leggings", "quan", "chan vay", "skirt", "skirts", "short", "shorts"],
+                "shoe": ["shoe", "shoes", "sneaker", "sneakers", "boot", "boots", "sandal", "sandals", "loafer", "loafers", "giay"],
+                "jacket": ["jacket", "jackets", "coat", "coats", "blazer", "blazers", "cardigan", "cardigans", "outerwear", "khoac"],
+                "dress": ["dress", "dresses", "vay dam", "dam", "vay"],
+                "hoodie": ["hoodie", "hoodies", "sweater", "sweaters", "len", "pullover", "pullovers"],
             }
             for aliases in product_type_aliases.values():
                 product_type = self._match_value_by_alias(query, self.product_type_values, aliases)
