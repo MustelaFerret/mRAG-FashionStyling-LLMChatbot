@@ -15,7 +15,6 @@ class FashionCatalog:
         self.image_dir = image_dir
 
         self.meta_by_article: Dict[str, Dict] = {}
-        self.product_code_to_articles: Dict[str, List[str]] = {}
         self.product_type_values: List[Tuple[str, str]] = []
         self.color_values: List[Tuple[str, str]] = []
         self.occasion_values: List[Tuple[str, str]] = []
@@ -62,10 +61,6 @@ class FashionCatalog:
                 if not article_id:
                     continue
 
-                product_code = str(row.get("product_code", "") or "").strip()
-                if product_code:
-                    product_code = product_code.zfill(6)
-
                 product_type = str(row.get("product_type_name", "") or "").strip()
                 colour_group = str(row.get("colour_group_name", "") or "").strip()
                 fit = str(row.get("fit", "") or "").strip()
@@ -75,7 +70,6 @@ class FashionCatalog:
 
                 self.meta_by_article[article_id] = {
                     "article_id": article_id,
-                    "product_code": product_code,
                     "product_type_name": product_type,
                     "colour_group_name": colour_group,
                     "fit": fit,
@@ -83,9 +77,6 @@ class FashionCatalog:
                     "seasonality": seasonality,
                     "refined_description": description,
                 }
-
-                if product_code:
-                    self.product_code_to_articles.setdefault(product_code, []).append(article_id)
 
                 if product_type:
                     product_type_values.add(product_type)
@@ -136,8 +127,6 @@ class FashionCatalog:
     def _contains_phrase(query: str, phrase: str) -> bool:
         if not query or not phrase:
             return False
-        # hyphen/underscore/slash → space để 'off-white' khớp color value 'off white',
-        # 'v-neck'/'wide-leg' khớp tương tự. Áp cả 2 vế để giữ tính đối xứng.
         q = query.replace("-", " ").replace("_", " ").replace("/", " ")
         p = phrase.replace("-", " ").replace("_", " ").replace("/", " ")
         return re.search(rf"(?<!\w){re.escape(p)}(?!\w)", q) is not None
@@ -185,14 +174,6 @@ class FashionCatalog:
         meta = self.get_meta(aid)
         return self._infer_slot_from_text(meta.get("product_type_name", ""))
 
-    def infer_item_slot(self, item: Dict) -> str:
-        if not item:
-            return ""
-        slot = self._infer_slot_from_text(item.get("product_type", ""))
-        if slot:
-            return slot
-        return self._infer_slot_from_text(item.get("description", ""))
-
     def infer_target_slots(self, user_query: str, anchor_id: str = "") -> List[str]:
         query = normalize_text(user_query)
         requested_slot = self._infer_slot_from_text(query)
@@ -239,20 +220,6 @@ class FashionCatalog:
     def get_meta(self, article_id: str) -> Dict:
         return self.meta_by_article.get(normalize_article_id(article_id), {})
 
-    def build_item(self, article_id: str, payload: Dict | None = None) -> Dict:
-        payload = payload or {}
-        aid = normalize_article_id(payload.get("article_id", article_id))
-        meta = self.get_meta(aid)
-        return {
-            "article_id": aid,
-            "product_type": str(payload.get("product_type") or meta.get("product_type_name", "")),
-            "colour_group": str(payload.get("colour_group") or meta.get("colour_group_name", "")),
-            "fit": str(payload.get("fit") or meta.get("fit", "")),
-            "occasion": str(payload.get("occasion") or meta.get("occasion", "")),
-            "seasonality": str(payload.get("seasonality") or meta.get("seasonality", "")),
-            "description": str(payload.get("description") or meta.get("refined_description", "")),
-        }
-
     def article_image_path(self, article_id: str) -> str:
         aid = normalize_article_id(article_id)
         if not aid:
@@ -268,9 +235,6 @@ class FashionCatalog:
 
         product_type = self._match_first_value(query, self.product_type_values)
         if not product_type:
-            # NOTE: liệt kê cả singular + plural vì _contains_phrase dùng word-boundary
-            # (alias 'trouser' KHÔNG match value 'Trousers'). Block alias này dự kiến thay
-            # bằng LLM structured output khi rework NLU (xem NOTE.MD C.3).
             product_type_aliases = {
                 "shirt": ["shirt", "shirts", "so mi", "ao so mi", "blouse", "blouses", "top", "tops", "tee", "tees", "t-shirt", "t-shirts", "ao"],
                 "pants": ["pants", "trouser", "trousers", "jean", "jeans", "jogger", "joggers", "legging", "leggings", "quan", "chan vay", "skirt", "skirts", "short", "shorts"],
@@ -358,45 +322,6 @@ class FashionCatalog:
             filters["fit"] = fit
 
         return filters
-
-    def infer_target_filter_key(self, user_query: str) -> str:
-        query = normalize_text(user_query)
-        if not query:
-            return ""
-
-        if any(k in query for k in ["quan", "pants", "trouser", "short", "jean", "jogger", "legging", "skirt", "chan vay"]):
-            return "bottom"
-        if any(k in query for k in ["giay", "shoe", "sneaker", "boot", "sandal"]):
-            return "shoe"
-        if any(k in query for k in ["ao", "shirt", "blouse", "top", "tee", "sweater", "hoodie", "jacket", "cardigan"]):
-            return "top"
-        return ""
-
-    def item_matches_target(self, item: Dict, target_key: str) -> bool:
-        if not target_key:
-            return True
-
-        text = normalize_text(
-            f"{item.get('product_type', '')} {item.get('occasion', '')} {item.get('description', '')}"
-        )
-        if target_key == "bottom":
-            return any(k in text for k in ["trouser", "pants", "short", "jean", "legging", "skirt", "chan vay", "jogger"])
-        if target_key == "shoe":
-            return any(k in text for k in ["shoe", "sneaker", "boot", "sandal", "loafer", "heel"])
-        if target_key == "top":
-            return any(k in text for k in ["shirt", "blouse", "top", "tee", "sweater", "hoodie", "cardigan", "jacket"])
-        return True
-
-    def filter_items_by_target(self, items: List[Dict], user_query: str) -> List[Dict]:
-        target_key = self.infer_target_filter_key(user_query)
-        if not target_key:
-            return items
-        filtered = [item for item in items if self.item_matches_target(item, target_key)]
-        return filtered if filtered else items
-
-    def get_graph_neighbor_ids(self, anchor_id: str, limit: int, preferred_min_weight: int, hard_min_weight: int) -> List[str]:
-        neighbors = self._weighted_neighbors(anchor_id, preferred_min_weight, hard_min_weight)
-        return [normalize_article_id(i) for i, _ in neighbors[:limit]]
 
     def get_graph_diverse_neighbors(
         self,
@@ -514,31 +439,3 @@ class FashionCatalog:
                 break
 
         return selected
-
-    def get_color_variant_ids(self, anchor_id: str, limit: int) -> List[str]:
-        aid = normalize_article_id(anchor_id)
-        anchor_meta = self.get_meta(aid)
-        product_code = str(anchor_meta.get("product_code", "")).zfill(6)
-        if not product_code and len(aid) >= 7 and aid[1:7].isdigit():
-            product_code = aid[1:7]
-        if not product_code:
-            return []
-
-        candidates = self.product_code_to_articles.get(product_code, [])
-        if not candidates:
-            return []
-
-        anchor_color = str(anchor_meta.get("colour_group_name", "")).strip().lower()
-        diff_color = []
-        same_color = []
-        for raw_id in candidates:
-            cid = normalize_article_id(raw_id)
-            if not cid or cid == aid:
-                continue
-            color = str(self.get_meta(cid).get("colour_group_name", "")).strip().lower()
-            if color and color != anchor_color:
-                diff_color.append(cid)
-            else:
-                same_color.append(cid)
-
-        return (diff_color + same_color)[:limit]

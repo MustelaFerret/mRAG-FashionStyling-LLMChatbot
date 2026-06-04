@@ -62,6 +62,7 @@ class Settings:
     qwen_text_model_id: str = os.getenv("QWEN_TEXT_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     query_llm_model_id: str = os.getenv("QUERY_LLM_MODEL_ID", "")
     query_llm_device_map: str = os.getenv("QUERY_LLM_DEVICE_MAP", "")
+    personalization_dir: str = str(BASE_DIR / os.getenv("PERSONALIZATION_DIR", "data/processed/personalization"))
     intent_classifier_dir: str = str(LOCAL_CACHE_DIR / os.getenv("INTENT_CLASSIFIER_DIR", "intent_classifier_deberta"))
     intent_max_length: int = int(os.getenv("INTENT_MAX_LENGTH", "128"))
     use_intent_classifier: bool = os.getenv("USE_INTENT_CLASSIFIER", "1") == "1"

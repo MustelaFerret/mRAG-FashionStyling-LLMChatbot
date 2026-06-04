@@ -19,6 +19,7 @@ from src.backend.retrieval.encoders import QueryEncoder, SigLIPEncoder
 from src.backend.retrieval.llm import QwenMultimodalService
 from src.backend.retrieval.qdrant import QdrantStore
 from src.backend.services.catalog import FashionCatalog
+from src.backend.services.personalization import PersonalizationStore
 from src.backend.services.rag_service import FashionRAGService
 from src.backend.services.recommender import FashionAssistantService
 from src.backend.services.session_manager import SessionStore
@@ -56,7 +57,8 @@ async def lifespan(app: FastAPI):
     embedding = QueryEncoder(siglip=siglip, sparse=sparse_encoder)
     llm = QwenMultimodalService()
     assistant = FashionAssistantService(settings)
-    rag = FashionRAGService(embedding, qdrant, llm, catalog, limit=5)
+    personalization = PersonalizationStore(settings.personalization_dir, settings.meta_file)
+    rag = FashionRAGService(embedding, qdrant, llm, catalog, limit=5, personalization=personalization)
 
     app.state.settings = settings
     app.state.catalog = catalog

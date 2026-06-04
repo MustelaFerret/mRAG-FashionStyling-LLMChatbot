@@ -778,7 +778,7 @@ class QwenMultimodalService:
 
         idx = int(torch.argmax(probs).item())
         id2label = getattr(self.intent_model.config, "id2label", {}) or {}
-        
+
         fallback_map = {
             0: INTENT_SIMILAR,
             1: INTENT_GRAPH,
@@ -791,12 +791,12 @@ class QwenMultimodalService:
             raw_label = id2label.get(str(idx))
         if raw_label is None:
             raw_label = fallback_map.get(idx, INTENT_SIMILAR)
-        
+
         label = self._normalize_intent(raw_label)
         confidence = float(probs[idx].item())
 
         if debug is not None:
-            debug["prompt"] = clean_query  # Chỉ log query sạch
+            debug["prompt"] = clean_query
             debug["raw"] = json.dumps({"intent": label, "confidence": round(confidence, 4)}, ensure_ascii=False)
 
         return {
@@ -804,7 +804,7 @@ class QwenMultimodalService:
             "confidence": confidence,
             "raw_label": str(raw_label),
             "index": idx,
-            "source": "roberta",
+            "source": "intent_classifier",
         }
 
     def analyze_user_query(self, query: str) -> Dict:
@@ -900,64 +900,3 @@ class QwenMultimodalService:
             "must_not_filters": must_not_filters,
             "debug": debug,
         }
-
-    def summarize(
-        self,
-        user_query: str,
-        intent_label: str,
-        anchor_item: Dict,
-        result_items: List[Dict],
-        image_paths: List[str],
-        extra_images: List[Image.Image] | None = None,
-    ) -> str:
-        lines = []
-        for idx, item in enumerate(result_items, 1):
-            lines.append(
-                f"{idx}. #{item['article_id']} | {item['product_type']} | {item['colour_group']} | fit={item['fit']} | occasion={item['occasion']}"
-            )
-        items_text = "\n".join(lines)
-
-        prompt = (
-            "You are a Styling Assistant for a RAG system. "
-            "You must summarize and comment only using the retrieved item list, and you must not suggest items outside the list. "
-            "Use both visual and text context, and answer in concise English (2-3 sentences).\n"
-            f"Intent: {intent_label}\n"
-            f"User query: {user_query or 'image search'}\n"
-            f"Anchor: #{anchor_item['article_id']} {anchor_item['product_type']} {anchor_item['colour_group']}\n"
-            f"Retrieved items:\n{items_text}"
-        )
-
-        vision_images: List[Image.Image] = []
-        for img in extra_images or []:
-            if img is None:
-                continue
-            rgb = img.convert("RGB")
-            rgb.thumbnail((768, 768))
-            vision_images.append(rgb.copy())
-        if len(vision_images) < settings.max_vision_images:
-            remaining = settings.max_vision_images - len(vision_images)
-            vision_images.extend(self._load_images(image_paths[:remaining]))
-
-        content_blocks: List[Dict] = [{"type": "image"} for _ in vision_images]
-        content_blocks.append({"type": "text", "text": prompt})
-        messages = [{"role": "user", "content": content_blocks}]
-
-        try:
-            answer = self._chat_generate(
-                messages,
-                pil_images=vision_images,
-                max_new_tokens=180,
-                temperature=0.25,
-                top_p=0.9,
-                do_sample=True,
-            )
-            if answer:
-                return answer
-        except Exception:
-            pass
-
-        if intent_label == INTENT_GRAPH:
-            return "I prioritized items that are most likely to pair with the focus item using the co-buy graph, then filtered them by your request intent."
-        if intent_label == INTENT_VARIANT:
-            return "I retrieved color and close-style variants of the same design so you can compare options more precisely."
-        return "I retrieved similar style items using vector search, with metadata filters applied when available."

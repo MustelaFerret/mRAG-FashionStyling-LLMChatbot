@@ -28,12 +28,13 @@ COMPOSITE_INTENT_MESSAGE = (
 
 
 class FashionRAGService:
-    def __init__(self, embedder: QueryEncoder, store: QdrantStore, llm: QwenMultimodalService, catalog: FashionCatalog, limit: int = 5):
+    def __init__(self, embedder: QueryEncoder, store: QdrantStore, llm: QwenMultimodalService, catalog: FashionCatalog, limit: int = 5, personalization=None):
         self.embedder = embedder
         self.store = store
         self.llm = llm
         self.catalog = catalog
         self.limit = max(1, int(limit))
+        self.personalization = personalization
         self.intent_confirm_options = list(INTENT_CONFIRM_OPTIONS)
         self.allowed_filters = self._build_allowed_filters()
 
@@ -62,10 +63,8 @@ class FashionRAGService:
             return ""
         value_lower = value_str.lower()
         matched = next((v for v in allowed if v.lower() == value_lower), "")
-        if not matched:
-            if dropped is not None:
-                dropped.append(f"{key}={value_str}")
-            print(f"[WARNING] Dropping invalid filter: {key}={value_str}")
+        if not matched and dropped is not None:
+            dropped.append(f"{key}={value_str}")
         if debug is not None:
             debug.append(
                 {
@@ -195,6 +194,7 @@ class FashionRAGService:
         request_id: str | None,
         started_at: float,
         confirmed_intent: str | None = None,
+        customer_id: str | None = None,
     ) -> tuple[List[dict], str, Dict[str, Any], bool, Dict[str, Any] | None]:
         analysis_started = time.perf_counter()
         analysis = self.llm.analyze_user_query(query)
@@ -373,6 +373,12 @@ class FashionRAGService:
                 "price": str(payload.get("price", "") or ""),
             })
 
+        if self.personalization is not None and customer_id and self.personalization.has_profile(customer_id):
+            order = self.personalization.rerank(customer_id, [it.get("article_id", "") for it in items])
+            pos = {aid: i for i, aid in enumerate(order)}
+            items.sort(key=lambda it: pos.get(it.get("article_id", ""), len(items)))
+            retrieval_path.append("personalized_rerank")
+
         result_ids = [item.get("article_id", "") for item in items if item.get("article_id")]
         log_payload = {
             "event": "chat",
@@ -412,7 +418,7 @@ class FashionRAGService:
 
         context = self._format_context(points)
         if not context:
-            return items, "", log_payload, False
+            return items, "", log_payload, False, None
 
         system_prompt = (
             "You are a premium AI fashion stylist. The context below lists real products from inventory. "
@@ -437,8 +443,9 @@ class FashionRAGService:
         request_id: str | None,
         started_at: float,
         confirmed_intent: str | None = None,
+        customer_id: str | None = None,
     ) -> tuple[List[dict], str, Dict[str, Any], bool, Dict[str, Any] | None]:
-        return self._prepare_chat(query, image, session_id, request_id, started_at, confirmed_intent)
+        return self._prepare_chat(query, image, session_id, request_id, started_at, confirmed_intent, customer_id)
 
     def finalize_log(self, log_payload: Dict[str, Any], started_at: float, result_count: int) -> None:
         self._finalize_log(log_payload, started_at, result_count)
@@ -450,6 +457,7 @@ class FashionRAGService:
         session_id: str | None = None,
         request_id: str | None = None,
         confirmed_intent: str | None = None,
+        customer_id: str | None = None,
     ) -> tuple[str, List[dict], Dict[str, Any]]:
         started_at = time.perf_counter()
         items, full_prompt, log_payload, has_context, direct_response = self._prepare_chat(
@@ -459,6 +467,7 @@ class FashionRAGService:
             request_id=request_id,
             started_at=started_at,
             confirmed_intent=confirmed_intent,
+            customer_id=customer_id,
         )
 
         if direct_response is not None:

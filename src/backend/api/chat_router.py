@@ -6,7 +6,6 @@ import uuid
 from pathlib import Path
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
 
 from src.backend.core.config import Settings, settings
 from src.backend.core.query_logger import append_log
@@ -55,6 +54,7 @@ def _format_sse(event: str, data: dict) -> str:
 async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depends(get_rag)):
     request_id = uuid.uuid4().hex[:12]
     session_id = (req.session_id or "").strip()
+    customer_id = (req.customer_id or "").strip()
     confirmed_intent = (req.confirmed_intent or "").strip()
     wants_stream = bool(getattr(req, "stream", False)) or "text/event-stream" in request.headers.get("accept", "")
     try:
@@ -66,6 +66,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
                 session_id=session_id,
                 request_id=request_id,
                 confirmed_intent=confirmed_intent,
+                customer_id=customer_id,
             )
             payload = {"message": message, "items": items}
             payload.update(extra or {})
@@ -84,6 +85,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
             request_id=request_id,
             started_at=started_at,
             confirmed_intent=confirmed_intent,
+            customer_id=customer_id,
         )
         intent_hint = log_payload.get("intent_hint", "")
 

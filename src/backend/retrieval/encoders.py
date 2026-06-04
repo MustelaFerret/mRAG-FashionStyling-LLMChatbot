@@ -1,16 +1,8 @@
-"""SigLIP encoder + Query-time wrapper cho SOTA hybrid retrieval.
-
-Thiết kế nguyên tắc:
-- 1 model SigLIP load 1 lần, dùng cho cả text encoding lẫn image encoding.
-- Encode batched với FP16 autocast → giảm latency 5-20x so với per-row.
-- Output: L2-normalized numpy array (N, dim) → ready upsert vào Qdrant với COSINE distance.
-- QueryEncoder wrap SigLIP + Sparse cho query-time, return dict tới hybrid_search.
-"""
 from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Sequence
+from typing import Any, Dict, List, Sequence
 
 import numpy as np
 import torch
@@ -128,7 +120,6 @@ class SigLIPEncoder:
 
     @staticmethod
     def _extract_tensor(features) -> torch.Tensor:
-        """Guard cho transformers version cũ trả về BaseModelOutput thay vì Tensor."""
         if isinstance(features, torch.Tensor):
             return features
         for attr in ("text_embeds", "image_embeds", "pooler_output", "last_hidden_state"):
@@ -165,15 +156,6 @@ class SigLIPEncoder:
 
 
 class QueryEncoder:
-    """Query-time encoder: encode user input (text + optional image + sparse) cho hybrid search.
-
-    Returns dict với 4 keys (giá trị None nếu không có input tương ứng):
-        - text_dense: list[float] | None
-        - image_dense: list[float] | None
-        - sparse_indices: list[int]
-        - sparse_values: list[float]
-    """
-
     def __init__(self, siglip: SigLIPEncoder, sparse: SparseTfidfEncoder | None = None) -> None:
         self.siglip = siglip
         self.sparse = sparse

@@ -1,19 +1,3 @@
-"""Qdrant store với multi-named-vectors + RRF native fusion.
-
-Schema:
-    named vectors:
-        - text_emb (768, COSINE) : SigLIP-text(prod_name + description + metadata)
-        - image_emb (768, COSINE): SigLIP-image(product photo)
-    sparse vectors:
-        - sparse_bm25 : TF-IDF trên rich text
-
-Search modes:
-    - text query → RRF(text_emb + sparse_bm25)
-    - image query → image_emb only (no text input)
-    - hybrid query (text + image) → RRF(text_emb + image_emb + sparse_bm25)
-
-HNSW tuned cho thesis recall (M=32, ef_construct=256, ef_search=128).
-"""
 from __future__ import annotations
 
 from typing import Dict, List, Sequence
@@ -187,24 +171,6 @@ class QdrantStore:
                 query=models.FusionQuery(fusion=models.Fusion.RRF),
                 limit=limit,
             )
-        return response.points if hasattr(response, "points") else response
-
-    def single_vector_search(
-        self,
-        vector: List[float],
-        vector_name: str,
-        limit: int = 10,
-        must_filters: Dict[str, str] | None = None,
-        must_not_filters: Dict[str, List[str] | str] | None = None,
-    ):
-        query_filter = self._build_filter(must_filters, must_not_filters)
-        response = self.client.query_points(
-            collection_name=self.collection_name,
-            query=vector,
-            using=vector_name,
-            limit=limit,
-            query_filter=query_filter,
-        )
         return response.points if hasattr(response, "points") else response
 
     def retrieve_by_article_ids(self, article_ids: List[str]):

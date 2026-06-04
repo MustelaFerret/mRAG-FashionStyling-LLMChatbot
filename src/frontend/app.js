@@ -136,23 +136,23 @@ function ProductModal({ items, index, onClose, onNavigate }) {
                     <span aria-hidden="true">&gt;</span>
                 </button>
             )}
-            <div className="panel product-modal-panel rounded-2xl p-6 md:p-8 relative" onClick={(e) => e.stopPropagation()}>
-                <button className="absolute top-4 right-4 text-2xl text-white/60 hover:text-white" onClick={onClose}>&times;</button>
+            <div className="product-modal-panel relative" onClick={(e) => e.stopPropagation()}>
+                <button className="absolute top-4 right-5 text-3xl leading-none t-muted hover:t-ink z-10" onClick={onClose} aria-label="Close">&times;</button>
                 <div className="product-modal-media">
-                    <img className="product-modal-image rounded-xl border border-white/10" src={item.image_url || imagePathFromId(aid)} alt={title} />
+                    <img className="product-modal-image" src={item.image_url || imagePathFromId(aid)} alt={title} />
                 </div>
                 <div className="product-modal-details">
-                    <h3 className="font-display text-4xl leading-tight mb-1">{title}</h3>
-                    <p className="text-sm text-[#b5a58c] mb-4 font-code">#{aid}</p>
-                    <div className="grid sm:grid-cols-2 gap-3 text-sm">
-                        <div><span className="text-[#b5a58c] uppercase text-xs">Color</span><p>{subtitle}</p></div>
-                        <div><span className="text-[#b5a58c] uppercase text-xs">Fit</span><p>{item.fit || "-"}</p></div>
-                        <div><span className="text-[#b5a58c] uppercase text-xs">Occasion</span><p>{item.occasion || "-"}</p></div>
-                        <div><span className="text-[#b5a58c] uppercase text-xs">Season</span><p>{item.seasonality || "-"}</p></div>
+                    <p className="kicker mb-4">The Piece</p>
+                    <h3 className="font-display text-5xl leading-[0.95] mb-2">{title}</h3>
+                    <p className="font-code text-xs t-faint">#{aid}</p>
+                    <div className="spec-grid">
+                        <div><span className="spec-label">Color</span><span className="spec-value">{subtitle || "—"}</span></div>
+                        <div><span className="spec-label">Fit</span><span className="spec-value">{item.fit || "—"}</span></div>
+                        <div><span className="spec-label">Occasion</span><span className="spec-value">{item.occasion || "—"}</span></div>
+                        <div><span className="spec-label">Season</span><span className="spec-value">{item.seasonality || "—"}</span></div>
                     </div>
-                    <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-                        <p className="text-sm leading-relaxed text-[#dfd2bd]">{item.description || "-"}</p>
-                    </div>
+                    <p className="kicker mt-6 mb-3">Notes</p>
+                    <p className="text-sm leading-relaxed t-soft">{item.description || "No description available."}</p>
                 </div>
             </div>
         </div>
@@ -180,36 +180,50 @@ function HeroScreen({ bootstrap, onStart }) {
 
     return (
         <section className="hero" ref={rootRef}>
-            <div className="max-w-5xl">
-                <p className="retro-badge hero-badge mx-auto mb-5">{tagline}</p>
-                <h1 className="hero-title">{appName}<br />Styling Console</h1>
+            <div className="max-w-3xl">
+                <p className="hero-badge mb-6">{appName} — {tagline}</p>
+                <h1 className="hero-title">Find your<br /><em>silhouette</em>.</h1>
                 <p className="hero-sub">
-                    Upload a reference image, refine your request, and explore outfit suggestions in a clean visual flow.
+                    Upload a reference, refine the intent, and let the atelier compose looks tuned to your taste.
                 </p>
-                <button onClick={onStart} className="btn hero-enter-btn mt-9 px-11 py-4 text-lg font-semibold">
-                    Start Styling
+                <button onClick={onStart} className="btn-primary hero-enter-btn mt-10 px-12 py-4">
+                    Enter the atelier
                 </button>
             </div>
+            <HeroTicker />
         </section>
     );
 }
 
-function StatusRibbon({ meta, sessionId }) {
-    if (!meta) {
-        return (
-            <div className="status-ribbon">
-                <span className="status-pill">Session {sessionId.slice(0, 8)}</span>
-                <span className="status-pill">Ready</span>
+function HeroTicker() {
+    const words = ["Tailoring", "Colour", "Texture", "Silhouette", "Drape", "Proportion", "Palette", "Layering"];
+    const group = (
+        <span className="hero-ticker-group">
+            {words.map((w, i) => (
+                <React.Fragment key={w + i}>
+                    <span>{w}</span>
+                    <span className="dot">&bull;</span>
+                </React.Fragment>
+            ))}
+        </span>
+    );
+    return (
+        <div className="hero-ticker" aria-hidden="true">
+            <div className="hero-ticker-track">
+                {group}
+                {group}
             </div>
-        );
-    }
+        </div>
+    );
+}
 
+function StatusRibbon({ meta, sessionId }) {
     return (
         <div className="status-ribbon">
-            <span className="status-pill">Session {sessionId.slice(0, 8)}</span>
-            <span className="status-pill">Latency {meta.latency_ms || 0}ms</span>
-            <span className="status-pill">Results {meta.result_count || 0}</span>
-            <span className="status-pill">Req {String(meta.request_id || "-").slice(0, 8)}</span>
+            <span className="masthead-mark font-display">Atelier<span className="t-accent">·</span>mRAG</span>
+            <span className="status-pill" style={{ marginLeft: "auto" }}>Session {sessionId.slice(0, 8)}</span>
+            {meta && <span className="status-pill">Results {meta.result_count || 0}</span>}
+            <span className="status-pill">{meta ? "Live" : "Ready"}</span>
         </div>
     );
 }
@@ -217,55 +231,32 @@ function StatusRibbon({ meta, sessionId }) {
 function UserMessage({ message }) {
     return (
         <div className="chat-message flex flex-col items-end gap-2">
-            {message.image && <img src={message.image} className="max-w-[220px] md:max-w-[260px] rounded-xl border border-white/20" alt="Uploaded" />}
+            {message.image && <img src={message.image} className="max-w-[220px] md:max-w-[260px] rounded border border-black/10" alt="Uploaded" />}
             {message.text && <div className="msg-user">{message.text}</div>}
         </div>
     );
 }
 
 function ItemCard({ item, onOpen }) {
-    const cardRef = useRef(null);
-
-    function onMouseMove(event) {
-        const el = cardRef.current;
-        if (!el) return;
-
-        const rect = el.getBoundingClientRect();
-        const px = (event.clientX - rect.left) / rect.width;
-        const py = (event.clientY - rect.top) / rect.height;
-        const rx = (0.5 - py) * 8;
-        const ry = (px - 0.5) * 9;
-
-        el.style.transform = "perspective(860px) rotateX(" + rx.toFixed(2) + "deg) rotateY(" + ry.toFixed(2) + "deg) translateY(-2px)";
-    }
-
-    function onMouseLeave() {
-        const el = cardRef.current;
-        if (!el) return;
-        el.style.transform = "";
-    }
-
     const aid = formatArticleId(item.article_id);
     const title = item.title || item.product_type || "Item";
     const subtitle = item.subtitle || item.colour_group || "";
 
     return (
         <div
-            ref={cardRef}
             className={"item-card " + (item.is_anchor ? "anchor" : "")}
-            onMouseMove={onMouseMove}
-            onMouseLeave={onMouseLeave}
             onClick={onOpen}
         >
-            <div className="overflow-hidden rounded-md border border-white/10 bg-black/25 mb-3">
-                <img src={item.image_url || imagePathFromId(aid)} className="w-full h-44 object-cover" alt="Product" />
+            <div className="card-frame">
+                <img src={item.image_url || imagePathFromId(aid)} alt={title} />
             </div>
-            <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] text-[#baa98d] font-code">{aid}</p>
-                {item.is_anchor && <span className="text-[10px] uppercase tracking-[0.12em] text-[#ddb87f]">focus item</span>}
+            <p className="card-name">{title}</p>
+            <div className="card-meta">
+                <span className="card-color">{subtitle || "—"}</span>
+                {item.is_anchor
+                    ? <span className="card-focus-tag">In focus</span>
+                    : <span className="card-id">{aid}</span>}
             </div>
-            <p className="font-display text-3xl leading-[0.9] mt-1">{title}</p>
-            <p className="text-xs text-[#baa98d] mt-1">{subtitle}</p>
         </div>
     );
 }
@@ -304,9 +295,9 @@ function AiMessage({ message, onOpenItem, onConfirmIntent }) {
 
     return (
         <div className="chat-message flex flex-col items-start gap-3">
-            <div className={"msg-ai " + (message.error ? "text-red-300" : "")}>{message.text}</div>
+            <div className={"msg-ai " + (message.error ? "t-accent" : "")}>{message.text}</div>
             {intentLabel && <span className="intent-chip">{intentLabel}</span>}
-            {intentDescription && <p className="text-xs text-[#baa98d] -mt-1">{intentDescription}</p>}
+            {intentDescription && <p className="text-xs t-muted -mt-1">{intentDescription}</p>}
 
             {showIntentPicker && (
                 <IntentPicker
@@ -343,12 +334,13 @@ function QuickActions({ actions, onPick }) {
 
 function ReferencePicker({ items, selectedAnchorId, onSelectAnchor }) {
     return (
-        <div className="panel p-3">
-            <p className="retro-badge w-fit mb-2">Choose Focus Item</p>
+        <div className="panel p-5">
+            <p className="kicker mb-1">01 — Reference</p>
+            <h3 className="font-display text-2xl mb-3">Focus item</h3>
 
             {!items.length && (
-                <div className="text-sm text-[#a89372] rounded-xl border border-white/10 bg-black/20 p-3">
-                    Once suggestions appear, choose a focus item for your next message.
+                <div className="text-sm t-muted leading-relaxed">
+                    Once suggestions appear, pick one piece to anchor your next request.
                 </div>
             )}
 
@@ -388,15 +380,14 @@ function ReferencePicker({ items, selectedAnchorId, onSelectAnchor }) {
 
 function MoodBoardPanel() {
     return (
-        <div className="panel p-3 mood-board">
-            <p className="retro-badge w-fit mb-2">Style Mood</p>
-            <div className="mood-grid">
-                <img src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=480&q=80" alt="Style mood 1" />
-                <img src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=480&q=80" alt="Style mood 2" />
-            </div>
-            <p className="text-xs text-[#c8b497] mt-2 leading-relaxed">
-                Tip: select one focus item first, then ask for matching bottoms, outerwear, or color variants.
-            </p>
+        <div className="panel p-5">
+            <p className="kicker mb-1">02 — House notes</p>
+            <h3 className="font-display text-2xl mb-3">How to style</h3>
+            <ol className="notes-list">
+                <li>Upload a reference image, or name a piece by its article id.</li>
+                <li>Pick a focus item to anchor — pairings build around it.</li>
+                <li>Ask for matching bottoms, outerwear, or a colour variant.</li>
+            </ol>
         </div>
     );
 }
@@ -417,10 +408,10 @@ function Composer({
         <div className="composer">
             {currentImageBase64 && (
                 <div className="flex items-center gap-3">
-                    <img src={currentImageBase64} className="h-20 w-20 object-cover rounded border border-white/20" alt="Preview" />
+                    <img src={currentImageBase64} className="h-20 w-20 object-cover rounded border border-black/10" alt="Preview" />
                     <div>
-                        <p className="text-sm text-[#cebda1]">A new image resets the context and focus item.</p>
-                        <button className="text-sm text-red-300 hover:text-red-200 mt-1" onClick={onRemoveImage}>Remove image</button>
+                        <p className="text-sm t-muted">A new image resets the context and focus item.</p>
+                        <button className="text-sm t-accent hover:underline mt-1" onClick={onRemoveImage}>Remove image</button>
                     </div>
                 </div>
             )}
@@ -443,8 +434,8 @@ function Composer({
                         }
                     }}
                 />
-                <button className="btn h-[52px] px-7 font-semibold" disabled={isLoading} onClick={onSend}>
-                    {isLoading ? "Sending..." : "Send"}
+                <button className="btn-primary h-[54px] px-8" disabled={isLoading} onClick={onSend}>
+                    {isLoading ? "Sending…" : "Send"}
                 </button>
             </div>
         </div>
@@ -483,12 +474,12 @@ function Workspace({
 
                     <div className="chat-header">
                         <div>
-                            <p className="text-xs uppercase tracking-[0.2em] text-[#c8b69a]">Styling Session</p>
-                            <h2 className="font-display text-3xl">Conversation Canvas</h2>
+                            <p className="kicker mb-1">Styling session</p>
+                            <h2 className="font-display text-4xl leading-none">The Atelier Desk</h2>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <button className="btn px-3 py-2 text-xs" onClick={onResetSession}>Reset Session</button>
-                            <span className={"anchor-pill " + (!selectedAnchorId ? "hidden" : "")}>Focus item <strong>#{selectedAnchorId}</strong></span>
+                        <div className="flex items-center gap-4">
+                            <span className={"anchor-pill " + (!selectedAnchorId ? "hidden" : "")}>focus #{selectedAnchorId}</span>
+                            <button className="btn px-4 py-2 text-xs" onClick={onResetSession}>Reset</button>
                         </div>
                     </div>
 
@@ -545,6 +536,7 @@ function App() {
     const textAreaRef = useRef(null);
     const sessionIdRef = useRef(getSessionId());
     const lastUserImageRef = useRef(null);
+    const prevMsgCountRef = useRef(0);
 
     const api = useMemo(() => window.MragApi || {}, []);
 
@@ -601,14 +593,16 @@ function App() {
     }, [messages, isLoading]);
 
     useEffect(() => {
-        if (!window.gsap || !chatBoxRef.current || messages.length === 0) return;
+        const grew = messages.length > prevMsgCountRef.current;
+        prevMsgCountRef.current = messages.length;
+        if (!grew || !window.gsap || !chatBoxRef.current) return;
         const nodes = chatBoxRef.current.querySelectorAll(".chat-message");
         const lastNode = nodes[nodes.length - 1];
         if (!lastNode) return;
         window.gsap.fromTo(
             lastNode,
-            { opacity: 0, y: 14 },
-            { opacity: 1, y: 0, duration: 0.34, ease: "power2.out" }
+            { opacity: 0, y: 16 },
+            { opacity: 1, y: 0, duration: 0.45, ease: "power2.out" }
         );
     }, [messages]);
 
