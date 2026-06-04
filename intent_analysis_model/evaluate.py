@@ -1,13 +1,3 @@
-"""Đánh giá intent model trên test set đã validate — confusion + per-length + so sánh model.
-
-Chạy local (sau khi tải model DeBERTa mới về model_cache/). So baseline RoBERTa cũ vs DeBERTa mới
-trên CÙNG test set (đã qua LLM-judge) → công bằng. Đặc biệt soi accuracy câu DÀI per intent
-để xác nhận hết length bias.
-
-Run:
-    conda activate mRAG
-    python -m intent_analysis_model.evaluate
-"""
 from __future__ import annotations
 
 import argparse
@@ -91,10 +81,8 @@ def main():
     if not test_csv.exists():
         raise SystemExit(f"test set chưa có: {test_csv} — chạy gen_data + validate_data trước")
 
-    # model cũ mô phỏng đúng backend (max_length=32) để thấy length bias
     if Path(args.old_model).exists():
         evaluate(args.old_model, 32, test_csv, "OLD RoBERTa (max_length=32, như backend cũ)")
-    # model mới
     if Path(args.new_model).exists():
         evaluate(args.new_model, C.MAX_LENGTH, test_csv, "NEW DeBERTa-v3 (max_length=128)")
     else:

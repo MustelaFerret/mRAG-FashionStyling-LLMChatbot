@@ -1,15 +1,3 @@
-"""Double-check data gen bằng LLM judge — chống 'data rác -> model rác'.
-
-Quy trình:
-1. Đọc raw_{train,test}.csv (gen từ gen_data.py).
-2. LLM judge (model MẠNH, KHÁC pool gen) gán lại intent cho từng query — BLIND (không thấy nhãn gốc).
-3. CHỈ GIỮ sample mà judge_intent == gen_intent. Loại mismatch.
-4. Split train/val. Lưu train.csv, val.csv, test.csv + báo cáo pass rate per intent.
-
-Run:
-    conda activate mRAG
-    python -m intent_analysis_model.validate_data
-"""
 from __future__ import annotations
 
 import argparse
@@ -33,8 +21,6 @@ class IntentJudge:
             raise RuntimeError("CKEY_API_KEY rỗng — kiểm tra .env")
 
     def _user_prompt(self, batch: List[str]) -> str:
-        # Gộp TẤT CẢ vào user message — proxy ckey.vn có thể bỏ qua system role,
-        # và model hay tự chế tên label nếu không được ép ngay trong user turn.
         defs = "\n".join(f"- {k}: {v}" for k, v in C.INTENT_DEFINITIONS.items())
         rules = "\n".join(f"- {r}" for r in C.HARD_CASE_RULES)
         labels = ", ".join(f'"{l}"' for l in C.INTENT_LABELS)
@@ -124,17 +110,15 @@ def _report(df: pd.DataFrame, name: str):
         if len(sub):
             k = (sub["judge_intent"] == intent).sum()
             print(f"    {intent:18s} {k}/{len(sub)} ({k/len(sub)*100:.0f}%)")
-    # confusion: gen_intent bị judge gán sang đâu (top mismatches)
     mism = df[(df["judge_intent"] != "") & (df["judge_intent"] != df["intent"])]
     if len(mism):
-        print("  top mismatch (gen -> judge):")
+        print("  top mismatch (gen->judge):")
         for (g, j), c in mism.groupby(["intent", "judge_intent"]).size().sort_values(ascending=False).head(8).items():
             print(f"    {g} -> {j}: {c}")
 
 
 def validate_file(raw_path, judge_model: str, name: str) -> pd.DataFrame:
     df = pd.read_csv(raw_path)
-    # English-only filter (backbone deberta-v3-base là English)
     before = len(df)
     df = df[df["query"].apply(C.is_english)].reset_index(drop=True)
     if len(df) < before:
@@ -154,7 +138,6 @@ def main():
 
     if args.split in ("train", "both"):
         kept = validate_file(C.DATA_DIR / "raw_train.csv", C.JUDGE_MODEL_TRAIN, "train")
-        # split train/val stratify theo intent
         val_rows, train_rows = [], []
         for intent, sub in kept.groupby("intent"):
             sub = sub.sample(frac=1.0, random_state=42).reset_index(drop=True)

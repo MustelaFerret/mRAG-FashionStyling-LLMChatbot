@@ -1,16 +1,3 @@
-"""Sinh data intent classification qua ckey.vn — multi-model, stratified theo độ dài.
-
-Nguyên tắc chống length bias:
-- Mỗi intent sinh ĐỀU 3 dải độ dài (short/medium/long). similar/graph/color BẮT BUỘC có
-  nhiều câu DÀI chi tiết → model không thể dùng độ dài làm shortcut cho composite.
-- Train xoay tua nhiều model; test dùng model pool KHÁC (held-out style).
-- Prompt nhúng định nghĩa CHẶT + hard contrastive rules.
-
-Run:
-    conda activate mRAG
-    python -m intent_analysis_model.gen_data            # cả train + test
-    python -m intent_analysis_model.gen_data --split test
-"""
 from __future__ import annotations
 
 import argparse

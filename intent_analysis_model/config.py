@@ -1,18 +1,9 @@
-"""Cấu hình trung tâm cho intent analysis pipeline (data gen -> train -> eval).
-
-Đập đi xây lại từ fine_tuning cũ (2026-06-04). Mục tiêu: fix length bias —
-model cũ học spurious "câu mô tả dài/chi tiết = composite_intent".
-
-5 intent labels (giữ nguyên để tương thích backend), siết định nghĩa CHẶT.
-"""
 from __future__ import annotations
 
 import os
 import re
 from pathlib import Path
 
-# Lọc English-only: intent classifier dùng deberta-v3-base (English). Loại câu tiếng Việt
-# (model gen TQ thi thoảng tự sinh VN). Pipeline backend dịch VN->EN trước khi tới intent.
 _VN_DIACRITICS = re.compile(
     r"[àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ]",
     re.IGNORECASE,
@@ -20,13 +11,14 @@ _VN_DIACRITICS = re.compile(
 
 
 def is_english(text: str) -> bool:
-    """True nếu câu không chứa dấu tiếng Việt (English-only filter)."""
     return not bool(_VN_DIACRITICS.search(str(text)))
+
 
 ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 DATA_DIR.mkdir(exist_ok=True)
 REPO_ROOT = ROOT.parent
+
 
 def _load_env(path: Path) -> dict:
     env = {}
@@ -43,10 +35,6 @@ _ENV = _load_env(REPO_ROOT / ".env")
 API_BASE = os.getenv("CKEY_API_BASE", _ENV.get("CKEY_API_BASE", "https://ckey.vn/v1"))
 API_KEY = os.getenv("CKEY_API_KEY", _ENV.get("CKEY_API_KEY", ""))
 
-# Model pools — TÁCH train vs test để tránh distribution leakage.
-# CHỈ dùng model đã verify connectivity qua ckey.vn (2026-06-04). Các model
-# claude-sonnet-4.6 / opus-4-6 / claude-sonnet-4 bị upstream từ chối (HTTP 400) -> loại.
-# Train: xoay tua nhiều model tầm trung rẻ cho đa dạng phong cách.
 GEN_MODELS_TRAIN = [
     "gpt-5.4-mini",
     "deepseek-3.2",
@@ -54,16 +42,8 @@ GEN_MODELS_TRAIN = [
     "minimax-m2.5",
     "claude-haiku-4.5",
 ]
-# Test: model KHÁC hẳn pool train (held-out style) → đo generalization thật.
-GEN_MODELS_TEST = [
-    "gpt-5.4",
-]
-
-# Judge model — double-check nhãn TOÀN BỘ sample (blind, không thấy nhãn gốc).
-# Dùng model MẠNH + KHÁC pool gen tương ứng để đánh giá khách quan (chống "data rác → model rác").
-JUDGE_MODEL_TRAIN = "claude-sonnet-4.5"   # khác pool train (gpt-mini/deepseek/glm/minimax/haiku) -> khách quan
-# NOTE: gpt-5.5 KHÔNG đáng tin cho batch judge (trả thiếu objects, label mẫu lung tung) -> dùng sonnet-4.5.
-# sonnet-4.5 vẫn KHÁC model gen test (gpt-5.4) nên judge vẫn khách quan.
+GEN_MODELS_TEST = ["gpt-5.4"]
+JUDGE_MODEL_TRAIN = "claude-sonnet-4.5"
 JUDGE_MODEL_TEST = "claude-sonnet-4.5"
 
 INTENT_LABELS = [
@@ -76,7 +56,6 @@ INTENT_LABELS = [
 LABEL2ID = {label: i for i, label in enumerate(INTENT_LABELS)}
 ID2LABEL = {i: label for label, i in LABEL2ID.items()}
 
-# Định nghĩa CHẶT cho data gen prompt + làm contract cho model.
 INTENT_DEFINITIONS = {
     "similar_items": (
         "User muốn TÌM MỘT món đồ (đúng 1 loại sản phẩm) theo mô tả. Mô tả có thể RẤT NGẮN "
@@ -107,7 +86,6 @@ INTENT_DEFINITIONS = {
     ),
 }
 
-# Hard contrastive cases — ép model học ranh giới, phá length bias.
 HARD_CASE_RULES = [
     "Câu DÀI + nhiều thuộc tính (màu, chất liệu, fit, dáng) + 1 món => similar_items (KHÔNG composite).",
     "'X to match/pair with Y' => graph_pairing (1 intent pairing, KHÔNG composite).",
@@ -116,8 +94,6 @@ HARD_CASE_RULES = [
     "Câu NGẮN vẫn có thể là composite nếu có 2 intent ('red? + matching bag?').",
 ]
 
-# Mỗi intent phải trải đều 3 dải. Đặc biệt similar/graph/color phải có nhiều câu DÀI
-# để model KHÔNG dùng độ dài làm shortcut cho composite.
 LENGTH_BUCKETS = {
     "short": {"min_words": 1, "max_words": 4, "ratio": 0.25},
     "medium": {"min_words": 5, "max_words": 12, "ratio": 0.40},
@@ -125,8 +101,8 @@ LENGTH_BUCKETS = {
 }
 
 PER_INTENT_TRAIN = 1500
-PER_INTENT_TEST = 200   # test set riêng, model gen khác
-VAL_RATIO = 0.12        # tách từ train
+PER_INTENT_TEST = 200
+VAL_RATIO = 0.12
 
 BACKBONE = "microsoft/deberta-v3-base"
 MAX_LENGTH = 128
