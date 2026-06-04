@@ -769,8 +769,7 @@ class QwenMultimodalService:
                 "source": "empty_query",
             }
 
-        # CHỈ đưa câu query thuần túy vào mô hình, giới hạn đúng 32 tokens như lúc train
-        inputs = self.intent_tokenizer(clean_query, return_tensors="pt", truncation=True, max_length=32)
+        inputs = self.intent_tokenizer(clean_query, return_tensors="pt", truncation=True, max_length=settings.intent_max_length)
         inputs = {k: v.to(self.device) if hasattr(v, "to") else v for k, v in inputs.items()}
 
         with torch.no_grad():
@@ -780,13 +779,12 @@ class QwenMultimodalService:
         idx = int(torch.argmax(probs).item())
         id2label = getattr(self.intent_model.config, "id2label", {}) or {}
         
-        # Nếu model chưa lưu id2label, hardcode fallback dự phòng
         fallback_map = {
             0: INTENT_SIMILAR,
             1: INTENT_GRAPH,
             2: INTENT_VARIANT,
-            3: INTENT_CHAT,
-            4: INTENT_COMPOSITE,
+            3: INTENT_COMPOSITE,
+            4: INTENT_CHAT,
         }
         raw_label = id2label.get(idx)
         if raw_label is None:
