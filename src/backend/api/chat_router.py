@@ -15,8 +15,8 @@ from src.backend.core.exceptions import (
     StaticAssetNotFoundException,
 )
 from src.backend.models.schemas import ChatRequest
-from src.backend.retrieval.llm import INTENT_CHAT, INTENT_COMPOSITE
-from src.backend.services.rag_service import FashionRAGService
+from src.backend.retrieval.llm import INTENT_CHAT, INTENT_COMPOSITE, INTENT_GRAPH
+from src.backend.services.rag_service import FashionRAGService, NO_PAIRING_MESSAGE, NO_RESULTS_MESSAGE
 from src.backend.services.recommender import FashionAssistantService
 
 chat_api_router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -55,6 +55,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
     request_id = uuid.uuid4().hex[:12]
     session_id = (req.session_id or "").strip()
     customer_id = (req.customer_id or "").strip()
+    selected_anchor_id = (req.selected_anchor_id or "").strip()
     confirmed_intent = (req.confirmed_intent or "").strip()
     wants_stream = bool(getattr(req, "stream", False)) or "text/event-stream" in request.headers.get("accept", "")
     try:
@@ -67,6 +68,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
                 request_id=request_id,
                 confirmed_intent=confirmed_intent,
                 customer_id=customer_id,
+                selected_anchor_id=selected_anchor_id,
             )
             payload = {"message": message, "items": items}
             payload.update(extra or {})
@@ -86,6 +88,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
             started_at=started_at,
             confirmed_intent=confirmed_intent,
             customer_id=customer_id,
+            selected_anchor_id=selected_anchor_id,
         )
         intent_hint = log_payload.get("intent_hint", "")
 
@@ -130,7 +133,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
                 {"request_id": request_id, "items": items, "intent": intent_hint},
             )
             if not has_context:
-                message = "I could not find any matching items in the current inventory."
+                message = NO_PAIRING_MESSAGE if intent_hint == INTENT_GRAPH else NO_RESULTS_MESSAGE
                 rag.finalize_log(log_payload, started_at, 0)
                 yield _format_sse("delta", {"delta": message})
                 yield _format_sse("done", {"message": message, "intent": intent_hint})

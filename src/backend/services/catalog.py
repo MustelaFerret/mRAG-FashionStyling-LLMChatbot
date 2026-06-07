@@ -8,6 +8,19 @@ from typing import Dict, Iterable, List, Tuple
 from src.backend.core.utils import normalize_article_id, normalize_text
 
 
+PT_SYNONYMS = {
+    "pants": "Trousers", "pant": "Trousers", "slacks": "Trousers", "chinos": "Trousers",
+    "jeans": "Trousers", "jean": "Trousers", "denim": "Trousers", "trouser": "Trousers",
+    "tee": "T-shirt", "tees": "T-shirt", "tshirt": "T-shirt", "t shirt": "T-shirt", "t-shirts": "T-shirt",
+    "jumper": "Sweater", "pullover": "Sweater", "knit": "Sweater", "sweaters": "Sweater",
+    "hoody": "Hoodie", "hoodies": "Hoodie",
+    "trainers": "Sneakers", "trainer": "Sneakers", "kicks": "Sneakers", "sneaker": "Sneakers",
+    "tank": "Vest top", "tank top": "Vest top", "singlet": "Vest top",
+    "jackets": "Jacket", "coats": "Coat", "blazers": "Blazer", "shirts": "Shirt",
+    "dresses": "Dress", "skirts": "Skirt", "shorts ": "Shorts",
+}
+
+
 class FashionCatalog:
     def __init__(self, meta_file: str, graph_file: str, image_dir: str):
         self.meta_file = meta_file
@@ -219,6 +232,19 @@ class FashionCatalog:
 
     def get_meta(self, article_id: str) -> Dict:
         return self.meta_by_article.get(normalize_article_id(article_id), {})
+
+    def canonical_product_type(self, value: str) -> str:
+        v = str(value or "").strip()
+        if not v:
+            return ""
+        low = v.lower()
+        for pt in self.valid_product_types:
+            if pt.lower() == low:
+                return pt
+        syn = PT_SYNONYMS.get(low)
+        if syn and syn in self.valid_product_types:
+            return syn
+        return ""
 
     def article_image_path(self, article_id: str) -> str:
         aid = normalize_article_id(article_id)

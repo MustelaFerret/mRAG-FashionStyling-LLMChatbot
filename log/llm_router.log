@@ -1,0 +1,271 @@
+{
+  "analysis_debug": {
+    "constrained": true,
+    "intent_classifier": {
+      "confidence": 0.83203125,
+      "index": 4,
+      "intent": "chit_chat",
+      "raw_label": "chit_chat",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "chit_chat",
+      "has_anchor_reference": true,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": false,
+      "query_normalized": "i want to find things like this one",
+      "rule_applied": "override_chit_chat_to_similar"
+    },
+    "llm_filters_raw": {},
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {},
+      "search_query_en": "this one"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"this one\",\n  \"must_filters\": {}\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "using_query_llm": false
+  },
+  "boost_applied": false,
+  "boosted_product_type": "",
+  "dense_query": "this one",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [],
+  "graph_anchor_id": "",
+  "graph_anchor_source": "uploaded_image",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": true,
+  "hybrid_result_count": 5,
+  "intent_hint": "similar_items",
+  "latency_ms": 14968,
+  "llm_filters_raw": {},
+  "llm_must_not_raw": {},
+  "must_filters": {},
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "query": "I want to find things like this one",
+  "request_id": "72ae835ffe1d",
+  "result_count": 5,
+  "result_ids": [
+    "0569973006",
+    "0569973026",
+    "0557246002",
+    "0557246014",
+    "0669091021"
+  ],
+  "retrieval_path": [
+    "similar_image_knn"
+  ],
+  "search_query": "this one",
+  "search_query_raw": "this one",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "sparse_query": "this one",
+  "timestamp_utc": "2026-06-07T15:10:45.525510+00:00",
+  "timing_ms": {
+    "analysis": 12403,
+    "embedding": 410,
+    "total": 14968
+  }
+}
+
+{
+  "analysis_debug": {
+    "constrained": true,
+    "intent_classifier": {
+      "confidence": 0.94140625,
+      "index": 2,
+      "intent": "color_variant",
+      "raw_label": "color_variant",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "color_variant",
+      "has_anchor_reference": false,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": false,
+      "query_normalized": "do you have black color",
+      "rule_applied": "honor_color_variant_with_anchor"
+    },
+    "llm_filters_raw": {
+      "colour_group": "Black",
+      "product_type": "Jacket"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "colour_group": "Black",
+        "product_type": "Jacket"
+      },
+      "search_query_en": "black"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"black\",\n  \"must_filters\": {\n    \"product_type\": \"Jacket\",\n    \"colour_group\": \"Black\"\n  }\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "using_query_llm": false
+  },
+  "boost_applied": true,
+  "boosted_product_type": "Jacket",
+  "dense_query": "black",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "Jacket",
+      "key": "product_type",
+      "matched": "Jacket",
+      "scope": "must_filters"
+    },
+    {
+      "allowed_count": 50,
+      "allowed_has_value": true,
+      "input": "Black",
+      "key": "colour_group",
+      "matched": "Black",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "0569973006",
+  "graph_anchor_source": "session_anchor",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": false,
+  "hybrid_result_count": 5,
+  "intent_hint": "color_variant",
+  "latency_ms": 15370,
+  "llm_filters_raw": {
+    "colour_group": "Black",
+    "product_type": "Jacket"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "colour_group": "Black",
+    "product_type": "Jacket"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "query": "Do you have black color",
+  "request_id": "6142296d5056",
+  "result_count": 5,
+  "result_ids": [
+    "0569973001",
+    "0669091027",
+    "0622370006",
+    "0919786001",
+    "0669091018"
+  ],
+  "retrieval_path": [
+    "color_variant_image_knn"
+  ],
+  "search_query": "black",
+  "search_query_raw": "black",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "sparse_query": "Jacket Jacket Jacket black",
+  "timestamp_utc": "2026-06-07T15:14:57.607711+00:00",
+  "timing_ms": {
+    "analysis": 5371,
+    "embedding": 18,
+    "total": 15370
+  }
+}
+
+{
+  "analysis_debug": {
+    "constrained": true,
+    "intent_classifier": {
+      "confidence": 0.9453125,
+      "index": 1,
+      "intent": "graph_pairing",
+      "raw_label": "graph_pairing",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "graph_pairing",
+      "has_anchor_reference": true,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": true,
+      "query_normalized": "i want to find some trousers to match with this",
+      "rule_applied": "explicit_graph_pairing"
+    },
+    "llm_filters_raw": {
+      "product_type": "Trousers"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": "Trousers"
+      },
+      "search_query_en": "trousers matching"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"trousers matching\",\n  \"must_filters\": {\n    \"product_type\": \"Trousers\"\n  }\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "using_query_llm": false
+  },
+  "boost_applied": true,
+  "boosted_product_type": "Trousers",
+  "dense_query": "trousers matching",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "Trousers",
+      "key": "product_type",
+      "matched": "Trousers",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "0569973001",
+  "graph_anchor_source": "selected_anchor",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": true,
+  "has_image": false,
+  "hybrid_result_count": 0,
+  "intent_hint": "graph_pairing",
+  "latency_ms": 4949,
+  "llm_filters_raw": {
+    "product_type": "Trousers"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "product_type": "Trousers"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "query": "I want to find some trousers to match with this",
+  "request_id": "5d90da45c983",
+  "result_count": 0,
+  "result_ids": [],
+  "retrieval_path": [
+    "intent_graph_pairing",
+    "anchor_from_selection",
+    "graph_neighbors",
+    "no_graph_pairing"
+  ],
+  "search_query": "trousers matching",
+  "search_query_raw": "trousers matching",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "sparse_query": "Trousers Trousers Trousers trousers matching",
+  "timestamp_utc": "2026-06-07T15:17:03.776755+00:00",
+  "timing_ms": {
+    "analysis": 4925,
+    "embedding": 19,
+    "total": 4949
+  }
+}
+

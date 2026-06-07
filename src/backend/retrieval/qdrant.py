@@ -180,3 +180,16 @@ class QdrantStore:
         if not point_ids:
             return []
         return self.client.retrieve(collection_name=self.collection_name, ids=point_ids)
+
+    def get_named_vector(self, article_id: str, vector_name: str) -> List[float] | None:
+        point_ids = parse_numeric_ids([article_id])
+        if not point_ids:
+            return None
+        res = self.client.retrieve(collection_name=self.collection_name, ids=point_ids, with_vectors=True)
+        if not res:
+            return None
+        vectors = getattr(res[0], "vector", None)
+        if isinstance(vectors, dict):
+            vec = vectors.get(vector_name)
+            return list(vec) if vec is not None else None
+        return None

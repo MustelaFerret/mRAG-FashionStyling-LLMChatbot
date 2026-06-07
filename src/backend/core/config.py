@@ -34,6 +34,8 @@ class Settings:
     graph_max_hops: int = int(os.getenv("GRAPH_MAX_HOPS", "3"))
     graph_branch_per_hop: int = int(os.getenv("GRAPH_BRANCH_PER_HOP", "3"))
     graph_max_per_pt: int = int(os.getenv("GRAPH_MAX_PER_PT", "2"))
+    graph_pair_limit: int = int(os.getenv("GRAPH_PAIR_LIMIT", "3"))
+    product_type_match_threshold: float = float(os.getenv("PRODUCT_TYPE_MATCH_THRESHOLD", "0.85"))
 
     use_llm_router: bool = os.getenv("USE_LLM_ROUTER", "1") == "1"
     use_query_rewrite: bool = os.getenv("USE_QUERY_REWRITE", "1") == "1"

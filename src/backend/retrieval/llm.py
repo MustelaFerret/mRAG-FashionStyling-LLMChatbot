@@ -12,6 +12,7 @@ from transformers import AutoModelForCausalLM, AutoModelForSequenceClassificatio
 
 from src.backend.core.config import settings
 from src.backend.core.utils import get_local_model_path, normalize_text
+from src.backend.retrieval.constrained import LMFE_AVAILABLE, build_prefix_allowed_tokens_fn, build_tokenizer_data
 
 
 INTENT_SIMILAR = "similar_items"
@@ -154,6 +155,50 @@ class QwenMultimodalService:
                 self.intent_model = None
                 self.using_intent_classifier = False
 
+        self._enforcer_tokenizer_data = None
+        self._filter_schema = None
+        self._filter_schema_signature = None
+
+    def _analysis_tokenizer(self):
+        if self.using_query_llm and self.query_tokenizer is not None:
+            return self.query_tokenizer
+        return self.nlp_tokenizer
+
+    def _build_filter_schema(self, vocab: Dict[str, List[str]]) -> Dict:
+        fields = ["product_type", "colour_group", "fit", "occasion", "seasonality"]
+        must_props: Dict[str, Dict] = {}
+        for field in fields:
+            values = [v for v in (vocab.get(field) or []) if v and v != "Unknown"]
+            if not values:
+                continue
+            must_props[field] = {"type": "string", "enum": values}
+        return {
+            "type": "object",
+            "properties": {
+                "search_query_en": {"type": "string"},
+                "must_filters": {"type": "object", "properties": must_props, "additionalProperties": False},
+            },
+            "required": ["search_query_en", "must_filters"],
+            "additionalProperties": False,
+        }
+
+    def _build_constrained_fn(self, vocab: Dict[str, List[str]] | None):
+        if not LMFE_AVAILABLE or not vocab:
+            return None
+        tokenizer = self._analysis_tokenizer()
+        if tokenizer is None:
+            return None
+        signature = tuple((k, len(vocab.get(k) or [])) for k in sorted(vocab))
+        if self._filter_schema is None or self._filter_schema_signature != signature:
+            self._filter_schema = self._build_filter_schema(vocab)
+            self._filter_schema_signature = signature
+        try:
+            if self._enforcer_tokenizer_data is None:
+                self._enforcer_tokenizer_data = build_tokenizer_data(tokenizer)
+            return build_prefix_allowed_tokens_fn(self._enforcer_tokenizer_data, self._filter_schema)
+        except Exception:
+            return None
+
     def _load_images(self, image_paths: List[str]) -> List[Image.Image]:
         images: List[Image.Image] = []
         for path in image_paths:
@@ -175,6 +220,7 @@ class QwenMultimodalService:
         temperature: float,
         top_p: float,
         do_sample: bool,
+        prefix_allowed_tokens_fn=None,
     ) -> str:
         if self.nlp_model is None or self.nlp_tokenizer is None:
             raise RuntimeError("Text LLM is not available")
@@ -195,6 +241,8 @@ class QwenMultimodalService:
             "top_p": top_p,
             "do_sample": do_sample,
         }
+        if prefix_allowed_tokens_fn is not None:
+            generation_kwargs["prefix_allowed_tokens_fn"] = prefix_allowed_tokens_fn
         output_ids = self.nlp_model.generate(**generation_kwargs)
         generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
         return self.nlp_tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
@@ -206,6 +254,7 @@ class QwenMultimodalService:
         temperature: float,
         top_p: float,
         do_sample: bool,
+        prefix_allowed_tokens_fn=None,
     ) -> str:
         if self.query_model is None or self.query_tokenizer is None:
             raise RuntimeError("Query LLM is not available")
@@ -225,6 +274,8 @@ class QwenMultimodalService:
             "top_p": top_p,
             "do_sample": do_sample,
         }
+        if prefix_allowed_tokens_fn is not None:
+            generation_kwargs["prefix_allowed_tokens_fn"] = prefix_allowed_tokens_fn
         output_ids = self.query_model.generate(**generation_kwargs)
         generated_ids = output_ids[:, inputs["input_ids"].shape[1]:]
         return self.query_tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
@@ -548,6 +599,8 @@ class QwenMultimodalService:
         for key, value in filters.items():
             if key not in allowed:
                 continue
+            if isinstance(value, (list, tuple)):
+                value = next((str(v).strip() for v in value if str(v).strip()), "")
             value_str = str(value).strip()
             if not value_str:
                 continue
@@ -807,24 +860,35 @@ class QwenMultimodalService:
             "source": "intent_classifier",
         }
 
-    def analyze_user_query(self, query: str) -> Dict:
+    def analyze_user_query(self, query: str, vocab: Dict[str, List[str]] | None = None) -> Dict:
         intent_result = self._classify_intent_local(query, [], anchor_item=None)
         intent_hint_raw = self._normalize_intent(intent_result.get("intent"))
         intent_hint, intent_rules = self._apply_intent_rules(query, intent_hint_raw)
+        if intent_hint == INTENT_CHAT:
+            return {
+                "search_query_en": query,
+                "intent_hint": INTENT_CHAT,
+                "must_filters": {},
+                "must_not_filters": {},
+                "debug": {
+                    "intent_classifier": intent_result,
+                    "intent_rules": intent_rules,
+                    "skipped_extraction": "chit_chat",
+                },
+            }
+        prefix_allowed_tokens_fn = self._build_constrained_fn(vocab)
         prompt = (
             "You are a fashion query analyst. Rewrite the user request into English keywords suitable for search. "
             "Extract filters in one pass. Return JSON only with this schema:\n"
             "{\n"
             "  \"search_query_en\": string,\n"
-            "  \"must_filters\": {\"product_type\":\"\",\"colour_group\":\"\",\"fit\":\"\",\"occasion\":\"\",\"seasonality\":\"\"},\n"
-            "  \"must_not_filters\": {\"product_type\":[\"\"],\"colour_group\":[\"\"],\"fit\":[\"\"],\"occasion\":[\"\"],\"seasonality\":[\"\"]}\n"
+            "  \"must_filters\": {\"product_type\":\"\",\"colour_group\":\"\",\"fit\":\"\",\"occasion\":\"\",\"seasonality\":\"\"}\n"
             "}\n"
             "Rules:\n"
             "- search_query_en must be English keywords only.\n"
-            "- Keep must_filters empty if unsure.\n"
-            "- Put negations into must_not_filters.\n"
-            "- intent_hint is handled by a separate classifier. Do not invent it here.\n"
-            "- If the user query contains a clothing item (e.g., parka, jacket, hat, dress), YOU MUST extract it into the \"product_type\" field. DO NOT leave it empty.\n"
+            "- Fill each filter field the user explicitly mentions (product_type, colour, fit, occasion, season); omit any field that is not mentioned.\n"
+            "- If the user query names a clothing item (e.g., parka, jacket, hat, dress), extract it into the \"product_type\" field.\n"
+            "- If the request is not about clothing, return must_filters as an empty object {}.\n"
             "- OUTPUT ONLY VALID JSON. DO NOT output any conversational text, markdown formatting, or explanations.\n"
             f"User request: {query}"
         )
@@ -834,15 +898,25 @@ class QwenMultimodalService:
             if self.using_query_llm:
                 raw = self._generate_with_query_llm(
                     messages,
-                    max_new_tokens=100,
+                    max_new_tokens=120,
                     temperature=0.0,
                     top_p=1.0,
                     do_sample=False,
+                    prefix_allowed_tokens_fn=prefix_allowed_tokens_fn,
+                )
+            elif self.nlp_model is not None and self.nlp_tokenizer is not None:
+                raw = self._generate_with_text_llm(
+                    messages,
+                    max_new_tokens=120,
+                    temperature=0.0,
+                    top_p=1.0,
+                    do_sample=False,
+                    prefix_allowed_tokens_fn=prefix_allowed_tokens_fn,
                 )
             else:
                 raw = self._chat_generate_text(
                     messages,
-                    max_new_tokens=100,
+                    max_new_tokens=120,
                     temperature=0.0,
                     top_p=1.0,
                     do_sample=False,
@@ -858,6 +932,7 @@ class QwenMultimodalService:
                 "llm_raw": raw,
                 "llm_parsed": None,
                 "llm_parse_ok": False,
+                "constrained": prefix_allowed_tokens_fn is not None,
                 "using_query_llm": self.using_query_llm,
                 "query_llm_model_id": settings.query_llm_model_id or settings.qwen_text_model_id,
             }
@@ -870,17 +945,12 @@ class QwenMultimodalService:
             }
 
         search_query = str(obj.get("search_query_en", "") or "").strip()
-        parsed_search_query = search_query
         if not search_query:
             search_query = query
         raw_filters = obj.get("must_filters") if isinstance(obj.get("must_filters"), dict) else {}
         raw_must_not = obj.get("must_not_filters") if isinstance(obj.get("must_not_filters"), dict) else {}
         must_filters = self._normalize_filters(raw_filters)
         must_not_filters = self._normalize_must_not(raw_must_not)
-        if intent_hint == INTENT_CHAT and (parsed_search_query or raw_filters or raw_must_not):
-            intent_hint = INTENT_SIMILAR
-            if isinstance(intent_rules, dict):
-                intent_rules["rule_applied"] = "override_chit_chat_from_llm"
         debug = {
             "intent_classifier": intent_result,
             "intent_rules": intent_rules,
@@ -889,6 +959,7 @@ class QwenMultimodalService:
             "llm_parse_ok": True,
             "llm_filters_raw": raw_filters,
             "llm_must_not_raw": raw_must_not,
+            "constrained": prefix_allowed_tokens_fn is not None,
             "using_query_llm": self.using_query_llm,
             "query_llm_model_id": settings.query_llm_model_id or settings.qwen_text_model_id,
         }

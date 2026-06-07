@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
     llm = QwenMultimodalService()
     assistant = FashionAssistantService(settings)
     personalization = PersonalizationStore(settings.personalization_dir, settings.meta_file)
-    rag = FashionRAGService(embedding, qdrant, llm, catalog, limit=5, personalization=personalization)
+    rag = FashionRAGService(embedding, qdrant, llm, catalog, limit=5, personalization=personalization, sessions=sessions)
 
     app.state.settings = settings
     app.state.catalog = catalog

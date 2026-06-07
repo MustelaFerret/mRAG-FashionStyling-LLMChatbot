@@ -231,8 +231,8 @@ function StatusRibbon({ meta, sessionId }) {
 function UserMessage({ message }) {
     return (
         <div className="chat-message flex flex-col items-end gap-2">
-            {message.image && <img src={message.image} className="max-w-[220px] md:max-w-[260px] rounded border border-black/10" alt="Uploaded" />}
-            {message.text && <div className="msg-user">{message.text}</div>}
+            {message.image && <img src={message.image} className="max-w-[200px] md:max-w-[240px] rounded border border-white/10" alt="Uploaded" />}
+            {message.text && <div className="msg-user-note">{message.text}</div>}
         </div>
     );
 }
@@ -294,9 +294,13 @@ function AiMessage({ message, onOpenItem, onConfirmIntent }) {
     const showIntentPicker = message.intent === "composite_intent" && intentOptions.length > 0 && !message.intentResolved;
 
     return (
-        <div className="chat-message flex flex-col items-start gap-3">
+        <div className="chat-message ai-entry flex flex-col items-stretch gap-3">
+            <div className="entry-head">
+                <span className="entry-no" aria-hidden="true"></span>
+                <span className="entry-label">{intentLabel || "Response"}</span>
+                <span className="entry-rule"></span>
+            </div>
             <div className={"msg-ai " + (message.error ? "t-accent" : "")}>{message.text}</div>
-            {intentLabel && <span className="intent-chip">{intentLabel}</span>}
             {intentDescription && <p className="text-xs t-muted -mt-1">{intentDescription}</p>}
 
             {showIntentPicker && (
@@ -408,7 +412,7 @@ function Composer({
         <div className="composer">
             {currentImageBase64 && (
                 <div className="flex items-center gap-3">
-                    <img src={currentImageBase64} className="h-20 w-20 object-cover rounded border border-black/10" alt="Preview" />
+                    <img src={currentImageBase64} className="h-20 w-20 object-cover rounded border border-white/10" alt="Preview" />
                     <div>
                         <p className="text-sm t-muted">A new image resets the context and focus item.</p>
                         <button className="text-sm t-accent hover:underline mt-1" onClick={onRemoveImage}>Remove image</button>
