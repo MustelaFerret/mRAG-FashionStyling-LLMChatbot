@@ -20,6 +20,7 @@ from src.backend.retrieval.llm import (
 )
 from src.backend.retrieval.qdrant import QdrantStore
 from src.backend.services.catalog import FashionCatalog
+from src.backend.services.compat_index import CompatPairingIndex
 
 INTENT_CONFIRM_OPTIONS = [INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT]
 COMPOSITE_INTENT_MESSAGE = (
@@ -27,6 +28,11 @@ COMPOSITE_INTENT_MESSAGE = (
     "Could you help me confirm your intent so I can assist you better?"
 )
 HARD_FILTER_KEYS = ("product_type", "colour_group")
+INTENT_NEEDS_REFERENCE = "needs_reference"
+NEEDS_REFERENCE_MESSAGE = (
+    "I'd be happy to find that in another colour — which item do you mean? "
+    "Upload a photo or pick one of the items I just showed you, and I'll match its style in the colour you want."
+)
 NO_RESULTS_MESSAGE = "I could not find any matching items in the current inventory."
 NO_PAIRING_MESSAGE = (
     "Sorry, I don't have learned outfit pairings for this specific item yet, "
@@ -43,9 +49,19 @@ class FashionRAGService:
         self.limit = max(1, int(limit))
         self.personalization = personalization
         self.sessions = sessions
+        self.compat_index = self._load_compat_index()
         self.intent_confirm_options = list(INTENT_CONFIRM_OPTIONS)
         self.allowed_filters = self._build_allowed_filters()
         self._pt_canon, self._pt_emb = self._build_pt_index()
+
+    def _load_compat_index(self):
+        if not settings.compat_pairing_fallback:
+            return None
+        try:
+            index = CompatPairingIndex(settings.compat_dir)
+            return index if index.ready else None
+        except Exception:
+            return None
 
     def _build_pt_index(self):
         canon = list(self.allowed_filters.get("product_type", []))
@@ -353,6 +369,9 @@ class FashionRAGService:
         elif intent_hint == INTENT_CHAT:
             retrieval_path.append("intent_chit_chat")
             direct_response = {"type": INTENT_CHAT}
+        elif classifier_intent == INTENT_VARIANT and not (image is not None or referential_anchor):
+            retrieval_path.append("variant_needs_reference")
+            direct_response = {"type": INTENT_NEEDS_REFERENCE, "message": NEEDS_REFERENCE_MESSAGE}
 
         if direct_response is not None:
             log_payload = {
@@ -457,6 +476,18 @@ class FashionRAGService:
                 points = self.store.retrieve_by_article_ids(graph_neighbor_ids)
                 points = self._filter_points(points, must_filters, must_not_filters)
                 graph_filtered_count = len(points)
+
+                if not points and self.compat_index is not None:
+                    cand_ids = self.compat_index.complement_ids(anchor_id, self.limit * 10)
+                    if cand_ids:
+                        retrieval_path.append("compat_pairing_fallback")
+                        rank = {normalize_article_id(c): i for i, c in enumerate(cand_ids)}
+                        cpoints = self.store.retrieve_by_article_ids(cand_ids)
+                        cpoints = self._filter_points(cpoints, must_filters, must_not_filters)
+                        cpoints.sort(key=lambda p: rank.get(
+                            normalize_article_id(str((getattr(p, "payload", {}) or {}).get("article_id", ""))), 1_000_000))
+                        points = cpoints[:settings.graph_pair_limit]
+                        graph_neighbor_ids = [str((getattr(p, "payload", {}) or {}).get("article_id", "")) for p in points]
 
         elif intent_hint == INTENT_SIMILAR:
             ref_emb = None
@@ -665,6 +696,10 @@ class FashionRAGService:
                 message = self.llm.generate_chitchat_response(query)
                 self._finalize_log(log_payload, started_at, 0)
                 return message, [], {"intent": INTENT_CHAT}
+            if intent_type == INTENT_NEEDS_REFERENCE:
+                message = direct_response.get("message", NEEDS_REFERENCE_MESSAGE)
+                self._finalize_log(log_payload, started_at, 0)
+                return message, [], {"intent": INTENT_NEEDS_REFERENCE}
 
         if not has_context:
             self._finalize_log(log_payload, started_at, 0)

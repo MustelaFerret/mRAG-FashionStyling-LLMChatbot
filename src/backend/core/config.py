@@ -65,6 +65,8 @@ class Settings:
     query_llm_model_id: str = os.getenv("QUERY_LLM_MODEL_ID", "")
     query_llm_device_map: str = os.getenv("QUERY_LLM_DEVICE_MAP", "")
     personalization_dir: str = str(BASE_DIR / os.getenv("PERSONALIZATION_DIR", "data/processed/personalization"))
+    compat_dir: str = str(BASE_DIR / os.getenv("COMPAT_DIR", "data/processed/compat"))
+    compat_pairing_fallback: bool = os.getenv("COMPAT_PAIRING_FALLBACK", "1") == "1"
     intent_classifier_dir: str = str(LOCAL_CACHE_DIR / os.getenv("INTENT_CLASSIFIER_DIR", "intent_classifier_deberta"))
     intent_max_length: int = int(os.getenv("INTENT_MAX_LENGTH", "128"))
     use_intent_classifier: bool = os.getenv("USE_INTENT_CLASSIFIER", "1") == "1"

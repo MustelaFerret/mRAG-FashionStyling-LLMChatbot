@@ -16,7 +16,13 @@ from src.backend.core.exceptions import (
 )
 from src.backend.models.schemas import ChatRequest
 from src.backend.retrieval.llm import INTENT_CHAT, INTENT_COMPOSITE, INTENT_GRAPH
-from src.backend.services.rag_service import FashionRAGService, NO_PAIRING_MESSAGE, NO_RESULTS_MESSAGE
+from src.backend.services.rag_service import (
+    FashionRAGService,
+    INTENT_NEEDS_REFERENCE,
+    NEEDS_REFERENCE_MESSAGE,
+    NO_PAIRING_MESSAGE,
+    NO_RESULTS_MESSAGE,
+)
 from src.backend.services.recommender import FashionAssistantService
 
 chat_api_router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -126,6 +132,14 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
                     except Exception as ex:
                         rag.finalize_log(log_payload, started_at, 0)
                         yield _format_sse("error", {"error": str(ex)})
+                    return
+                if response_type == INTENT_NEEDS_REFERENCE:
+                    message = direct_response.get("message", NEEDS_REFERENCE_MESSAGE)
+                    payload = {"request_id": request_id, "items": [], "intent": INTENT_NEEDS_REFERENCE}
+                    yield _format_sse("meta", payload)
+                    rag.finalize_log(log_payload, started_at, 0)
+                    yield _format_sse("delta", {"delta": message})
+                    yield _format_sse("done", {"message": message, "intent": INTENT_NEEDS_REFERENCE})
                     return
 
             yield _format_sse(
