@@ -26,7 +26,8 @@ The project was built incrementally from a naive baseline toward production-grad
 
 ## Architecture
 
-Full system design: **[Asset/system_design.pdf](Asset/system%20design.pdf)**
+![System design](Asset/system_design.png)
+
 
 ## Tech stack
 
