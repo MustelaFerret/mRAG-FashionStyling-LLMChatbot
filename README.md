@@ -26,8 +26,7 @@ The project was built incrementally from a naive baseline toward production-grad
 
 ## Architecture
 
-Full system design: **[Asset/system design.pdf](Asset/system%20design.pdf)**
-(diagram source: [`md/system_design.mmd`](md/system_design.mmd)).
+Full system design: **[Asset/system_design.pdf](Asset/system%20design.pdf)**
 
 ## Tech stack
 
@@ -89,40 +88,4 @@ A single conversation; each step reuses the item in focus (cross-turn memory).
 ![Refine to black](Asset/Outfir_pair_3.png)
 
 ---
-
-## Project structure
-
-```
-src/backend/        FastAPI app, retrieval, NLU, services
-src/frontend/       React UI (theme.css, app.js)
-src/scripts/        offline builders: data_prep · graph · indexing · personalization · compat
-data/processed/     enriched csv, graph, sparse model, compat artifacts
-md/                 design notes + task reports (start at md/NOTE.MD)
-EDA/                exploratory notebooks
-Asset/              screenshots used in this README
-```
-
-## Setup & run
-
-```bash
-# 1. environment (conda)
-conda env create -f environment.yml
-conda activate mRAG
-
-# 2. offline build (run once, in order)
-python -m src.scripts.data_prep.fill_data            # VLM enrichment -> dataset_qwen_completed.csv
-python -m src.scripts.graph.build_graph              # co-buy outfit graph
-python -m src.scripts.indexing.build_vector_db       # SigLIP + TF-IDF -> Qdrant
-python -m src.scripts.personalization.build_profiles # taste profiles
-python -m src.scripts.compat.build_compat_dataset    # compat data gate
-python -m src.scripts.compat.train_compat_metric     # learn compat_emb
-# (intent classifier: DeBERTa-v3 fine-tuned separately into model_cache/)
-
-# 3. run
-uvicorn src.backend.main:app --host 0.0.0.0 --port 8000
-# open http://localhost:8000
-```
-
-> Notes: requires a CUDA GPU (~8–12 GB) for the SigLIP / Qwen / DeBERTa models. Models download to
-> `model_cache/` on first run. Qdrant runs in embedded mode for development.
 
