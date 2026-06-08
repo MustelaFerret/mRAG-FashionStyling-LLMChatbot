@@ -1,18 +1,132 @@
-# mRAG Fashion RAG
+# mRAG — Multimodal Fashion Stylist
 
-## System design
-High-level flow and diagrams are available in [Asset/system design.pdf](Asset/system%20design.pdf).
+A multimodal retrieval-augmented fashion assistant over the H&M catalogue. It finds, pairs,
+and re-colours outfits from natural-language **and** image queries, then replies like a stylist.
 
-## Here are some test case to help better illustration of the system: 
-### 1) Text search -> outfit pairing
-- Query example: User want to find a blue jacket for outdoor activity with some additional requirement 
-- Input image: ![Test blue jacket input](Asset/Test_blue_jacket.png)
-- Pairing result: ![Blue jacket shoe pairing](Asset/Test_blue_jacket_shoe_pairing.png)
+![UI](Asset/UI.png)
 
-### 2) Image search using ref image -> color variant
-- In this case, the user see a hoodie somewhere and want to find the same thing, and then he want to find black color version of the hoodie
-- Reference image search: ![Search by image input](Asset/Test_search_by_img.png)
-- Color variant result: ![Search by image color variant](Asset/Test_search_by_img_color_variant.png)
+---
 
-## Assets
-- UI snapshot: ![UI snapshot](Asset/UI.png)
+## Overview
+
+~70,000 H&M items are enriched by a vision-language model and indexed for hybrid retrieval
+(SigLIP text+image + TF-IDF, RRF fusion). On top of retrieval the system adds a **learned outfit
+compatibility** space, **content-based personalization**, and a small **conversational generator**.
+The project was built incrementally from a naive baseline toward production-grade components.
+
+## Features
+
+- **Search** by text or by uploaded image (visual similar-items via image-kNN).
+- **Outfit pairing** from a learned compatibility embedding — works even for items absent from
+  the co-buy graph (cold-start safe), filtered by garment slot.
+- **Colour variants** — "do you have it in black?" finds the same style in a new colour.
+- **Cross-turn memory** — follow-ups refer to the item you are currently viewing.
+- **Personalized re-rank** — optional taste profile per customer.
+- **Robust NLU** — fine-tuned intent classifier + constrained (schema-locked) slot extraction.
+
+## Architecture
+
+Full system design: **[Asset/system design.pdf](Asset/system%20design.pdf)**
+(diagram source: [`md/system_design.mmd`](md/system_design.mmd)).
+
+## Tech stack
+
+| Module | Technology |
+|---|---|
+| Frontend | React 18 (Babel standalone), Tailwind, GSAP |
+| API | FastAPI (SSE streaming) |
+| Intent classifier | DeBERTa-v3 fine-tuned · 5 intents · macro-F1 0.99 |
+| Query understanding | Qwen2.5-1.5B-Instruct + `lm-format-enforcer` (schema-locked JSON) |
+| Embeddings | SigLIP `siglip-base-patch16-224` — text + image, 768d |
+| Sparse retrieval | TF-IDF (vocab 15,412) |
+| Vector store | Qdrant — named vectors, HNSW, RRF fusion |
+| Outfit graph | co-buy + slot taxonomy · 28.7k nodes / 302k edges |
+| Compatibility | MLP metric head on SigLIP (PyTorch, InfoNCE + slot hard-neg) → 128d `compat_emb` |
+| Personalization | content-based taste-profile re-rank |
+| Answer generation | Qwen2.5-1.5B-Instruct |
+| Data enrichment | Qwen2.5-VL |
+
+---
+
+## Demo
+
+### Test 1 — Search → inspect → pair (a beige blazer)
+
+**1. Search.** Ask for a beige single-breasted blazer; the stylist returns matching blazers with a short note.
+
+![Beige blazer search](Asset/Test_beige_blazer.png)
+
+**2. Inspect.** Click a result (*Jules*) for the full product card — colour, fit, occasion, notes. Details live on the card, not stuffed into the chat text.
+
+![Blazer detail](Asset/sample_beige_blazer.png)
+
+**3. Pair.** Ask to complete the look; learned pairing suggests light-beige *Fraser* pull-on trousers to match the Jules blazer.
+
+![Paired outfit](Asset/Test_beige_blazer_paired_outfit.png)
+
+### Test 2 — Image search → variant → full outfit (one continuous session)
+
+A single conversation; each step reuses the item in focus (cross-turn memory).
+
+**1. Search by image.** Upload a reference photo (a grey zip hoodie); image-kNN returns visually similar hoodies.
+
+![Search by image](Asset/Test_search_by_img.png)
+
+**2. Colour variant.** "Do you have it in black?" → the same style in black.
+
+![Colour variant](Asset/Test_color_variant.png)
+
+**3. Pair trousers.** "Trousers to match?" → joggers / sweatpants that complement the hoodie.
+
+![Pair trousers](Asset/Outfit_paring.png)
+
+**4. Pair shoes.** "Sneakers to match?" → footwear added to the outfit.
+
+![Pair sneakers](Asset/Outfit_paring_2.png)
+
+**5. Refine.** "Something in black." → the sneakers are refined to black.
+
+![Refine to black](Asset/Outfir_pair_3.png)
+
+---
+
+## Project structure
+
+```
+src/backend/        FastAPI app, retrieval, NLU, services
+src/frontend/       React UI (theme.css, app.js)
+src/scripts/        offline builders: data_prep · graph · indexing · personalization · compat
+data/processed/     enriched csv, graph, sparse model, compat artifacts
+md/                 design notes + task reports (start at md/NOTE.MD)
+EDA/                exploratory notebooks
+Asset/              screenshots used in this README
+```
+
+## Setup & run
+
+```bash
+# 1. environment (conda)
+conda env create -f environment.yml
+conda activate mRAG
+
+# 2. offline build (run once, in order)
+python -m src.scripts.data_prep.fill_data            # VLM enrichment -> dataset_qwen_completed.csv
+python -m src.scripts.graph.build_graph              # co-buy outfit graph
+python -m src.scripts.indexing.build_vector_db       # SigLIP + TF-IDF -> Qdrant
+python -m src.scripts.personalization.build_profiles # taste profiles
+python -m src.scripts.compat.build_compat_dataset    # compat data gate
+python -m src.scripts.compat.train_compat_metric     # learn compat_emb
+# (intent classifier: DeBERTa-v3 fine-tuned separately into model_cache/)
+
+# 3. run
+uvicorn src.backend.main:app --host 0.0.0.0 --port 8000
+# open http://localhost:8000
+```
+
+> Notes: requires a CUDA GPU (~8–12 GB) for the SigLIP / Qwen / DeBERTa models. Models download to
+> `model_cache/` on first run. Qdrant runs in embedded mode for development.
+
+## Status
+
+Working prototype with the architecture above wired end-to-end. Current focus and the full
+build log live in [`md/NOTE.MD`](md/NOTE.MD); per-task reports are under [`md/`](md/).

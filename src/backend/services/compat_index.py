@@ -33,7 +33,7 @@ class CompatPairingIndex:
         self.slots = json.load(open(slots_path, encoding="utf-8"))
         self.ready = self.emb.shape[0] == len(self.article_ids) == len(self.slots)
 
-    def complement_ids(self, anchor_id: str, limit: int) -> List[str]:
+    def complement_ids(self, anchor_id: str, limit: int, target_slot: str = "") -> List[str]:
         if not self.ready:
             return []
         idx = self.aid_to_idx.get(normalize_article_id(anchor_id))
@@ -47,7 +47,12 @@ class CompatPairingIndex:
             j = int(j)
             if j == idx:
                 continue
-            if not slot_pair_allowed(anchor_slot, self.slots[j]):
+            cand_slot = self.slots[j]
+            if target_slot:
+                # User named a category (e.g. "shoes") -> restrict to that slot.
+                if cand_slot != target_slot:
+                    continue
+            elif not slot_pair_allowed(anchor_slot, cand_slot):
                 continue
             out.append(self.article_ids[j])
             if len(out) >= limit:

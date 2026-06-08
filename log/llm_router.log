@@ -2,38 +2,51 @@
   "analysis_debug": {
     "constrained": true,
     "intent_classifier": {
-      "confidence": 0.83203125,
-      "index": 4,
-      "intent": "chit_chat",
-      "raw_label": "chit_chat",
+      "confidence": 0.8828125,
+      "index": 0,
+      "intent": "similar_items",
+      "raw_label": "similar_items",
       "source": "intent_classifier"
     },
     "intent_rules": {
-      "classifier_intent": "chit_chat",
+      "classifier_intent": "similar_items",
       "has_anchor_reference": true,
       "is_color_variant_request": false,
       "is_graph_pairing_request": false,
-      "query_normalized": "i want to find things like this one",
-      "rule_applied": "override_chit_chat_to_similar"
+      "query_normalized": "i want to find some hoodie that look like this",
+      "rule_applied": "default_similar"
     },
-    "llm_filters_raw": {},
+    "llm_filters_raw": {
+      "product_type": "hoodie"
+    },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
-      "must_filters": {},
-      "search_query_en": "this one"
+      "must_filters": {
+        "product_type": "hoodie"
+      },
+      "search_query_en": "hoodie similar"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"this one\",\n  \"must_filters\": {}\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"hoodie similar\",\n  \"must_filters\": {\n    \"product_type\": \"hoodie\"\n  }\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "using_query_llm": false
   },
-  "boost_applied": false,
-  "boosted_product_type": "",
-  "dense_query": "this one",
+  "boost_applied": true,
+  "boosted_product_type": "Hoodie",
+  "dense_query": "hoodie similar",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
-  "filter_validation_debug": [],
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "hoodie",
+      "key": "product_type",
+      "matched": "Hoodie",
+      "scope": "must_filters"
+    }
+  ],
   "graph_anchor_id": "",
   "graph_anchor_source": "uploaded_image",
   "graph_candidate_count": 0,
@@ -43,14 +56,18 @@
   "has_image": true,
   "hybrid_result_count": 5,
   "intent_hint": "similar_items",
-  "latency_ms": 11233,
-  "llm_filters_raw": {},
+  "latency_ms": 8575,
+  "llm_filters_raw": {
+    "product_type": "hoodie"
+  },
   "llm_must_not_raw": {},
-  "must_filters": {},
+  "must_filters": {
+    "product_type": "Hoodie"
+  },
   "must_not_filters": {},
   "must_not_validation_debug": [],
-  "query": "I want to find things like this one",
-  "request_id": "81269e7ba83f",
+  "query": "I want to find some hoodie that look like this",
+  "request_id": "fbdbb6dc424c",
   "result_count": 5,
   "result_ids": [
     "0569973006",
@@ -62,15 +79,16 @@
   "retrieval_path": [
     "similar_image_knn"
   ],
-  "search_query": "this one",
-  "search_query_raw": "this one",
+  "search_query": "hoodie similar",
+  "search_query_raw": "hoodie similar",
   "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "sparse_query": "this one",
-  "timestamp_utc": "2026-06-08T05:02:02.581120+00:00",
+  "soft_product_type": "",
+  "sparse_query": "Hoodie Hoodie Hoodie hoodie similar",
+  "timestamp_utc": "2026-06-08T11:34:16.887522+00:00",
   "timing_ms": {
-    "analysis": 9865,
-    "embedding": 354,
-    "total": 11233
+    "analysis": 5430,
+    "embedding": 47,
+    "total": 8575
   }
 }
 
@@ -94,42 +112,64 @@
     },
     "llm_filters_raw": {
       "colour_group": "Black",
-      "product_type": "Jacket"
+      "fit": "Regular/Straight",
+      "occasion": "Casual/Everyday",
+      "product_type": "",
+      "seasonality": "Spring/Summer"
     },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {
         "colour_group": "Black",
-        "product_type": "Jacket"
+        "fit": "Regular/Straight",
+        "occasion": "Casual/Everyday",
+        "product_type": "",
+        "seasonality": "Spring/Summer"
       },
       "search_query_en": "black"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"black\",\n  \"must_filters\": {\n    \"product_type\": \"Jacket\",\n    \"colour_group\": \"Black\"\n  }\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"black\",\n  \"must_filters\": {\n    \"product_type\": \"\",\n    \"colour_group\": \"Black\",\n    \"fit\": \"Regular/Straight\",\n    \"occasion\": \"Casual/Everyday\",\n    \"seasonality\": \"Spring/Summer\"\n  }\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "using_query_llm": false
   },
-  "boost_applied": true,
-  "boosted_product_type": "Jacket",
+  "boost_applied": false,
+  "boosted_product_type": "",
   "dense_query": "black",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
   "filter_validation_debug": [
     {
-      "allowed_count": 113,
-      "allowed_has_value": true,
-      "input": "Jacket",
-      "key": "product_type",
-      "matched": "Jacket",
-      "scope": "must_filters"
-    },
-    {
       "allowed_count": 50,
       "allowed_has_value": true,
       "input": "Black",
       "key": "colour_group",
       "matched": "Black",
+      "scope": "must_filters"
+    },
+    {
+      "allowed_count": 7,
+      "allowed_has_value": true,
+      "input": "Regular/Straight",
+      "key": "fit",
+      "matched": "Regular/Straight",
+      "scope": "must_filters"
+    },
+    {
+      "allowed_count": 9,
+      "allowed_has_value": true,
+      "input": "Casual/Everyday",
+      "key": "occasion",
+      "matched": "Casual/Everyday",
+      "scope": "must_filters"
+    },
+    {
+      "allowed_count": 4,
+      "allowed_has_value": true,
+      "input": "Spring/Summer",
+      "key": "seasonality",
+      "matched": "Spring/Summer",
       "scope": "must_filters"
     }
   ],
@@ -142,20 +182,25 @@
   "has_image": false,
   "hybrid_result_count": 5,
   "intent_hint": "color_variant",
-  "latency_ms": 15680,
+  "latency_ms": 16482,
   "llm_filters_raw": {
     "colour_group": "Black",
-    "product_type": "Jacket"
+    "fit": "Regular/Straight",
+    "occasion": "Casual/Everyday",
+    "product_type": "",
+    "seasonality": "Spring/Summer"
   },
   "llm_must_not_raw": {},
   "must_filters": {
     "colour_group": "Black",
-    "product_type": "Jacket"
+    "fit": "Regular/Straight",
+    "occasion": "Casual/Everyday",
+    "seasonality": "Spring/Summer"
   },
   "must_not_filters": {},
   "must_not_validation_debug": [],
-  "query": "DO you have black color?",
-  "request_id": "936c9ee22a7a",
+  "query": "Do you have black color?",
+  "request_id": "13b2f166a435",
   "result_count": 5,
   "result_ids": [
     "0569973001",
@@ -170,12 +215,13 @@
   "search_query": "black",
   "search_query_raw": "black",
   "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "sparse_query": "Jacket Jacket Jacket black",
-  "timestamp_utc": "2026-06-08T05:03:00.678685+00:00",
+  "soft_product_type": "",
+  "sparse_query": "black",
+  "timestamp_utc": "2026-06-08T11:34:51.956584+00:00",
   "timing_ms": {
-    "analysis": 6097,
-    "embedding": 31,
-    "total": 15680
+    "analysis": 7888,
+    "embedding": 21,
+    "total": 16482
   }
 }
 
@@ -183,40 +229,38 @@
   "analysis_debug": {
     "constrained": true,
     "intent_classifier": {
-      "confidence": 0.93359375,
-      "index": 1,
-      "intent": "graph_pairing",
-      "raw_label": "graph_pairing",
+      "confidence": 0.9296875,
+      "index": 4,
+      "intent": "chit_chat",
+      "raw_label": "chit_chat",
       "source": "intent_classifier"
     },
     "intent_rules": {
-      "classifier_intent": "graph_pairing",
+      "classifier_intent": "chit_chat",
       "has_anchor_reference": true,
       "is_color_variant_request": false,
-      "is_graph_pairing_request": true,
-      "query_normalized": "good, i want to find some trousers to match with this",
-      "rule_applied": "explicit_graph_pairing"
+      "is_graph_pairing_request": false,
+      "query_normalized": "i like that, how about some trousers to fit with that?",
+      "rule_applied": "override_chit_chat_to_similar"
     },
     "llm_filters_raw": {
-      "occasion": "Casual/Everyday",
-      "product_type": "Trousers"
+      "product_type": "trousers"
     },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {
-        "occasion": "Casual/Everyday",
-        "product_type": "Trousers"
+        "product_type": "trousers"
       },
-      "search_query_en": "trousers matching [clothing_item_name]"
+      "search_query_en": "trousers"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"trousers matching [clothing_item_name]\",\n  \"must_filters\": {\n    \"product_type\": \"Trousers\",\n    \"occasion\": \"Casual/Everyday\"\n  }\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"trousers\",\n  \"must_filters\": {\n    \"product_type\": \"trousers\"\n  }\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "using_query_llm": false
   },
   "boost_applied": true,
   "boosted_product_type": "Trousers",
-  "dense_query": "trousers matching [clothing_item_name]",
+  "dense_query": "trousers",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
@@ -224,9 +268,213 @@
     {
       "allowed_count": 113,
       "allowed_has_value": true,
-      "input": "Trousers",
+      "input": "trousers",
       "key": "product_type",
       "matched": "Trousers",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "0569973001",
+  "graph_anchor_source": "selected_anchor",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": false,
+  "hybrid_result_count": 5,
+  "intent_hint": "similar_items",
+  "latency_ms": 11261,
+  "llm_filters_raw": {
+    "product_type": "trousers"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "product_type": "Trousers"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "query": "I like that, how about some trousers to fit with that?",
+  "request_id": "860c8902e18d",
+  "result_count": 5,
+  "result_ids": [
+    "0450932009",
+    "0569978001",
+    "0805469001",
+    "0543133003",
+    "0569978014"
+  ],
+  "retrieval_path": [
+    "similar_image_knn"
+  ],
+  "search_query": "trousers",
+  "search_query_raw": "trousers",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "Trousers Trousers Trousers trousers",
+  "timestamp_utc": "2026-06-08T11:36:03.647578+00:00",
+  "timing_ms": {
+    "analysis": 4938,
+    "embedding": 18,
+    "total": 11261
+  }
+}
+
+{
+  "analysis_debug": {
+    "constrained": true,
+    "intent_classifier": {
+      "confidence": 0.466796875,
+      "index": 1,
+      "intent": "graph_pairing",
+      "raw_label": "graph_pairing",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "graph_pairing",
+      "has_anchor_reference": false,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": true,
+      "query_normalized": "i like the third one, recommend me some sneakers to go with",
+      "rule_applied": "force_similar_no_explicit_pairing"
+    },
+    "llm_filters_raw": {
+      "product_type": "sneaker"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": "sneaker"
+      },
+      "search_query_en": "sneakers"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"sneakers\",\n  \"must_filters\": {\n    \"product_type\": \"sneaker\"\n  }\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "using_query_llm": false
+  },
+  "boost_applied": true,
+  "boosted_product_type": "Sneakers",
+  "dense_query": "sneakers",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "sneaker",
+      "key": "product_type",
+      "matched": "Sneakers",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "",
+  "graph_anchor_source": "",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": false,
+  "hybrid_result_count": 5,
+  "intent_hint": "similar_items",
+  "latency_ms": 20970,
+  "llm_filters_raw": {
+    "product_type": "sneaker"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "product_type": "Sneakers"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "query": "I like the third one, recommend me some sneakers to go with",
+  "request_id": "6173ae8f6c66",
+  "result_count": 5,
+  "result_ids": [
+    "0893733001",
+    "0808919002",
+    "0593986001",
+    "0595573008",
+    "0622966014"
+  ],
+  "retrieval_path": [
+    "hard_filters"
+  ],
+  "search_query": "sneakers",
+  "search_query_raw": "sneakers",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "Sneakers Sneakers Sneakers sneakers",
+  "timestamp_utc": "2026-06-08T11:37:29.371541+00:00",
+  "timing_ms": {
+    "analysis": 5016,
+    "embedding": 23,
+    "total": 20970
+  }
+}
+
+{
+  "analysis_debug": {
+    "constrained": true,
+    "intent_classifier": {
+      "confidence": 0.8828125,
+      "index": 2,
+      "intent": "color_variant",
+      "raw_label": "color_variant",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "color_variant",
+      "has_anchor_reference": false,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": false,
+      "query_normalized": "i would like something in black",
+      "rule_applied": "honor_color_variant_with_anchor"
+    },
+    "llm_filters_raw": {
+      "colour_group": "Black",
+      "fit": "Regular/Straight",
+      "occasion": "Casual/Everyday",
+      "product_type": "",
+      "seasonality": "Spring/Summer"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "colour_group": "Black",
+        "fit": "Regular/Straight",
+        "occasion": "Casual/Everyday",
+        "product_type": "",
+        "seasonality": "Spring/Summer"
+      },
+      "search_query_en": "black"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"black\",\n  \"must_filters\": {\n    \"product_type\": \"\",\n    \"colour_group\": \"Black\",\n    \"fit\": \"Regular/Straight\",\n    \"occasion\": \"Casual/Everyday\",\n    \"seasonality\": \"Spring/Summer\"\n  }\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "using_query_llm": false
+  },
+  "boost_applied": false,
+  "boosted_product_type": "",
+  "dense_query": "black",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 50,
+      "allowed_has_value": true,
+      "input": "Black",
+      "key": "colour_group",
+      "matched": "Black",
+      "scope": "must_filters"
+    },
+    {
+      "allowed_count": 7,
+      "allowed_has_value": true,
+      "input": "Regular/Straight",
+      "key": "fit",
+      "matched": "Regular/Straight",
       "scope": "must_filters"
     },
     {
@@ -236,56 +484,65 @@
       "key": "occasion",
       "matched": "Casual/Everyday",
       "scope": "must_filters"
+    },
+    {
+      "allowed_count": 4,
+      "allowed_has_value": true,
+      "input": "Spring/Summer",
+      "key": "seasonality",
+      "matched": "Spring/Summer",
+      "scope": "must_filters"
     }
   ],
-  "graph_anchor_id": "0569973001",
-  "graph_anchor_source": "selected_anchor",
+  "graph_anchor_id": "0893733001",
+  "graph_anchor_source": "session_anchor",
   "graph_candidate_count": 0,
   "graph_filtered_count": 0,
-  "graph_neighbor_ids": [
-    "0525838004",
-    "0558740001",
-    "0118458028"
-  ],
-  "graph_used": true,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
   "has_image": false,
-  "hybrid_result_count": 0,
-  "intent_hint": "graph_pairing",
-  "latency_ms": 12592,
+  "hybrid_result_count": 5,
+  "intent_hint": "color_variant",
+  "latency_ms": 15629,
   "llm_filters_raw": {
+    "colour_group": "Black",
+    "fit": "Regular/Straight",
     "occasion": "Casual/Everyday",
-    "product_type": "Trousers"
+    "product_type": "",
+    "seasonality": "Spring/Summer"
   },
   "llm_must_not_raw": {},
   "must_filters": {
+    "colour_group": "Black",
+    "fit": "Regular/Straight",
     "occasion": "Casual/Everyday",
-    "product_type": "Trousers"
+    "seasonality": "Spring/Summer"
   },
   "must_not_filters": {},
   "must_not_validation_debug": [],
-  "query": "Good, I want to find some trousers to match with this",
-  "request_id": "e2bb7f1d80fa",
-  "result_count": 3,
+  "query": "I would like something in black",
+  "request_id": "d8c1d7eae5e2",
+  "result_count": 5,
   "result_ids": [
-    "0525838004",
-    "0558740001",
-    "0118458028"
+    "0622966015",
+    "0712058002",
+    "0686032001",
+    "0494088024",
+    "0655287006"
   ],
   "retrieval_path": [
-    "intent_graph_pairing",
-    "anchor_from_selection",
-    "graph_neighbors",
-    "compat_pairing_fallback"
+    "color_variant_image_knn"
   ],
-  "search_query": "trousers matching [clothing_item_name]",
-  "search_query_raw": "trousers matching [clothing_item_name]",
+  "search_query": "black",
+  "search_query_raw": "black",
   "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "sparse_query": "Trousers Trousers Trousers trousers matching [clothing_item_name]",
-  "timestamp_utc": "2026-06-08T05:03:26.319238+00:00",
+  "soft_product_type": "",
+  "sparse_query": "black",
+  "timestamp_utc": "2026-06-08T11:38:30.905334+00:00",
   "timing_ms": {
-    "analysis": 7375,
-    "embedding": 20,
-    "total": 12592
+    "analysis": 7664,
+    "embedding": 18,
+    "total": 15629
   }
 }
 

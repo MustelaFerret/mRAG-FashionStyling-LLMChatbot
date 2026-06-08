@@ -21,6 +21,7 @@ from src.backend.retrieval.llm import (
 from src.backend.retrieval.qdrant import QdrantStore
 from src.backend.services.catalog import FashionCatalog
 from src.backend.services.compat_index import CompatPairingIndex
+from src.scripts.graph.outfit_slots import get_slot
 
 INTENT_CONFIRM_OPTIONS = [INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT]
 COMPOSITE_INTENT_MESSAGE = (
@@ -73,22 +74,27 @@ class FashionRAGService:
         except Exception:
             return canon, None
 
-    def _resolve_product_type(self, value: str) -> str:
+    def _resolve_product_type(self, value: str) -> tuple[str, str]:
+        # Returns (canonical_product_type, source). exact/synonym/corpus -> confident
+        # (hard filter); siglip -> fuzzy OOV (soft, retrieval-only).
         exact = self.catalog.canonical_product_type(value)
         if exact:
-            return exact
+            return exact, "exact"
+        corpus = self.catalog.corpus_product_type(value)
+        if corpus:
+            return corpus, "corpus"
         siglip = getattr(self.embedder, "siglip", None)
         if self._pt_emb is None or siglip is None or not str(value).strip():
-            return ""
+            return "", ""
         try:
             vec = np.asarray(siglip.encode_text(str(value)), dtype=np.float32)
         except Exception:
-            return ""
+            return "", ""
         sims = self._pt_emb @ vec
         idx = int(np.argmax(sims))
         if float(sims[idx]) >= settings.product_type_match_threshold:
-            return self._pt_canon[idx]
-        return ""
+            return self._pt_canon[idx], "siglip"
+        return "", ""
 
     def _build_allowed_filters(self) -> Dict[str, List[str]]:
         return {
@@ -114,7 +120,7 @@ class FashionRAGService:
         if not allowed:
             return ""
         if key == "product_type":
-            matched = self._resolve_product_type(value_str)
+            matched, _ = self._resolve_product_type(value_str)
         else:
             value_lower = value_str.lower()
             matched = next((v for v in allowed if v.lower() == value_lower), "")
@@ -181,24 +187,16 @@ class FashionRAGService:
 
     def _format_context(self, points: List[Any]) -> str:
         context_parts: List[str] = []
-        for idx, point in enumerate(points or [], 1):
+        for point in points or []:
             item = getattr(point, "payload", {}) or {}
-            article_id = str(item.get("article_id", ""))
             name = str(item.get("prod_name", "") or item.get("product_type", "") or "")
-            category = f"{item.get('product_type', '')} - {item.get('product_group', '')}".strip(" -")
-            description = str(item.get("description", ""))
+            category = str(item.get("product_type", "") or "")
             colour = str(item.get("colour_group", ""))
-            fit = str(item.get("fit", ""))
-            occasion = str(item.get("occasion", ""))
-            part = (
-                f"[{idx}] Article ID: {article_id}\n"
-                f"Name: {name}\n"
-                f"Category: {category}\n"
-                f"Description: {description}\n"
-                f"Attributes: Color: {colour}, Fit: {fit}, Occasion: {occasion}\n"
-            )
-            context_parts.append(part)
-        return "\n---\n".join(context_parts)
+            description = str(item.get("description", "")).strip()
+            if len(description) > 160:
+                description = description[:160].rsplit(" ", 1)[0] + "..."
+            context_parts.append(f"- {name} — {colour} {category}. {description}".strip())
+        return "\n".join(context_parts)
 
     def _build_image_url(self, article_id: str) -> str:
         aid = normalize_article_id(article_id)
@@ -333,6 +331,16 @@ class FashionRAGService:
             debug=must_not_validation_debug,
         )
 
+        # OOV product_type resolved only by fuzzy SigLIP-nearest -> demote to soft:
+        # drop from hard filters (it would over-constrain, e.g. parka->Coat misses the
+        # real Jacket-labelled parkas) and let dense+sparse retrieval rank instead.
+        soft_product_type = ""
+        raw_pt = str((llm_filters_raw or {}).get("product_type", "") or "").strip()
+        if must_filters.get("product_type") and raw_pt:
+            _, pt_source = self._resolve_product_type(raw_pt)
+            if pt_source == "siglip":
+                soft_product_type = must_filters.pop("product_type", "")
+
         confirmed_value = str(confirmed_intent or "").strip().lower()
         if confirmed_value in self.intent_confirm_options:
             intent_hint = confirmed_value
@@ -462,6 +470,29 @@ class FashionRAGService:
                     graph_anchor_source = "hybrid_top1"
 
             anchor_id = normalize_article_id(anchor_id)
+            anchor_slot = get_slot(self.catalog.get_meta(anchor_id).get("product_type_name", "")) if anchor_id else ""
+
+            # Requested target category (e.g. "shoes"): keep its SLOT as a constraint even
+            # when product_type was demoted to soft. In "X to match [the Y]" the LLM often
+            # grabs the anchor's own type (Y) instead of the target (X); a pairing target must
+            # differ from the anchor slot, so if it collides we discard it and re-infer the
+            # target from the query text, excluding the anchor slot.
+            requested_pt = str(must_filters.get("product_type", "") or soft_product_type).strip()
+            requested_slot = get_slot(requested_pt) if requested_pt else ""
+            if requested_slot == "other":
+                requested_slot = ""
+            if anchor_slot and requested_slot == anchor_slot:
+                must_filters.pop("product_type", None)
+                requested_slot = self.catalog.infer_slot_from_text(query, exclude_slot=anchor_slot)
+            elif anchor_slot and not requested_slot:
+                requested_slot = self.catalog.infer_slot_from_text(query, exclude_slot=anchor_slot)
+
+            # Pairing target is category-level: constrain by SLOT (requested_slot), not the
+            # specific product_type. A generic word like "shoe" resolves to a narrow type
+            # ("Other shoe") that would wrongly exclude Sneakers/Boots; the slot filter keeps
+            # all footwear so any matching shoe (incl. a blue sneaker) can surface.
+            pairing_must = {k: v for k, v in must_filters.items() if k != "product_type"}
+
             if anchor_id:
                 retrieval_path.append("graph_neighbors")
                 neighbor_ids = self.catalog.get_graph_diverse_neighbors(
@@ -474,16 +505,18 @@ class FashionRAGService:
                 graph_neighbor_ids = list(neighbor_ids or [])
                 graph_candidate_count = len(graph_neighbor_ids)
                 points = self.store.retrieve_by_article_ids(graph_neighbor_ids)
-                points = self._filter_points(points, must_filters, must_not_filters)
+                points = self._filter_points(points, pairing_must, must_not_filters)
+                if requested_slot:
+                    points = [p for p in points if get_slot(str((getattr(p, "payload", {}) or {}).get("product_type", ""))) == requested_slot]
                 graph_filtered_count = len(points)
 
                 if not points and self.compat_index is not None:
-                    cand_ids = self.compat_index.complement_ids(anchor_id, self.limit * 10)
+                    cand_ids = self.compat_index.complement_ids(anchor_id, self.limit * 10, target_slot=requested_slot)
                     if cand_ids:
                         retrieval_path.append("compat_pairing_fallback")
                         rank = {normalize_article_id(c): i for i, c in enumerate(cand_ids)}
                         cpoints = self.store.retrieve_by_article_ids(cand_ids)
-                        cpoints = self._filter_points(cpoints, must_filters, must_not_filters)
+                        cpoints = self._filter_points(cpoints, pairing_must, must_not_filters)
                         cpoints.sort(key=lambda p: rank.get(
                             normalize_article_id(str((getattr(p, "payload", {}) or {}).get("article_id", ""))), 1_000_000))
                         points = cpoints[:settings.graph_pair_limit]
@@ -605,6 +638,7 @@ class FashionRAGService:
             "llm_filters_raw": llm_filters_raw,
             "llm_must_not_raw": llm_must_not_raw,
             "must_filters": must_filters,
+            "soft_product_type": soft_product_type,
             "must_not_filters": must_not_filters,
             "dropped_filters": dropped_filters,
             "dropped_must_not": dropped_must_not,
@@ -630,13 +664,13 @@ class FashionRAGService:
             return items, "", log_payload, False, None
 
         system_prompt = (
-            "You are a premium AI fashion stylist. The context below lists real products from inventory. "
-            "Rules:\n"
-            "1. Recommend only products that appear in the context.\n"
-            "2. Always include the Article ID for each product you mention.\n"
-            "3. If nothing matches the request, say so clearly.\n"
-            "4. Keep the response concise, professional, and style-focused.\n\n"
-            f"CONTEXT:\n{context}"
+            "You are a warm, concise fashion stylist talking to a customer. "
+            "The products below are already shown to the customer as clickable cards with full details, price and image — they ARE your recommendations.\n"
+            "Write a SHORT, natural reply (1-2 sentences) that introduces the picks and why they work for the request or pair together. "
+            "Refer to pieces by name only. NEVER write article IDs, prices, measurements or full spec lists — those live on the cards. "
+            "Do not apologize and do not say nothing matches; the listed products are the answer. "
+            "Write in flowing prose (no numbered or bulleted lists). Sound like a human stylist, not a catalogue.\n\n"
+            f"PRODUCTS SHOWN:\n{context}"
         )
         full_prompt = f"{system_prompt}\n\nCustomer: {query}"
         return items, full_prompt, log_payload, True, None

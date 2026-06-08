@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import os
 import re
+from collections import Counter, defaultdict
 from typing import Dict, Iterable, List, Tuple
 
 from src.backend.core.utils import normalize_article_id, normalize_text
@@ -66,6 +67,7 @@ class FashionCatalog:
         occasion_values: set[str] = set()
         fit_values: set[str] = set()
         seasonality_values: set[str] = set()
+        term_pt_counts: Dict[str, Counter] = defaultdict(Counter)
 
         with open(self.meta_file, newline="", encoding="utf-8") as handle:
             reader = csv.DictReader(handle)
@@ -93,6 +95,9 @@ class FashionCatalog:
 
                 if product_type:
                     product_type_values.add(product_type)
+                    text = f"{row.get('prod_name', '')} {row.get('detail_desc', '')} {description}".lower()
+                    for token in set(re.findall(r"[a-z]{3,}", text)):
+                        term_pt_counts[token][product_type] += 1
                 if colour_group:
                     color_values.add(colour_group)
                 if occasion:
@@ -102,6 +107,7 @@ class FashionCatalog:
                 if seasonality:
                     seasonality_values.add(seasonality)
 
+        self.term_pt_counts = {t: c for t, c in term_pt_counts.items() if sum(c.values()) >= 5}
         self.product_type_values = self._build_search_values(product_type_values)
         self.color_values = self._build_search_values(color_values)
         self.occasion_values = self._build_search_values(occasion_values)
@@ -162,23 +168,29 @@ class FashionCatalog:
                 return original
         return ""
 
+    _SLOT_KEYWORDS = [
+        ("shoe", ["sneaker", "shoe", "boot", "sandal", "loafer", "heel", "clog", "slipper", "giay"]),
+        ("bottom", ["pants", "trouser", "jean", "skirt", "short", "legging", "jogger", "chinos", "quan", "chan vay"]),
+        ("outerwear", ["jacket", "coat", "blazer", "cardigan", "outerwear", "windbreaker", "parka"]),
+        ("accessory", ["bag", "belt", "hat", "cap", "scarf", "watch", "jewelry", "accessory", "phu kien"]),
+        ("top", ["shirt", "top", "tee", "t-shirt", "blouse", "hoodie", "sweater", "tank", "polo", "ao"]),
+    ]
+
     @staticmethod
-    def _infer_slot_from_text(text: str) -> str:
+    def infer_slot_from_text(text: str, exclude_slot: str = "") -> str:
         value = normalize_text(text)
         if not value:
             return ""
-
-        if any(k in value for k in ["sneaker", "shoe", "boot", "sandal", "loafer", "heel", "clog", "slipper", "giay"]):
-            return "shoe"
-        if any(k in value for k in ["pants", "trouser", "jean", "skirt", "short", "legging", "jogger", "chinos", "quan", "chan vay"]):
-            return "bottom"
-        if any(k in value for k in ["jacket", "coat", "blazer", "cardigan", "outerwear", "windbreaker", "parka"]):
-            return "outerwear"
-        if any(k in value for k in ["bag", "belt", "hat", "cap", "scarf", "watch", "jewelry", "accessory", "phu kien"]):
-            return "accessory"
-        if any(k in value for k in ["shirt", "top", "tee", "t-shirt", "blouse", "hoodie", "sweater", "tank", "polo", "ao"]):
-            return "top"
+        for slot, keywords in FashionCatalog._SLOT_KEYWORDS:
+            if slot == exclude_slot:
+                continue
+            if any(k in value for k in keywords):
+                return slot
         return ""
+
+    @staticmethod
+    def _infer_slot_from_text(text: str) -> str:
+        return FashionCatalog.infer_slot_from_text(text)
 
     def infer_article_slot(self, article_id: str) -> str:
         aid = normalize_article_id(article_id)
@@ -244,6 +256,30 @@ class FashionCatalog:
         syn = PT_SYNONYMS.get(low)
         if syn and syn in self.valid_product_types:
             return syn
+        return ""
+
+    def corpus_product_type(self, term: str, min_support: int = 15, min_majority: float = 0.5) -> str:
+        """Canonicalise an out-of-vocabulary garment term via corpus statistics.
+
+        Looks at which product_type the catalogue items whose description contains the
+        term actually carry, and returns the dominant one. This follows the catalogue's
+        real labelling convention (e.g. parka -> Jacket) rather than generic word
+        similarity (which mis-maps parka -> Coat). Empty if support/majority too weak.
+        """
+        counts = getattr(self, "term_pt_counts", None)
+        if not term or not counts:
+            return ""
+        combined: Counter = Counter()
+        for token in re.findall(r"[a-z]{3,}", term.lower()):
+            bucket = counts.get(token)
+            if bucket:
+                combined.update(bucket)
+        total = sum(combined.values())
+        if total < min_support:
+            return ""
+        pt, cnt = combined.most_common(1)[0]
+        if cnt / total >= min_majority and pt in self.valid_product_types:
+            return pt
         return ""
 
     def article_image_path(self, article_id: str) -> str:

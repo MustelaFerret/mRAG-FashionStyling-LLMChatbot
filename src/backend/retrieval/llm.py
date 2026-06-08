@@ -165,9 +165,14 @@ class QwenMultimodalService:
         return self.nlp_tokenizer
 
     def _build_filter_schema(self, vocab: Dict[str, List[str]]) -> Dict:
-        fields = ["product_type", "colour_group", "fit", "occasion", "seasonality"]
-        must_props: Dict[str, Dict] = {}
-        for field in fields:
+        # product_type is left free-text (not enum): the catalogue taxonomy misses many
+        # everyday garment words (parka, anorak, ...). Enum would force such OOV terms to a
+        # wrong in-vocab value; instead the model emits the raw word and rag_service resolves
+        # it (exact/synonym -> hard filter, fuzzy SigLIP-only -> soft). Closed-vocabulary
+        # fields stay enum-constrained.
+        enum_fields = ["colour_group", "fit", "occasion", "seasonality"]
+        must_props: Dict[str, Dict] = {"product_type": {"type": "string"}}
+        for field in enum_fields:
             values = [v for v in (vocab.get(field) or []) if v and v != "Unknown"]
             if not values:
                 continue
