@@ -126,7 +126,3 @@ uvicorn src.backend.main:app --host 0.0.0.0 --port 8000
 > Notes: requires a CUDA GPU (~8–12 GB) for the SigLIP / Qwen / DeBERTa models. Models download to
 > `model_cache/` on first run. Qdrant runs in embedded mode for development.
 
-## Status
-
-Working prototype with the architecture above wired end-to-end. Current focus and the full
-build log live in [`md/NOTE.MD`](md/NOTE.MD); per-task reports are under [`md/`](md/).
