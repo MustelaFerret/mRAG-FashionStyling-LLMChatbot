@@ -179,7 +179,8 @@ class QueryEncoder:
         if self.sparse is not None:
             sp_text = sparse_text if sparse_text is not None else (text or "")
             if sp_text:
-                idx, val = self.sparse.encode(sp_text)
+                encode_q = getattr(self.sparse, "encode_query", None) or self.sparse.encode
+                idx, val = encode_q(sp_text)
                 out["sparse_indices"] = idx
                 out["sparse_values"] = val
         return out

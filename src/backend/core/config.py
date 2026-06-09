@@ -52,7 +52,7 @@ class Settings:
     vector_name_text: str = os.getenv("VECTOR_NAME_TEXT", "text_emb")
     vector_name_image: str = os.getenv("VECTOR_NAME_IMAGE", "image_emb")
     vector_name_sparse: str = os.getenv("VECTOR_NAME_SPARSE", "sparse_bm25")
-    sparse_model_path: str = str(BASE_DIR / os.getenv("SPARSE_MODEL_PATH", "data/processed/sparse_tfidf.json"))
+    sparse_model_path: str = str(BASE_DIR / os.getenv("SPARSE_MODEL_PATH", "data/processed/sparse_bm25.json"))
     hnsw_m: int = int(os.getenv("HNSW_M", "32"))
     hnsw_ef_construct: int = int(os.getenv("HNSW_EF_CONSTRUCT", "256"))
     encode_batch_text: int = int(os.getenv("ENCODE_BATCH_TEXT", "64"))
