@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))  # repo root
 
 from src.backend.core.config import settings
 from src.backend.services.catalog import FashionCatalog
