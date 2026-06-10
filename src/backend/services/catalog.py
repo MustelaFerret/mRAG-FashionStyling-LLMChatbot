@@ -90,6 +90,13 @@ class FashionCatalog:
                     "fit": fit,
                     "occasion": occasion,
                     "seasonality": seasonality,
+                    # gap C (audit_metadata): pattern / material / colour shade+family —
+                    # usable attributes that were dropped from runtime meta, kept for
+                    # grading and (future) hard/soft filtering.
+                    "graphical_appearance_name": str(row.get("graphical_appearance_name", "") or "").strip(),
+                    "dominant_material": str(row.get("dominant_material", "") or "").strip(),
+                    "perceived_colour_value_name": str(row.get("perceived_colour_value_name", "") or "").strip(),
+                    "perceived_colour_master_name": str(row.get("perceived_colour_master_name", "") or "").strip(),
                     "refined_description": description,
                 }
 

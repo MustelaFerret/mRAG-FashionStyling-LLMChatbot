@@ -50,6 +50,7 @@ class FashionRAGService:
         self.limit = max(1, int(limit))
         self.personalization = personalization
         self.sessions = sessions
+        self._reranker = None  # cross-encoder, lazy-loaded when settings.use_reranker
         self.compat_index = self._load_compat_index()
         self.intent_confirm_options = list(INTENT_CONFIRM_OPTIONS)
         self.allowed_filters = self._build_allowed_filters()
@@ -241,6 +242,29 @@ class FashionRAGService:
             if points:
                 return points
         return []
+
+    def _get_reranker(self):
+        if self._reranker is None and settings.use_reranker:
+            from src.backend.retrieval.reranker import CrossEncoderReranker
+            self._reranker = CrossEncoderReranker()
+        return self._reranker
+
+    def _rerank_blend(self, query: str, points: List[Any], top_k: int) -> List[Any]:
+        """Re-order a deep fused pool with a cross-encoder, fused via RRF so the bi-encoder
+        retrieval rank still counts (measured: blend > pure rerank, md/exp_rerank.md). The
+        cross-encoder reads (query, "<colour> <type>. <description>") jointly for relevance."""
+        rr = self._get_reranker()
+        if rr is None or not query or len(points) <= 1:
+            return points[:top_k]
+        docs: List[str] = []
+        for p in points:
+            pl = getattr(p, "payload", {}) or {}
+            head = " ".join(x for x in [str(pl.get("colour_group", "")), str(pl.get("product_type", ""))] if x)
+            docs.append(f"{head}. {pl.get('description', '')}".strip())
+        scores = rr.score(query, docs)
+        rerank_rank = {idx: r for r, idx in enumerate(sorted(range(len(points)), key=lambda i: scores[i], reverse=True))}
+        blended = sorted(range(len(points)), key=lambda i: 1.0 / (60 + i) + 1.0 / (60 + rerank_rank[i]), reverse=True)
+        return [points[i] for i in blended[:top_k]]
 
     def _image_knn_points(self, ref_emb, exclude_id: str, must_filters: Dict[str, str], must_not_filters: Dict[str, List[str]]) -> List[Any]:
         raw = self.store.hybrid_search(
@@ -580,6 +604,8 @@ class FashionRAGService:
         if not points and intent_hint == "graph_pairing":
             retrieval_path.append("no_graph_pairing")
         elif not points:
+            do_rerank = settings.use_reranker and bool(query)
+            pool = max(settings.rerank_candidate_depth, self.limit) if do_rerank else self.limit
             points = self._hybrid_with_relaxation(
                 text_dense=text_dense,
                 image_dense=image_dense,
@@ -587,9 +613,14 @@ class FashionRAGService:
                 sparse_val=sparse_val,
                 must_filters=must_filters,
                 must_not_filters=must_not_filters,
-                limit=self.limit,
+                limit=pool,
                 retrieval_path=retrieval_path,
             )
+            if do_rerank and len(points) > 1:
+                points = self._rerank_blend(query, points, self.limit)
+                retrieval_path.append("cross_encoder_rerank")
+            else:
+                points = points[:self.limit]
             hybrid_result_count = len(points)
 
         items: List[dict] = []

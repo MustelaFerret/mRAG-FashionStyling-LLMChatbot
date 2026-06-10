@@ -84,6 +84,9 @@ class VectorIndexBuilder:
         "index_name",
         "product_group",
         "garment_group",
+        "graphical_appearance",
+        "dominant_material",
+        "colour_master",
     ]
 
     def __init__(self) -> None:
@@ -203,6 +206,13 @@ class VectorIndexBuilder:
             "occasion": "occasion",
             "seasonality": "seasonality",
             "style_aesthetic": "style_aesthetic",
+            # gap C (audit_metadata): attributes that were usable but absent from payload,
+            # so they could not be hard/soft filtered or graded. pattern + material are
+            # indexed for filtering; shade/master broaden colour matching.
+            "graphical_appearance": "graphical_appearance_name",
+            "dominant_material": "dominant_material",
+            "colour_value": "perceived_colour_value_name",
+            "colour_master": "perceived_colour_master_name",
             "description": "refined_description",
         }
         for payload_key, row_key in mapping.items():
