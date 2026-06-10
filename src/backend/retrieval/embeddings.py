@@ -2,9 +2,15 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from collections import Counter, defaultdict
 
 from src.backend.core.utils import normalize_text
+
+# Split on any non-alphanumeric run so slash-joined attribute values
+# (e.g. "Leather/Faux Leather", "Silk/Satin/Chiffon") become separate, queryable
+# tokens instead of one un-matchable token.
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
 
 
 class SparseTfidfEncoder:
@@ -113,7 +119,7 @@ class SparseBM25Encoder:
 
     def _tokenize(self, text: str) -> list[str]:
         value = normalize_text(text)
-        return [tok for tok in value.split() if tok] if value else []
+        return _TOKEN_RE.findall(value) if value else []
 
     def fit(self, texts: list[str]) -> "SparseBM25Encoder":
         token_lists = [self._tokenize(t) for t in texts]

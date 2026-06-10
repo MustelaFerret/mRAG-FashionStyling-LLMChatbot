@@ -115,7 +115,13 @@ class VectorIndexBuilder:
         """Text dùng để encode SigLIP-text vector (text_emb).
 
         Format: '<prod_name>. <refined_description>. <key metadata phrases>'
-        Mục đích: cung cấp ngữ cảnh đầy đủ cho SigLIP semantic embedding.
+
+        NOTE (audit_metadata bug A): SigLIP-base cắt ở 64 token và refined_description
+        (~71 token median) đẩy cụm metadata ở đuôi ra ngoài cửa sổ ở ~71% sản phẩm. Đã
+        THỬ front-load thuộc tính lên đầu để chống truncation -> đo gold-set **regress**
+        (nDCG 0.761 -> 0.65-0.71): caption làm đồng nhất hoá embedding + chiếm chỗ của mô
+        tả NL mà dense encoder dựa vào, trong khi tín hiệu cấu trúc đã được BM25 (sparse)
+        bao trong RRF. Kết luận: để dense là mô tả thuần. Chi tiết: md/audit_metadata.md.
         """
         parts: List[str] = []
         name = self.clean_value(row.get("prod_name", ""))
