@@ -13,6 +13,7 @@ from transformers import AutoModelForCausalLM, AutoModelForSequenceClassificatio
 from src.backend.core.config import settings
 from src.backend.core.utils import get_local_model_path, normalize_text
 from src.backend.retrieval.constrained import LMFE_AVAILABLE, build_prefix_allowed_tokens_fn, build_tokenizer_data
+from src.backend.services.attribute_gazetteer import AttributeGazetteer
 
 
 INTENT_SIMILAR = "similar_items"
@@ -158,6 +159,8 @@ class QwenMultimodalService:
         self._enforcer_tokenizer_data = None
         self._filter_schema = None
         self._filter_schema_signature = None
+        self.gazetteer = AttributeGazetteer()
+        self._slot_extractor = None  # lazy DeBERTa BIO tagger, ensemble fallback (USE_SLOT_EXTRACTOR)
 
     def _analysis_tokenizer(self):
         if self.using_query_llm and self.query_tokenizer is not None:
@@ -165,23 +168,20 @@ class QwenMultimodalService:
         return self.nlp_tokenizer
 
     def _build_filter_schema(self, vocab: Dict[str, List[str]]) -> Dict:
-        # product_type is left free-text (not enum): the catalogue taxonomy misses many
-        # everyday garment words (parka, anorak, ...). Enum would force such OOV terms to a
-        # wrong in-vocab value; instead the model emits the raw word and rag_service resolves
-        # it (exact/synonym -> hard filter, fuzzy SigLIP-only -> soft). Closed-vocabulary
-        # fields stay enum-constrained.
-        enum_fields = ["colour_group", "fit", "occasion", "seasonality"]
-        must_props: Dict[str, Dict] = {"product_type": {"type": "string"}}
-        for field in enum_fields:
-            values = [v for v in (vocab.get(field) or []) if v and v != "Unknown"]
-            if not values:
-                continue
-            must_props[field] = {"type": "string", "enum": values}
+        # The LLM only extracts product_type (free-text: the taxonomy misses everyday words
+        # like parka/anorak, and the model generalises these well) + the query rewrite. The
+        # closed-vocabulary fields (colour/fit/occasion/season) are NOT asked of the LLM --
+        # it dropped and hallucinated them (md/audit_nlu.md); a deterministic gazetteer
+        # extracts those instead.
         return {
             "type": "object",
             "properties": {
                 "search_query_en": {"type": "string"},
-                "must_filters": {"type": "object", "properties": must_props, "additionalProperties": False},
+                "must_filters": {
+                    "type": "object",
+                    "properties": {"product_type": {"type": "string"}},
+                    "additionalProperties": False,
+                },
             },
             "required": ["search_query_en", "must_filters"],
             "additionalProperties": False,
@@ -659,6 +659,9 @@ class QwenMultimodalService:
             "these",
             "those",
             "my",
+            "same",
+            "this one",
+            "that one",
             "this item",
             "that item",
             "this look",
@@ -670,6 +673,26 @@ class QwenMultimodalService:
             "the outfit",
         ]
         return any(marker in text for marker in anchor_markers)
+
+    @staticmethod
+    def _is_small_talk(text: str) -> bool:
+        # positive small-talk / bot-meta / non-fashion detector (avoids misrouting a fashion
+        # query whose garment word just isn't in the fashion lexicon, e.g. "a parka").
+        if not text:
+            return False
+        phrases = ["hello", "hi there", "hey", "good morning", "good afternoon",
+                   "thanks", "thank you", "how are you", "what can you do", "who are you",
+                   "what are you", "how do you work", "what's the weather", "whats the weather",
+                   "weather", "tell me a joke", "what is your name"]
+        return any(p in text for p in phrases)
+
+    @staticmethod
+    def _has_strong_pairing_phrase(text: str) -> bool:
+        # explicit pairing verb phrases imply an anchor described in the query itself
+        # ("what trousers go with a white shirt") even without a this/that marker.
+        strong = ["go with", "goes with", "to match", "pair with", "wear with",
+                  "style with", "combine with", "matches with"]
+        return any(p in text for p in strong)
 
     @staticmethod
     def _is_color_variant_request(text: str) -> bool:
@@ -687,11 +710,10 @@ class QwenMultimodalService:
     def _is_graph_pairing_request(text: str) -> bool:
         if not text:
             return False
+        # bare "pair"/"match" excluded: they fire on "a pair of jeans" / "a matching
+        # bag is fine" -> false pairing. Real pairing uses the phrase forms below.
         pairing_terms = [
-            "pair",
             "pairing",
-            "match",
-            "matching",
             "go with",
             "goes with",
             "wear with",
@@ -754,28 +776,40 @@ class QwenMultimodalService:
             "color",
             "colour",
         ]
-        return any(term in value for term in fashion_terms) or QwenMultimodalService._has_anchor_reference(value)
+        # word-boundary match: substring matching wrongly fired "hat" in "what",
+        # "wear" in "weather", routing small talk to a fashion search.
+        tokens = set(re.findall(r"[a-z]+", value))
+        single = any(t in tokens for t in fashion_terms if " " not in t)
+        multi = any(t in value for t in fashion_terms if " " in t)
+        return single or multi or QwenMultimodalService._has_anchor_reference(value)
 
     def _build_intent_rule_debug(self, query: str, intent_hint: str) -> Dict[str, Any]:
         text = normalize_text(query)
-        has_anchor = self._has_anchor_reference(text)
-        is_color_variant = self._is_color_variant_request(text)
-        is_graph_pairing = self._is_graph_pairing_request(text)
+        has_colour = bool(self.gazetteer.extract(query).get("colour_group"))
         return {
             "query_normalized": text,
             "classifier_intent": intent_hint,
-            "has_anchor_reference": has_anchor,
-            "is_color_variant_request": is_color_variant,
-            "is_graph_pairing_request": is_graph_pairing,
+            "has_anchor_reference": self._has_anchor_reference(text),
+            "is_color_variant_request": self._is_color_variant_request(text),
+            "is_graph_pairing_request": self._is_graph_pairing_request(text),
+            "strong_pairing": self._has_strong_pairing_phrase(text),
+            # "(but) in <colour>" against a referenced item = a colour variant request
+            "in_colour_cue": has_colour and bool(re.search(r"\bin\b", text)),
+            "looks_fashion": self._looks_like_fashion_query(query),
         }
 
     def _apply_intent_rules(self, query: str, intent_hint: str) -> tuple[str, Dict[str, Any]]:
         debug = self._build_intent_rule_debug(query, intent_hint)
+        has_anchor = debug.get("has_anchor_reference")
+        is_variant = debug.get("is_color_variant_request") or debug.get("in_colour_cue")
+        is_pairing = debug.get("is_graph_pairing_request")
+        strong_pairing = debug.get("strong_pairing")
+
         if intent_hint in {INTENT_CHAT, INTENT_COMPOSITE}:
-            if debug.get("has_anchor_reference") and debug.get("is_graph_pairing_request"):
+            if (has_anchor and is_pairing) or strong_pairing:
                 debug["rule_applied"] = "override_to_graph_pairing"
                 return INTENT_GRAPH, debug
-            if debug.get("has_anchor_reference") and debug.get("is_color_variant_request"):
+            if has_anchor and is_variant:
                 debug["rule_applied"] = "override_to_color_variant"
                 return INTENT_VARIANT, debug
             if intent_hint == INTENT_CHAT and self._looks_like_fashion_query(query):
@@ -788,10 +822,15 @@ class QwenMultimodalService:
             debug["rule_applied"] = "empty_query_default_similar"
             return INTENT_SIMILAR, debug
 
-        if debug.get("has_anchor_reference") and debug.get("is_color_variant_request"):
+        # classifier said a search intent but it is actually small talk / bot-meta
+        # ("what can you do", "what's the weather").
+        if self._is_small_talk(text):
+            debug["rule_applied"] = "downgrade_to_chit_chat"
+            return INTENT_CHAT, debug
+        if has_anchor and is_variant:
             debug["rule_applied"] = "explicit_color_variant"
             return INTENT_VARIANT, debug
-        if debug.get("has_anchor_reference") and debug.get("is_graph_pairing_request"):
+        if (has_anchor and is_pairing) or strong_pairing:
             debug["rule_applied"] = "explicit_graph_pairing"
             return INTENT_GRAPH, debug
         if intent_hint in {INTENT_GRAPH, INTENT_VARIANT}:
@@ -865,6 +904,15 @@ class QwenMultimodalService:
             "source": "intent_classifier",
         }
 
+    def _get_slot_extractor(self, vocab):
+        if self._slot_extractor is None and settings.use_slot_extractor:
+            try:
+                from src.backend.retrieval.slot_extractor import SlotExtractor
+                self._slot_extractor = SlotExtractor(valid=vocab or {})
+            except Exception:
+                self._slot_extractor = False  # load failed -> don't retry
+        return self._slot_extractor or None
+
     def analyze_user_query(self, query: str, vocab: Dict[str, List[str]] | None = None) -> Dict:
         intent_result = self._classify_intent_local(query, [], anchor_item=None)
         intent_hint_raw = self._normalize_intent(intent_result.get("intent"))
@@ -883,18 +931,20 @@ class QwenMultimodalService:
             }
         prefix_allowed_tokens_fn = self._build_constrained_fn(vocab)
         prompt = (
-            "You are a fashion query analyst. Rewrite the user request into English keywords suitable for search. "
-            "Extract filters in one pass. Return JSON only with this schema:\n"
+            "You are a fashion query analyst. Rewrite the user request into English search keywords "
+            "and identify the garment type. Return JSON only with this schema:\n"
             "{\n"
             "  \"search_query_en\": string,\n"
-            "  \"must_filters\": {\"product_type\":\"\",\"colour_group\":\"\",\"fit\":\"\",\"occasion\":\"\",\"seasonality\":\"\"}\n"
+            "  \"must_filters\": {\"product_type\": string}\n"
             "}\n"
             "Rules:\n"
-            "- search_query_en must be English keywords only.\n"
-            "- Fill each filter field the user explicitly mentions (product_type, colour, fit, occasion, season); omit any field that is not mentioned.\n"
-            "- If the user query names a clothing item (e.g., parka, jacket, hat, dress), extract it into the \"product_type\" field.\n"
-            "- If the request is not about clothing, return must_filters as an empty object {}.\n"
-            "- OUTPUT ONLY VALID JSON. DO NOT output any conversational text, markdown formatting, or explanations.\n"
+            "- search_query_en: English keywords only (keep colour/style words in it).\n"
+            "- product_type: ALWAYS set it to the single garment noun the user names (e.g. \"parka\", "
+            "\"trousers\", \"dress\", \"shoes\", \"bag\"). This is the most important field -- do not leave it empty when a garment is named.\n"
+            "- Only when the request names NO clothing item at all (e.g. \"something for a party\"), set must_filters to {}.\n"
+            "- Examples: \"a leather belt\" -> {\"search_query_en\":\"leather belt\",\"must_filters\":{\"product_type\":\"belt\"}}; "
+            "\"grey wool socks\" -> {\"search_query_en\":\"grey wool socks\",\"must_filters\":{\"product_type\":\"socks\"}}.\n"
+            "- OUTPUT ONLY VALID JSON. No prose, no markdown.\n"
             f"User request: {query}"
         )
         messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
@@ -954,7 +1004,32 @@ class QwenMultimodalService:
             search_query = query
         raw_filters = obj.get("must_filters") if isinstance(obj.get("must_filters"), dict) else {}
         raw_must_not = obj.get("must_not_filters") if isinstance(obj.get("must_not_filters"), dict) else {}
-        must_filters = self._normalize_filters(raw_filters)
+        # LLM supplies product_type only; closed-vocab enums come from the deterministic
+        # gazetteer (md/audit_nlu.md). Validate enum targets against the live vocab.
+        gazetteer_filters = self.gazetteer.extract(query, vocab)
+        # in a pairing query ("trousers to go with my navy blazer") the colour usually
+        # describes the anchor, not the target -> do not turn it into a target colour filter.
+        if intent_hint == INTENT_GRAPH:
+            gazetteer_filters.pop("colour_group", None)
+        must_filters = {k: v for k, v in self._normalize_filters(raw_filters).items() if k == "product_type"}
+        _slot_added = {}
+        # the LLM sometimes returns a vague non-garment word for a query that names no item
+        # ("something for a gala" -> "gala attire"/"outfit"); drop it (no real product_type).
+        pt = normalize_text(must_filters.get("product_type", ""))
+        if pt and any(w in pt for w in ("outfit", "garment", "attire", "clothing", "something",
+                                        "anything", "clothes")):
+            must_filters.pop("product_type", None)
+        must_filters.update(gazetteer_filters)
+        # ENSEMBLE: DeBERTa slot tagger fills enum fields the gazetteer missed (rare colours /
+        # paraphrases). Gazetteer wins on conflict; tagger only fills gaps. (md/slot_extractor_plan.md)
+        if settings.use_slot_extractor:
+            se = self._get_slot_extractor(vocab)
+            if se is not None:
+                _slot_added = se.fill_missing(query, must_filters)
+                if intent_hint == INTENT_GRAPH:
+                    _slot_added.pop("colour_group", None)  # colour belongs to the anchor in pairing
+                for f, v in _slot_added.items():
+                    must_filters.setdefault(f, v)
         must_not_filters = self._normalize_must_not(raw_must_not)
         debug = {
             "intent_classifier": intent_result,
@@ -963,6 +1038,8 @@ class QwenMultimodalService:
             "llm_parsed": obj,
             "llm_parse_ok": True,
             "llm_filters_raw": raw_filters,
+            "gazetteer_filters": gazetteer_filters,
+            "slot_filters": _slot_added,
             "llm_must_not_raw": raw_must_not,
             "constrained": prefix_allowed_tokens_fn is not None,
             "using_query_llm": self.using_query_llm,

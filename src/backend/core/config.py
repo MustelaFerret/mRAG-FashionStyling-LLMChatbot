@@ -70,6 +70,8 @@ class Settings:
     reranker_model_id: str = os.getenv("RERANKER_MODEL_ID", "BAAI/bge-reranker-base")
     use_reranker: bool = os.getenv("USE_RERANKER", "0") == "1"
     rerank_candidate_depth: int = int(os.getenv("RERANK_CANDIDATE_DEPTH", "50"))
+    slot_extractor_dir: str = str(LOCAL_CACHE_DIR / os.getenv("SLOT_EXTRACTOR_DIR", "slot_extractor_deberta"))
+    use_slot_extractor: bool = os.getenv("USE_SLOT_EXTRACTOR", "0") == "1"
     intent_classifier_dir: str = str(LOCAL_CACHE_DIR / os.getenv("INTENT_CLASSIFIER_DIR", "intent_classifier_deberta"))
     intent_max_length: int = int(os.getenv("INTENT_MAX_LENGTH", "128"))
     use_intent_classifier: bool = os.getenv("USE_INTENT_CLASSIFIER", "1") == "1"
