@@ -31,7 +31,10 @@ class CompatPairingIndex:
         self.article_ids = ids["article_ids"]
         self.aid_to_idx = {k: int(v) for k, v in ids["aid_to_idx"].items()}
         self.slots = json.load(open(slots_path, encoding="utf-8"))
-        self.ready = self.emb.shape[0] == len(self.article_ids) == len(self.slots)
+        self.ready = (
+            self.emb.shape[0] == len(self.article_ids) == len(self.slots)
+            and bool(np.isfinite(self.emb).all())  # corrupt/NaN embeddings must not serve
+        )
 
     def complement_ids(self, anchor_id: str, limit: int, target_slot: str = "") -> List[str]:
         if not self.ready:

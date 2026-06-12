@@ -344,7 +344,7 @@ def _config_from_env() -> BuilderConfig:
     base = Path(__file__).resolve().parent.parent.parent
     return BuilderConfig(
         transactions_file=str(base / os.getenv("TRANS_FILE", "data/raw/transactions_train.csv")),
-        meta_file=str(base / os.getenv("META_FILE", "data/processed/dataset_final_qwen_filled.csv")),
+        meta_file=str(base / os.getenv("META_FILE", "data/processed/dataset_qwen_completed.csv")),
         output_file=str(base / os.getenv("OUTPUT_FILE", "data/processed/final_outfit_graph.csv")),
         method=os.getenv("GRAPH_METHOD", "npmi"),
         min_cooc=int(os.getenv("GRAPH_MIN_COOC", "3")),

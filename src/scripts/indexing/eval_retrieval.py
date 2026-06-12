@@ -1,9 +1,11 @@
-"""Label-free retrieval eval (self-retrieval). For a sample of items, build a short
+"""DEPRECATED as a decision gate — self-retrieval leaks (the query derives from the
+indexed text itself, so scores overstate real ranking quality). Use eval_goldset.py
+(hand-written queries, graded relevance) for accept/reject decisions; keep this script
+only as a cheap smoke check that indexing isn't catastrophically broken.
+
+Label-free retrieval eval (self-retrieval). For a sample of items, build a short
 natural query from the item's own attributes + a description snippet, run the hybrid
 search, and measure how well the exact article is recovered (recall@k, MRR).
-
-Used to decide A/B retrieval changes (A1 text->image prefetch, A2 BM25): a change is
-kept only if it beats the baseline here. Metrics are appended to md/exp_retrieval.md.
 
 Run: python -m src.scripts.indexing.eval_retrieval
 """

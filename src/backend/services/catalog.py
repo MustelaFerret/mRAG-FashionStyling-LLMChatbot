@@ -7,6 +7,7 @@ from collections import Counter, defaultdict
 from typing import Dict, Iterable, List, Tuple
 
 from src.backend.core.utils import normalize_article_id, normalize_text
+from src.scripts.graph.outfit_slots import get_slot as _get_outfit_slot
 
 
 PT_SYNONYMS = {
@@ -204,7 +205,17 @@ class FashionCatalog:
         if not aid:
             return ""
         meta = self.get_meta(aid)
-        return self._infer_slot_from_text(meta.get("product_type_name", ""))
+        # use the validated 4-tier PT->slot mapping (outfit_slots), not the query-keyword
+        # heuristic: keyword matching on PT names leaks (same-slot pairing stayed at 7.1%)
+        slot = _get_outfit_slot(
+            meta.get("product_type_name", ""),
+            product_group=meta.get("product_group_name", ""),
+            garment_group=meta.get("garment_group_name", ""),
+            prod_name=meta.get("prod_name", ""),
+            section_name=meta.get("section_name", ""),
+            department_name=meta.get("department_name", ""),
+        )
+        return "" if slot == "other" else slot
 
     def infer_target_slots(self, user_query: str, anchor_id: str = "") -> List[str]:
         query = normalize_text(user_query)
@@ -404,13 +415,23 @@ class FashionCatalog:
         all_neighbors = [(n, w) for n, w in self.graph_adj.get(aid, []) if w >= hard_min_weight]
         if not all_neighbors:
             return []
+        anchor_season = self.get_meta(aid).get("seasonality", "")
         pt_count: Dict[str, int] = {}
         selected: List[str] = []
         for nid, _ in all_neighbors:
             cid = normalize_article_id(nid)
             if not cid:
                 continue
-            pt = self.get_meta(cid).get("product_type_name", "")
+            meta = self.get_meta(cid)
+            pt = meta.get("product_type_name", "")
+            # NOTE: no slot-pair guard here — measured 0 whitelist-violating edges in the
+            # whole production graph (built with the redesigned slot filter), a runtime
+            # check would be pure overhead. Re-add if the graph is ever swapped for one
+            # built without slot_pair_allowed.
+            # hard season clash guard (Spring/Summer x Autumn/Winter): the graph still
+            # carries 522 such edges (0.17%); measured 0.21% -> 0.00% of returned pairs.
+            if {anchor_season, meta.get("seasonality", "")} == {"Spring/Summer", "Autumn/Winter"}:
+                continue
             if pt and pt_count.get(pt, 0) >= max_per_pt:
                 continue
             selected.append(cid)

@@ -571,18 +571,30 @@ class QwenMultimodalService:
 
     @staticmethod
     def _extract_json_object(raw_text: str) -> Dict | None:
+        # Parse each balanced {...} candidate instead of one greedy first-{ to last-}
+        # span: with two objects in the output ("{bad} ... {good}") the greedy span is
+        # invalid JSON and extraction silently failed. Last parseable object wins
+        # (models emit the final answer last).
         if not raw_text:
             return None
-
-        match = re.search(r"\{.*\}", raw_text, flags=re.DOTALL)
-        if not match:
-            return None
-
-        try:
-            obj = json.loads(match.group(0))
-            return obj if isinstance(obj, dict) else None
-        except json.JSONDecodeError:
-            return None
+        candidates: List[Dict] = []
+        depth, start = 0, -1
+        for i, ch in enumerate(raw_text):
+            if ch == "{":
+                if depth == 0:
+                    start = i
+                depth += 1
+            elif ch == "}" and depth > 0:
+                depth -= 1
+                if depth == 0 and start != -1:
+                    try:
+                        obj = json.loads(raw_text[start:i + 1])
+                        if isinstance(obj, dict):
+                            candidates.append(obj)
+                    except json.JSONDecodeError:
+                        pass
+                    start = -1
+        return candidates[-1] if candidates else None
 
     @staticmethod
     def _format_history(history: List[Dict[str, str]]) -> str:

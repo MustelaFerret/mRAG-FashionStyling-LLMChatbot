@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from typing import Any, Dict, List
 
@@ -259,7 +260,15 @@ class FashionRAGService:
         docs: List[str] = []
         for p in points:
             pl = getattr(p, "payload", {}) or {}
-            head = " ".join(x for x in [str(pl.get("colour_group", "")), str(pl.get("product_type", ""))] if x)
+            # structured head (colour, pattern, material, type, fit, occasion, season):
+            # +4.7pp rerank nDCG over colour+type alone on the gold set (md/refine_2.MD);
+            # keep in sync with eval_rerank._doc_text
+            head = " ".join(
+                str(pl.get(k, "") or "")
+                for k in ("colour_group", "graphical_appearance", "dominant_material",
+                          "product_type", "fit", "occasion", "seasonality")
+                if pl.get(k)
+            )
             docs.append(f"{head}. {pl.get('description', '')}".strip())
         scores = rr.score(query, docs)
         rerank_rank = {idx: r for r, idx in enumerate(sorted(range(len(points)), key=lambda i: scores[i], reverse=True))}
@@ -448,7 +457,9 @@ class FashionRAGService:
         product_type = str(must_filters.get("product_type", "")).strip()
         boost_applied = False
         if product_type:
-            sparse_query = f"{product_type} {product_type} {product_type} {search_query}".strip()
+            # BM25 encode_query dedups tokens into a set with binary weights, so repeating
+            # the term was a no-op; the only real effect is ensuring the PT tokens are present.
+            sparse_query = f"{product_type} {search_query}".strip()
             boost_applied = True
 
         embed_started = time.perf_counter()
@@ -479,21 +490,58 @@ class FashionRAGService:
                     retrieval_path.append("anchor_from_selection")
             if not anchor_id:
                 retrieval_path.append("anchor_from_hybrid_top1")
+                # in "X to go with Y" the extracted product_type is the TARGET (X), while
+                # the anchor to search for is Y. Constraining this search by the target's
+                # type guaranteed anchor==target category ("what trousers go with a navy
+                # blazer" anchored on trousers and returned blazers). So: drop product_type
+                # from must and exclude the target type explicitly.
+                target_pt = str(must_filters.get("product_type", "") or soft_product_type).strip()
+                target_slot = get_slot(target_pt) if target_pt else ""
+                if target_slot in ("", "other") and target_pt:
+                    target_slot = self.catalog.infer_slot_from_text(target_pt)
+                anchor_must = {k: v for k, v in must_filters.items() if k != "product_type"}
+                # the anchor is described by the query MINUS the target mention ("black
+                # leather jacket bag" -> "black leather jacket"); searching with the target
+                # words in floods the pool with target-category items (measured: top-10 all
+                # Bag for the bag query). Strip target tokens and re-encode for this search.
+                anchor_query = search_query
+                if target_pt:
+                    target_words = {w for w in re.findall(r"[a-z0-9]+", target_pt.lower())}
+                    kept = [w for w in anchor_query.split() if w.lower().strip(".,!?") not in target_words]
+                    if kept:
+                        anchor_query = " ".join(kept)
+                aq = self.embedder.encode(text=anchor_query, image=None, sparse_text=anchor_query)
                 anchor_points = self.store.hybrid_search(
-                    text_dense=text_dense,
+                    text_dense=aq.get("text_dense") or text_dense,
                     image_dense=image_dense,
-                    sparse_indices=sparse_idx,
-                    sparse_values=sparse_val,
-                    limit=1,
-                    must_filters=self._hard_filters(must_filters) or None,
+                    sparse_indices=aq.get("sparse_indices", []),
+                    sparse_values=aq.get("sparse_values", []),
+                    limit=10,
+                    must_filters=self._hard_filters(anchor_must) or None,
                     must_not_filters=must_not_filters,
                 )
-                first = anchor_points[0] if anchor_points else None
+                # PT-exact exclusion is too narrow (target "shoes" would not exclude an
+                # "Other shoe" anchor): pick the first candidate whose SLOT differs from
+                # the target slot. If every candidate is target-slot, drop the anchor —
+                # a generic result beats a slot-inverted pairing.
+                first = None
+                for cand in anchor_points or []:
+                    cand_id = str((getattr(cand, "payload", {}) or {}).get("article_id", ""))
+                    if target_slot and self.catalog.infer_article_slot(cand_id) == target_slot:
+                        continue
+                    first = cand
+                    break
                 anchor_id = str((getattr(first, "payload", {}) or {}).get("article_id", "")) if first else ""
                 if anchor_id:
                     graph_anchor_source = "hybrid_top1"
 
             anchor_id = normalize_article_id(anchor_id)
+            if anchor_id and not self.catalog.get_meta(anchor_id):
+                # unknown anchor (malformed id / stale session): without catalog meta the
+                # slot logic below cannot constrain the target -> drop it instead of
+                # proceeding unconstrained, and leave a trace in the log payload.
+                log_payload["graph_anchor_invalid"] = anchor_id
+                anchor_id = ""
             anchor_slot = get_slot(self.catalog.get_meta(anchor_id).get("product_type_name", "")) if anchor_id else ""
 
             # Requested target category (e.g. "shoes"): keep its SLOT as a constraint even

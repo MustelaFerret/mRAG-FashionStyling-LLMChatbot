@@ -28,7 +28,13 @@ METRIC_KEYS = ["ndcg@10", "p@10>=1", "p@10==2", "hit@1", "hit@5", "hit@10", "rr2
 
 
 def _doc_text(meta: dict) -> str:
-    head = " ".join(x for x in [meta.get("colour_group_name", ""), meta.get("product_type_name", "")] if x)
+    # structured head: +4.7pp rerank nDCG vs colour+type alone (md/refine_2.MD);
+    # mirrors rag_service._rerank_blend doc construction (payload key names differ)
+    head = " ".join(x for x in [
+        meta.get("colour_group_name", ""), meta.get("graphical_appearance_name", ""),
+        meta.get("dominant_material", ""), meta.get("product_type_name", ""),
+        meta.get("fit", ""), meta.get("occasion", ""), meta.get("seasonality", ""),
+    ] if x)
     desc = str(meta.get("refined_description", "") or "")
     return f"{head}. {desc}".strip()
 

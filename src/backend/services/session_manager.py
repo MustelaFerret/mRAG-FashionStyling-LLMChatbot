@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple
 
@@ -35,7 +36,9 @@ class SessionStore:
 
     def get_or_create(self, session_id: str | None) -> Tuple[str, SessionState]:
         self._cleanup()
-        sid = (session_id or "anon").strip() or "anon"
+        # an empty session_id gets its own fresh session: a shared "anon" bucket would
+        # leak anchor/history state between concurrent anonymous users
+        sid = (session_id or "").strip() or f"anon-{uuid.uuid4().hex[:12]}"
         state = self._sessions.get(sid)
         if state is None:
             state = SessionState()

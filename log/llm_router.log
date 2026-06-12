@@ -2,10 +2,10 @@
   "analysis_debug": {
     "constrained": true,
     "gazetteer_filters": {
-      "seasonality": "Spring/Summer"
+      "colour_group": "Black"
     },
     "intent_classifier": {
-      "confidence": 0.94140625,
+      "confidence": 0.94921875,
       "index": 0,
       "intent": "similar_items",
       "raw_label": "similar_items",
@@ -17,29 +17,30 @@
       "in_colour_cue": false,
       "is_color_variant_request": false,
       "is_graph_pairing_request": false,
-      "looks_fashion": true,
-      "query_normalized": "i want to find some flora dress for summer vacation",
+      "looks_fashion": false,
+      "query_normalized": "i want to find some black off-shoulder jacquard blouse with flounce and long sleeves",
       "rule_applied": "default_similar",
       "strong_pairing": false
     },
     "llm_filters_raw": {
-      "product_type": "dress"
+      "product_type": "blouse"
     },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {
-        "product_type": "dress"
+        "product_type": "blouse"
       },
-      "search_query_en": "floral dress summer"
+      "search_query_en": "black off-shoulder jacquard blouse with flounce and long sleeves"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"floral dress summer\",\n  \"must_filters\": {\"product_type\": \"dress\"}\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"black off-shoulder jacquard blouse with flounce and long sleeves\",\n  \"must_filters\": {\"product_type\": \"blouse\"}\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
     "using_query_llm": false
   },
   "boost_applied": true,
-  "boosted_product_type": "Dress",
-  "dense_query": "floral dress summer",
+  "boosted_product_type": "Blouse",
+  "dense_query": "black off-shoulder jacquard blouse with flounce and long sleeves",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
@@ -47,17 +48,17 @@
     {
       "allowed_count": 113,
       "allowed_has_value": true,
-      "input": "dress",
+      "input": "blouse",
       "key": "product_type",
-      "matched": "Dress",
+      "matched": "Blouse",
       "scope": "must_filters"
     },
     {
-      "allowed_count": 4,
+      "allowed_count": 50,
       "allowed_has_value": true,
-      "input": "Spring/Summer",
-      "key": "seasonality",
-      "matched": "Spring/Summer",
+      "input": "Black",
+      "key": "colour_group",
+      "matched": "Black",
       "scope": "must_filters"
     }
   ],
@@ -70,40 +71,41 @@
   "has_image": false,
   "hybrid_result_count": 5,
   "intent_hint": "similar_items",
-  "latency_ms": 39656,
+  "latency_ms": 58967,
   "llm_filters_raw": {
-    "product_type": "dress"
+    "product_type": "blouse"
   },
   "llm_must_not_raw": {},
   "must_filters": {
-    "product_type": "Dress",
-    "seasonality": "Spring/Summer"
+    "colour_group": "Black",
+    "product_type": "Blouse"
   },
   "must_not_filters": {},
   "must_not_validation_debug": [],
-  "query": "I want to find some flora dress for summer vacation",
-  "request_id": "773400c07a73",
+  "query": "I want to find some black off-shoulder jacquard blouse with flounce and long sleeves",
+  "request_id": "cf175a81c9e6",
   "result_count": 5,
   "result_ids": [
-    "0639778003",
-    "0522076001",
-    "0598746002",
-    "0862092002",
-    "0608007012"
+    "0605716003",
+    "0838770001",
+    "0827838003",
+    "0615367009",
+    "0770857002"
   ],
   "retrieval_path": [
-    "hard_filters"
+    "hard_filters",
+    "cross_encoder_rerank"
   ],
-  "search_query": "floral dress summer",
-  "search_query_raw": "floral dress summer",
+  "search_query": "black off-shoulder jacquard blouse with flounce and long sleeves",
+  "search_query_raw": "black off-shoulder jacquard blouse with flounce and long sleeves",
   "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
   "soft_product_type": "",
-  "sparse_query": "Dress Dress Dress floral dress summer",
-  "timestamp_utc": "2026-06-11T10:17:45.064379+00:00",
+  "sparse_query": "Blouse black off-shoulder jacquard blouse with flounce and long sleeves",
+  "timestamp_utc": "2026-06-12T05:37:13.694315+00:00",
   "timing_ms": {
-    "analysis": 19827,
-    "embedding": 34,
-    "total": 39656
+    "analysis": 18612,
+    "embedding": 19,
+    "total": 58967
   }
 }
 
@@ -112,7 +114,7 @@
     "constrained": true,
     "gazetteer_filters": {},
     "intent_classifier": {
-      "confidence": 0.9453125,
+      "confidence": 0.94140625,
       "index": 4,
       "intent": "chit_chat",
       "raw_label": "chit_chat",
@@ -123,111 +125,31 @@
       "has_anchor_reference": true,
       "in_colour_cue": false,
       "is_color_variant_request": false,
-      "is_graph_pairing_request": false,
-      "looks_fashion": true,
-      "query_normalized": "the mollie look good, i want to find some others like that",
-      "rule_applied": "override_chit_chat_to_similar",
-      "strong_pairing": false
-    },
-    "llm_filters_raw": {},
-    "llm_must_not_raw": {},
-    "llm_parse_ok": true,
-    "llm_parsed": {
-      "must_filters": {},
-      "search_query_en": "mollie style clothes"
-    },
-    "llm_raw": "{\n  \"search_query_en\": \"mollie style clothes\",\n  \"must_filters\": {}\n}",
-    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
-    "using_query_llm": false
-  },
-  "boost_applied": false,
-  "boosted_product_type": "",
-  "dense_query": "mollie style clothes",
-  "dropped_filters": [],
-  "dropped_must_not": [],
-  "event": "chat",
-  "filter_validation_debug": [],
-  "graph_anchor_id": "0522076001",
-  "graph_anchor_source": "selected_anchor",
-  "graph_candidate_count": 0,
-  "graph_filtered_count": 0,
-  "graph_neighbor_ids": [],
-  "graph_used": false,
-  "has_image": false,
-  "hybrid_result_count": 5,
-  "intent_hint": "similar_items",
-  "latency_ms": 20514,
-  "llm_filters_raw": {},
-  "llm_must_not_raw": {},
-  "must_filters": {},
-  "must_not_filters": {},
-  "must_not_validation_debug": [],
-  "query": "The mollie look good, i want to find some others like that",
-  "request_id": "81e0cd44951f",
-  "result_count": 5,
-  "result_ids": [
-    "0557026003",
-    "0587191001",
-    "0547652001",
-    "0648995003",
-    "0572573001"
-  ],
-  "retrieval_path": [
-    "similar_image_knn"
-  ],
-  "search_query": "mollie style clothes",
-  "search_query_raw": "mollie style clothes",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "soft_product_type": "",
-  "sparse_query": "mollie style clothes",
-  "timestamp_utc": "2026-06-11T10:18:36.881118+00:00",
-  "timing_ms": {
-    "analysis": 4392,
-    "embedding": 22,
-    "total": 20514
-  }
-}
-
-{
-  "analysis_debug": {
-    "constrained": true,
-    "gazetteer_filters": {},
-    "intent_classifier": {
-      "confidence": 0.94921875,
-      "index": 1,
-      "intent": "graph_pairing",
-      "raw_label": "graph_pairing",
-      "source": "intent_classifier"
-    },
-    "intent_rules": {
-      "classifier_intent": "graph_pairing",
-      "has_anchor_reference": true,
-      "in_colour_cue": false,
-      "is_color_variant_request": false,
       "is_graph_pairing_request": true,
       "looks_fashion": true,
-      "query_normalized": "some sandals that match with the sorrel?",
-      "rule_applied": "explicit_graph_pairing",
-      "strong_pairing": false
+      "query_normalized": "the marnie look good, do you have any pants to go with that?",
+      "rule_applied": "override_to_graph_pairing",
+      "strong_pairing": true
     },
     "llm_filters_raw": {
-      "product_type": "sandals"
+      "product_type": "pants"
     },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {
-        "product_type": "sandals"
+        "product_type": "pants"
       },
-      "search_query_en": "sandal sorrel"
+      "search_query_en": "Marnie look Marnie pants"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"sandal sorrel\",\n  \"must_filters\": {\"product_type\": \"sandals\"}\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"Marnie look Marnie pants\",\n  \"must_filters\": {\"product_type\": \"pants\"}\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
     "using_query_llm": false
   },
   "boost_applied": true,
-  "boosted_product_type": "Sandals",
-  "dense_query": "sandal sorrel",
+  "boosted_product_type": "Trousers",
+  "dense_query": "Marnie look Marnie pants",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
@@ -235,42 +157,42 @@
     {
       "allowed_count": 113,
       "allowed_has_value": true,
-      "input": "sandals",
+      "input": "pants",
       "key": "product_type",
-      "matched": "Sandals",
+      "matched": "Trousers",
       "scope": "must_filters"
     }
   ],
-  "graph_anchor_id": "0648995003",
+  "graph_anchor_id": "0605716003",
   "graph_anchor_source": "selected_anchor",
   "graph_candidate_count": 0,
   "graph_filtered_count": 0,
   "graph_neighbor_ids": [
-    "0591061007",
-    "0715528003",
-    "0679725003"
+    "0556546001",
+    "0596812001",
+    "0536917002"
   ],
   "graph_used": true,
   "has_image": false,
   "hybrid_result_count": 0,
   "intent_hint": "graph_pairing",
-  "latency_ms": 11548,
+  "latency_ms": 9537,
   "llm_filters_raw": {
-    "product_type": "sandals"
+    "product_type": "pants"
   },
   "llm_must_not_raw": {},
   "must_filters": {
-    "product_type": "Sandals"
+    "product_type": "Trousers"
   },
   "must_not_filters": {},
   "must_not_validation_debug": [],
-  "query": "Some sandals that match with the sorrel?",
-  "request_id": "970256aeb1ea",
+  "query": "The marnie look good, do you have any pants to go with that?",
+  "request_id": "65332cc464ab",
   "result_count": 3,
   "result_ids": [
-    "0591061007",
-    "0715528003",
-    "0679725003"
+    "0556546001",
+    "0596812001",
+    "0536917002"
   ],
   "retrieval_path": [
     "intent_graph_pairing",
@@ -278,16 +200,16 @@
     "graph_neighbors",
     "compat_pairing_fallback"
   ],
-  "search_query": "sandal sorrel",
-  "search_query_raw": "sandal sorrel",
+  "search_query": "Marnie look Marnie pants",
+  "search_query_raw": "Marnie look Marnie pants",
   "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
   "soft_product_type": "",
-  "sparse_query": "Sandals Sandals Sandals sandal sorrel",
-  "timestamp_utc": "2026-06-11T10:19:06.192544+00:00",
+  "sparse_query": "Trousers Marnie look Marnie pants",
+  "timestamp_utc": "2026-06-12T05:37:52.602267+00:00",
   "timing_ms": {
-    "analysis": 5738,
-    "embedding": 21,
-    "total": 11548
+    "analysis": 5081,
+    "embedding": 11,
+    "total": 9537
   }
 }
 

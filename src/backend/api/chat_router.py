@@ -187,7 +187,9 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
             },
         )
         traceback.print_exc()
-        raise InferenceFailedException(str(ex)) from ex
+        # detail is logged above; the client gets a generic message (raw exception text
+        # can leak internal paths/hosts)
+        raise InferenceFailedException(f"chat request failed (request_id={request_id}); see server logs") from ex
 
 @chat_router.get("/api/frontend/bootstrap")
 async def frontend_bootstrap(assistant: FashionAssistantService = Depends(get_assistant)):

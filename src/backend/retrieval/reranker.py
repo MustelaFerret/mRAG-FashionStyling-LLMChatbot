@@ -28,12 +28,16 @@ class CrossEncoderReranker:
         batch_size: int = 64,
     ) -> None:
         self.model_id = model_id or settings.reranker_model_id
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = device or settings.reranker_device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.max_length = max_length
         self.batch_size = batch_size
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, cache_dir=settings.cache_dir)
+        # fp16 on GPU: halves VRAM (1.11GB -> ~0.56GB, the difference between fitting and
+        # OOM on the 6GB card); XLM-R cross-encoder inference is fp16-safe, and gold-set
+        # nDCG was verified unchanged vs fp32 (md/refine_2.MD)
+        dtype = torch.float16 if self.device == "cuda" else torch.float32
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            self.model_id, cache_dir=settings.cache_dir
+            self.model_id, cache_dir=settings.cache_dir, torch_dtype=dtype
         ).to(self.device).eval()
 
     @torch.no_grad()

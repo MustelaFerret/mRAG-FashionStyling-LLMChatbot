@@ -39,7 +39,6 @@ class Settings:
 
     use_llm_router: bool = os.getenv("USE_LLM_ROUTER", "1") == "1"
     use_query_rewrite: bool = os.getenv("USE_QUERY_REWRITE", "1") == "1"
-    strict_metadata_filters: bool = os.getenv("STRICT_METADATA_FILTERS", "1") == "1"
     max_vision_images: int = int(os.getenv("MAX_VISION_IMAGES", "3"))
 
     session_ttl_seconds: int = int(os.getenv("SESSION_TTL_SECONDS", str(60 * 60 * 6)))
@@ -68,10 +67,15 @@ class Settings:
     compat_dir: str = str(BASE_DIR / os.getenv("COMPAT_DIR", "data/processed/compat"))
     compat_pairing_fallback: bool = os.getenv("COMPAT_PAIRING_FALLBACK", "1") == "1"
     reranker_model_id: str = os.getenv("RERANKER_MODEL_ID", "BAAI/bge-reranker-base")
-    use_reranker: bool = os.getenv("USE_RERANKER", "0") == "1"
+    # on by default: +14.6pp nDCG@10 on the gold set (md/refine_2.MD)
+    use_reranker: bool = os.getenv("USE_RERANKER", "1") == "1"
+    # default cpu (~0.5-1.2s / 50-doc pool): the 6GB GPU has no headroom for the reranker
+    # next to Qwen+SigLIP+DeBERTa (md/refine_2.MD). Set RERANKER_DEVICE=cuda on a bigger GPU.
+    reranker_device: str = os.getenv("RERANKER_DEVICE", "cpu")
     rerank_candidate_depth: int = int(os.getenv("RERANK_CANDIDATE_DEPTH", "50"))
     slot_extractor_dir: str = str(LOCAL_CACHE_DIR / os.getenv("SLOT_EXTRACTOR_DIR", "slot_extractor_deberta"))
-    use_slot_extractor: bool = os.getenv("USE_SLOT_EXTRACTOR", "0") == "1"
+    # on by default: rare-colour/paraphrase recovery, held-out value-F1 0.684 -> 0.894 (+0.75GB VRAM)
+    use_slot_extractor: bool = os.getenv("USE_SLOT_EXTRACTOR", "1") == "1"
     intent_classifier_dir: str = str(LOCAL_CACHE_DIR / os.getenv("INTENT_CLASSIFIER_DIR", "intent_classifier_deberta"))
     intent_max_length: int = int(os.getenv("INTENT_MAX_LENGTH", "128"))
     use_intent_classifier: bool = os.getenv("USE_INTENT_CLASSIFIER", "1") == "1"
