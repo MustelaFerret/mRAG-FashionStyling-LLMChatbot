@@ -320,7 +320,21 @@ class VectorIndexBuilder:
         print(f"\ndone. collection points={info.points_count}")
 
 
+def _drop_local_hybrid_cache() -> None:
+    """The in-process hybrid index caches vectors+payloads keyed only by point count;
+    rewriting points/payloads without changing the count would silently serve stale
+    data, so writers drop the cache up front (it rebuilds lazily on next startup)."""
+    import glob
+    base = os.path.join(os.path.dirname(settings.db_path) or ".", "local_hybrid_cache.npz")
+    for f in glob.glob(base + "*"):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+
+
 def main() -> None:
+    _drop_local_hybrid_cache()
     VectorIndexBuilder().run()
 
 

@@ -13,6 +13,7 @@ Run alone (embedded Qdrant single-process):
 from __future__ import annotations
 
 import argparse
+import os
 from typing import List
 
 import pandas as pd
@@ -33,7 +34,21 @@ FIELD_MAP = {
 INDEX_FIELDS = ["graphical_appearance", "dominant_material", "colour_master"]
 
 
+def _drop_local_hybrid_cache() -> None:
+    """The in-process hybrid index caches vectors+payloads keyed only by point count;
+    rewriting points/payloads without changing the count would silently serve stale
+    data, so writers drop the cache up front (it rebuilds lazily on next startup)."""
+    import glob
+    base = os.path.join(os.path.dirname(settings.db_path) or ".", "local_hybrid_cache.npz")
+    for f in glob.glob(base + "*"):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
+
+
 def main() -> None:
+    _drop_local_hybrid_cache()
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="patch only first N points (0 = all)")
     args = ap.parse_args()

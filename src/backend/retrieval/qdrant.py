@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import os
 from typing import Dict, List, Sequence
 
 from qdrant_client import QdrantClient, models
 
+from src.backend.core.config import settings
 from src.backend.core.utils import parse_numeric_ids
 
 
@@ -11,6 +13,24 @@ class QdrantStore:
     def __init__(self, db_path: str, collection_name: str):
         self.collection_name = collection_name
         self.client = QdrantClient(path=db_path)
+        self._local_index = None
+        self._local_index_tried = False
+        self._local_cache_path = os.path.join(os.path.dirname(db_path) or ".", "local_hybrid_cache.npz")
+
+    def _get_local_index(self):
+        """In-process hybrid index: qdrant local mode scans in pure Python (~4.6s/query
+        measured with filters on 70k points); the numpy/CSR index serves the same query in
+        ~30ms. Built lazily, cached on disk, silently falls back to qdrant on any failure."""
+        if self._local_index_tried or not settings.use_local_hybrid:
+            return self._local_index
+        self._local_index_tried = True
+        try:
+            from src.backend.retrieval.local_hybrid import LocalHybridIndex
+            idx = LocalHybridIndex(self.client, self.collection_name, self._local_cache_path)
+            self._local_index = idx if idx.ready else None
+        except Exception:
+            self._local_index = None
+        return self._local_index
 
     def _build_filter(
         self,
@@ -121,6 +141,18 @@ class QdrantStore:
         sparse_vector_name: str = "sparse_bm25",
         prefetch_multiplier: int = 4,
     ):
+        local = self._get_local_index()
+        if local is not None:
+            try:
+                return local.search(
+                    text_dense=text_dense, image_dense=image_dense,
+                    sparse_indices=sparse_indices, sparse_values=sparse_values,
+                    limit=limit, must_filters=must_filters, must_not_filters=must_not_filters,
+                    prefetch_multiplier=prefetch_multiplier,
+                )
+            except Exception:
+                pass  # fall back to the native qdrant path below
+
         query_filter = self._build_filter(must_filters, must_not_filters)
         prefetch: List[models.Prefetch] = []
         prefetch_limit = max(limit * prefetch_multiplier, limit + 5)

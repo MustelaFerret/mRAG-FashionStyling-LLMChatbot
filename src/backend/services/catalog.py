@@ -30,10 +30,6 @@ class FashionCatalog:
         self.image_dir = image_dir
 
         self.meta_by_article: Dict[str, Dict] = {}
-        self.product_type_values: List[Tuple[str, str]] = []
-        self.color_values: List[Tuple[str, str]] = []
-        self.occasion_values: List[Tuple[str, str]] = []
-        self.fit_values: List[Tuple[str, str]] = []
         self.valid_product_types: List[str] = []
         self.valid_colors: List[str] = []
         self.valid_occasions: List[str] = []
@@ -44,18 +40,6 @@ class FashionCatalog:
         self._load_meta()
         self.graph_adj = self._build_graph_adjacency()
 
-    @staticmethod
-    def _build_search_values(values: Iterable[str]) -> List[tuple[str, str]]:
-        unique_values: List[str] = []
-        seen: set[str] = set()
-        for value in values:
-            raw = str(value).strip()
-            if not raw or raw in seen:
-                continue
-            seen.add(raw)
-            unique_values.append(raw)
-        unique_values.sort(key=lambda v: len(v), reverse=True)
-        return [(normalize_text(v), v) for v in unique_values]
 
     @staticmethod
     def _unique_values(values: Iterable[str]) -> List[str]:
@@ -116,10 +100,6 @@ class FashionCatalog:
                     seasonality_values.add(seasonality)
 
         self.term_pt_counts = {t: c for t, c in term_pt_counts.items() if sum(c.values()) >= 5}
-        self.product_type_values = self._build_search_values(product_type_values)
-        self.color_values = self._build_search_values(color_values)
-        self.occasion_values = self._build_search_values(occasion_values)
-        self.fit_values = self._build_search_values(fit_values)
         self.valid_product_types = self._unique_values(product_type_values)
         self.valid_colors = self._unique_values(color_values)
         self.valid_occasions = self._unique_values(occasion_values)
@@ -150,32 +130,6 @@ class FashionCatalog:
             out[aid] = sorted(neighbors.items(), key=lambda x: x[1], reverse=True)
         return out
 
-    @staticmethod
-    def _contains_phrase(query: str, phrase: str) -> bool:
-        if not query or not phrase:
-            return False
-        q = query.replace("-", " ").replace("_", " ").replace("/", " ")
-        p = phrase.replace("-", " ").replace("_", " ").replace("/", " ")
-        return re.search(rf"(?<!\w){re.escape(p)}(?!\w)", q) is not None
-
-    @staticmethod
-    def _match_first_value(query: str, values: List[Tuple[str, str]]) -> str:
-        for normalized, original in values:
-            if normalized and FashionCatalog._contains_phrase(query, normalized):
-                return original
-        return ""
-
-    @staticmethod
-    def _match_value_by_alias(query: str, values: List[Tuple[str, str]], aliases: List[str]) -> str:
-        if not aliases:
-            return ""
-        if not any(FashionCatalog._contains_phrase(query, alias) for alias in aliases):
-            return ""
-        for normalized, original in values:
-            if any(FashionCatalog._contains_phrase(normalized, alias) for alias in aliases):
-                return original
-        return ""
-
     _SLOT_KEYWORDS = [
         ("shoe", ["sneaker", "shoe", "boot", "sandal", "loafer", "heel", "clog", "slipper", "giay"]),
         ("bottom", ["pants", "trouser", "jean", "skirt", "short", "legging", "jogger", "chinos", "quan", "chan vay"]),
@@ -196,10 +150,6 @@ class FashionCatalog:
                 return slot
         return ""
 
-    @staticmethod
-    def _infer_slot_from_text(text: str) -> str:
-        return FashionCatalog.infer_slot_from_text(text)
-
     def infer_article_slot(self, article_id: str) -> str:
         aid = normalize_article_id(article_id)
         if not aid:
@@ -219,7 +169,7 @@ class FashionCatalog:
 
     def infer_target_slots(self, user_query: str, anchor_id: str = "") -> List[str]:
         query = normalize_text(user_query)
-        requested_slot = self._infer_slot_from_text(query)
+        requested_slot = self.infer_slot_from_text(query)
         anchor_slot = self.infer_article_slot(anchor_id)
 
         if requested_slot == "top":
@@ -305,103 +255,6 @@ class FashionCatalog:
         if not aid:
             return ""
         return os.path.join(self.image_dir, aid[:3], f"{aid}.jpg")
-
-    def parse_query_filters(self, user_query: str) -> Dict[str, str]:
-        query = normalize_text(user_query)
-        if not query:
-            return {}
-
-        filters: Dict[str, str] = {}
-
-        product_type = self._match_first_value(query, self.product_type_values)
-        if not product_type:
-            product_type_aliases = {
-                "shirt": ["shirt", "shirts", "so mi", "ao so mi", "blouse", "blouses", "top", "tops", "tee", "tees", "t-shirt", "t-shirts", "ao"],
-                "pants": ["pants", "trouser", "trousers", "jean", "jeans", "jogger", "joggers", "legging", "leggings", "quan", "chan vay", "skirt", "skirts", "short", "shorts"],
-                "shoe": ["shoe", "shoes", "sneaker", "sneakers", "boot", "boots", "sandal", "sandals", "loafer", "loafers", "giay"],
-                "jacket": ["jacket", "jackets", "coat", "coats", "blazer", "blazers", "cardigan", "cardigans", "outerwear", "khoac"],
-                "dress": ["dress", "dresses", "vay dam", "dam", "vay"],
-                "hoodie": ["hoodie", "hoodies", "sweater", "sweaters", "len", "pullover", "pullovers"],
-            }
-            for aliases in product_type_aliases.values():
-                product_type = self._match_value_by_alias(query, self.product_type_values, aliases)
-                if product_type:
-                    break
-        if product_type:
-            filters["product_type"] = product_type
-
-        color = self._match_first_value(query, self.color_values)
-        if not color:
-            color_aliases = {
-                "black": ["black", "den"],
-                "white": ["white", "trang"],
-                "blue": ["blue", "xanh duong", "xanh navy", "xanh"],
-                "red": ["red", "do"],
-                "green": ["green", "xanh la"],
-                "brown": ["brown", "nau"],
-                "beige": ["beige", "kem", "nude"],
-                "grey": ["grey", "gray", "xam", "ghi"],
-                "pink": ["pink", "hong"],
-                "yellow": ["yellow", "vang"],
-                "purple": ["purple", "tim"],
-            }
-            for aliases in color_aliases.values():
-                color = self._match_value_by_alias(query, self.color_values, aliases)
-                if color:
-                    break
-        if color:
-            filters["colour_group"] = color
-
-        season_map = {
-            "xuan he": "Spring/Summer",
-            "mua he": "Spring/Summer",
-            "summer": "Spring/Summer",
-            "spring summer": "Spring/Summer",
-            "autumn winter": "Autumn/Winter",
-            "fall winter": "Autumn/Winter",
-            "mua dong": "Autumn/Winter",
-            "winter": "Autumn/Winter",
-            "dong": "Autumn/Winter",
-            "he": "Spring/Summer",
-            "all season": "All-Season",
-            "all-season": "All-Season",
-        }
-        for keyword, season in season_map.items():
-            if self._contains_phrase(query, keyword):
-                filters["seasonality"] = season
-                break
-
-        occasion = self._match_first_value(query, self.occasion_values)
-        if not occasion:
-            occasion_aliases = {
-                "casual": ["casual", "daily", "hang ngay", "di choi", "street"],
-                "formal": ["formal", "office", "cong so", "smart", "business"],
-                "sport": ["sport", "gym", "training", "workout", "the thao"],
-                "party": ["party", "date", "event", "tiec"],
-                "outdoor": ["outdoor", "travel", "du lich"],
-            }
-            for aliases in occasion_aliases.values():
-                occasion = self._match_value_by_alias(query, self.occasion_values, aliases)
-                if occasion:
-                    break
-        if occasion:
-            filters["occasion"] = occasion
-
-        fit = self._match_first_value(query, self.fit_values)
-        if not fit:
-            fit_aliases = {
-                "regular": ["regular", "vua van", "classic"],
-                "slim": ["slim", "om", "fitted"],
-                "oversized": ["oversized", "rong", "loose", "relaxed", "wide"],
-            }
-            for aliases in fit_aliases.values():
-                fit = self._match_value_by_alias(query, self.fit_values, aliases)
-                if fit:
-                    break
-        if fit:
-            filters["fit"] = fit
-
-        return filters
 
     def get_graph_diverse_neighbors(
         self,

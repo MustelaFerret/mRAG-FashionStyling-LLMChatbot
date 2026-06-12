@@ -39,6 +39,9 @@ class Settings:
 
     use_llm_router: bool = os.getenv("USE_LLM_ROUTER", "1") == "1"
     use_query_rewrite: bool = os.getenv("USE_QUERY_REWRITE", "1") == "1"
+    # in-process numpy/CSR hybrid search over the local qdrant collection (md/refine_3.MD):
+    # qdrant embedded scans in pure Python (~4.6s/query with filters); this serves ~30ms
+    use_local_hybrid: bool = os.getenv("USE_LOCAL_HYBRID", "1") == "1"
     max_vision_images: int = int(os.getenv("MAX_VISION_IMAGES", "3"))
 
     session_ttl_seconds: int = int(os.getenv("SESSION_TTL_SECONDS", str(60 * 60 * 6)))
@@ -72,7 +75,8 @@ class Settings:
     # default cpu (~0.5-1.2s / 50-doc pool): the 6GB GPU has no headroom for the reranker
     # next to Qwen+SigLIP+DeBERTa (md/refine_2.MD). Set RERANKER_DEVICE=cuda on a bigger GPU.
     reranker_device: str = os.getenv("RERANKER_DEVICE", "cpu")
-    rerank_candidate_depth: int = int(os.getenv("RERANK_CANDIDATE_DEPTH", "50"))
+    # depth 30: pure-rerank nDCG holds vs 50 (0.9397 vs 0.936) at ~40% less CPU (md/refine_3.MD)
+    rerank_candidate_depth: int = int(os.getenv("RERANK_CANDIDATE_DEPTH", "30"))
     slot_extractor_dir: str = str(LOCAL_CACHE_DIR / os.getenv("SLOT_EXTRACTOR_DIR", "slot_extractor_deberta"))
     # on by default: rare-colour/paraphrase recovery, held-out value-F1 0.684 -> 0.894 (+0.75GB VRAM)
     use_slot_extractor: bool = os.getenv("USE_SLOT_EXTRACTOR", "1") == "1"
