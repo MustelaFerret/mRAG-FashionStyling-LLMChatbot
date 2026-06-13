@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import gc
 import os
-from pathlib import Path
 from contextlib import asynccontextmanager
 
 import torch
@@ -48,7 +47,8 @@ async def lifespan(app: FastAPI):
     configure_torch_runtime()
     clear_log_file(settings.log_dir)
 
-    catalog = FashionCatalog(settings.meta_file, settings.graph_file, settings.image_dir)
+    catalog = FashionCatalog(settings.meta_file, settings.graph_file, settings.image_dir,
+                             aux_graph_file=settings.aux_graph_file)
     qdrant = QdrantStore(settings.db_path, settings.collection_name)
     sessions = SessionStore(settings.session_ttl_seconds, settings.max_session_context)
     sparse_path = settings.sparse_model_path

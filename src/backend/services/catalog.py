@@ -24,7 +24,7 @@ PT_SYNONYMS = {
 
 
 class FashionCatalog:
-    def __init__(self, meta_file: str, graph_file: str, image_dir: str):
+    def __init__(self, meta_file: str, graph_file: str, image_dir: str, aux_graph_file: str = ""):
         self.meta_file = meta_file
         self.graph_file = graph_file
         self.image_dir = image_dir
@@ -36,9 +36,14 @@ class FashionCatalog:
         self.valid_fits: List[str] = []
         self.valid_seasonalities: List[str] = []
         self.graph_adj: Dict[str, List[Tuple[str, float]]] = {}
+        # auxiliary transaction-derived edges (P3alpha) covering items the co-buy
+        # graph misses; cold-tier #1 in pairing (md/refine_5.MD)
+        self.aux_adj: Dict[str, List[Tuple[str, float]]] = {}
 
         self._load_meta()
         self.graph_adj = self._build_graph_adjacency()
+        if aux_graph_file and os.path.exists(aux_graph_file):
+            self.aux_adj = self._build_graph_adjacency(aux_graph_file)
 
 
     @staticmethod
@@ -106,9 +111,9 @@ class FashionCatalog:
         self.valid_fits = self._unique_values(fit_values)
         self.valid_seasonalities = self._unique_values(seasonality_values)
 
-    def _build_graph_adjacency(self) -> Dict[str, List[Tuple[str, float]]]:
+    def _build_graph_adjacency(self, graph_file: str = "") -> Dict[str, List[Tuple[str, float]]]:
         adjacency: Dict[str, Dict[str, float]] = {}
-        with open(self.graph_file, newline="", encoding="utf-8") as handle:
+        with open(graph_file or self.graph_file, newline="", encoding="utf-8") as handle:
             reader = csv.DictReader(handle)
             for row in reader:
                 a = normalize_article_id(row.get("item_a", ""))
@@ -263,9 +268,15 @@ class FashionCatalog:
         max_per_pt: int,
         preferred_min_weight: int,
         hard_min_weight: int,
+        use_aux: bool = False,
     ) -> List[str]:
+        """Diverse top neighbors from the co-buy graph (or, with use_aux=True, from the
+        P3alpha transaction edges — cold-tier #1; those weights are walk scores, so no
+        hard_min_weight cut is applied to them)."""
         aid = normalize_article_id(anchor_id)
-        all_neighbors = [(n, w) for n, w in self.graph_adj.get(aid, []) if w >= hard_min_weight]
+        source = self.aux_adj if use_aux else self.graph_adj
+        min_w = 0.0 if use_aux else hard_min_weight
+        all_neighbors = [(n, w) for n, w in source.get(aid, []) if w >= min_w]
         if not all_neighbors:
             return []
         anchor_season = self.get_meta(aid).get("seasonality", "")

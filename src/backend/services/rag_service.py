@@ -585,6 +585,60 @@ class FashionRAGService:
                     points = [p for p in points if get_slot(str((getattr(p, "payload", {}) or {}).get("product_type", ""))) == requested_slot]
                 graph_filtered_count = len(points)
 
+                if not points and self.catalog.aux_adj:
+                    # COLD tier 1 — P3alpha transaction edges for THIS item (real purchase
+                    # evidence beats twin proxy: 2x marginal future-basket recall,
+                    # md/refine_5.MD). Same filters as the main graph path.
+                    aux_ids = self.catalog.get_graph_diverse_neighbors(
+                        anchor_id,
+                        limit=settings.graph_pair_limit * 2,
+                        max_per_pt=settings.graph_max_per_pt,
+                        preferred_min_weight=settings.graph_preferred_min_weight,
+                        hard_min_weight=settings.graph_hard_min_weight,
+                        use_aux=True,
+                    )
+                    if aux_ids:
+                        apoints = self.store.retrieve_by_article_ids(aux_ids)
+                        apoints = self._filter_points(apoints, pairing_must, must_not_filters)
+                        if requested_slot:
+                            apoints = [p for p in apoints if get_slot(str((getattr(p, "payload", {}) or {}).get("product_type", ""))) == requested_slot]
+                        if apoints:
+                            retrieval_path.append("p3a_cold_neighbors")
+                            points = apoints[: settings.graph_pair_limit]
+                            graph_neighbor_ids = [
+                                str((getattr(p, "payload", {}) or {}).get("article_id", "")) for p in points
+                            ]
+                if not points and self.compat_index is not None:
+                    # COLD tier 2 — borrow the co-buy partners of the anchor's visually-
+                    # nearest warm same-slot twins (cold MRR 0.459 -> 0.529, md/refine_4.MD);
+                    # covers items with no transactions at all (P3alpha cannot).
+                    twins = self.compat_index.nearest_warm_twins(anchor_id, self.catalog.graph_adj, k=5)
+                    if twins:
+                        borrowed: Dict[str, float] = {}
+                        for twin_id, sim in twins:
+                            for nid in self.catalog.get_graph_diverse_neighbors(
+                                twin_id,
+                                limit=settings.graph_pair_limit * 2,
+                                max_per_pt=settings.graph_max_per_pt,
+                                preferred_min_weight=settings.graph_preferred_min_weight,
+                                hard_min_weight=settings.graph_hard_min_weight,
+                            ):
+                                borrowed[nid] = borrowed.get(nid, 0.0) + sim
+                        if borrowed:
+                            order = sorted(borrowed, key=lambda n: borrowed[n], reverse=True)
+                            bpoints = self.store.retrieve_by_article_ids(order)
+                            bpoints = self._filter_points(bpoints, pairing_must, must_not_filters)
+                            if requested_slot:
+                                bpoints = [p for p in bpoints if get_slot(str((getattr(p, "payload", {}) or {}).get("product_type", ""))) == requested_slot]
+                            brank = {normalize_article_id(o): i for i, o in enumerate(order)}
+                            bpoints.sort(key=lambda p: brank.get(
+                                normalize_article_id(str((getattr(p, "payload", {}) or {}).get("article_id", ""))), 1_000_000))
+                            if bpoints:
+                                retrieval_path.append("borrowed_neighbors")
+                                points = bpoints[: settings.graph_pair_limit]
+                                graph_neighbor_ids = [
+                                    str((getattr(p, "payload", {}) or {}).get("article_id", "")) for p in points
+                                ]
                 if not points and self.compat_index is not None:
                     cand_ids = self.compat_index.complement_ids(anchor_id, self.limit * 10, target_slot=requested_slot)
                     if cand_ids:
