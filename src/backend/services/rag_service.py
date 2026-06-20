@@ -29,7 +29,7 @@ COMPOSITE_INTENT_MESSAGE = (
     "Sorry, I'm a little confused by your last request. "
     "Could you help me confirm your intent so I can assist you better?"
 )
-HARD_FILTER_KEYS = ("product_type", "colour_group")
+HARD_FILTER_KEYS = ("product_type", "colour_group", "graphical_appearance")
 INTENT_NEEDS_REFERENCE = "needs_reference"
 NEEDS_REFERENCE_MESSAGE = (
     "I'd be happy to find that in another colour — which item do you mean? "
@@ -105,6 +105,7 @@ class FashionRAGService:
             "fit": list(getattr(self.catalog, "valid_fits", []) or []),
             "occasion": list(getattr(self.catalog, "valid_occasions", []) or []),
             "seasonality": list(getattr(self.catalog, "valid_seasonalities", []) or []),
+            "graphical_appearance": list(getattr(self.catalog, "valid_graphical_appearances", []) or []),
         }
 
     def _validate_filter_value(
@@ -292,32 +293,44 @@ class FashionRAGService:
         ]
         return points[: self.limit]
 
+    _FILTER_ALIASES = {
+        "product_type": ("product_type", "product_type_name"),
+        "colour_group": ("colour_group", "colour_group_name"),
+    }
+
+    def _payload_field(self, payload: Dict[str, Any], key: str) -> str:
+        for alias in self._FILTER_ALIASES.get(key, (key,)):
+            v = payload.get(alias)
+            if v:
+                return str(v)
+        return str(payload.get(key, ""))
+
     def _filter_points(self, points: List[Any], must_filters: Dict[str, str], must_not_filters: Dict[str, List[str]]) -> List[Any]:
+        # Exact (normalized) equality + key aliases, matching the Qdrant / in-memory filter
+        # semantics. The previous 2-way substring match wrongly admitted e.g. "Dark Blue" and
+        # "Light Blue" for a colour_group="Blue" filter (measured ~7700 spurious items on "Blue"),
+        # so graph-pairing filters behaved more loosely than hybrid retrieval.
         filtered: List[Any] = []
         for point in points or []:
             payload = getattr(point, "payload", {}) or {}
             ok = True
             for key, value in (must_filters or {}).items():
                 expected = normalize_text(str(value))
-                actual = normalize_text(str(payload.get(key, "")))
-                if expected and actual and expected not in actual and actual not in expected:
+                if not expected:
+                    continue
+                if normalize_text(self._payload_field(payload, key)) != expected:
                     ok = False
                     break
             if not ok:
                 continue
             excluded = False
             for key, values in (must_not_filters or {}).items():
-                actual = normalize_text(str(payload.get(key, "")))
-                for value in values or []:
-                    expected = normalize_text(str(value))
-                    if expected and actual and (expected in actual or actual in expected):
-                        excluded = True
-                        break
-                if excluded:
+                actual = normalize_text(self._payload_field(payload, key))
+                if actual and any(actual == normalize_text(str(v)) for v in (values or [])):
+                    excluded = True
                     break
-            if excluded:
-                continue
-            filtered.append(point)
+            if not excluded:
+                filtered.append(point)
         return filtered
 
     def _finalize_log(self, log_payload: Dict[str, Any], started_at: float, result_count: int) -> None:
@@ -337,6 +350,7 @@ class FashionRAGService:
         confirmed_intent: str | None = None,
         customer_id: str | None = None,
         selected_anchor_id: str | None = None,
+        no_anchor: bool = False,
     ) -> tuple[List[dict], str, Dict[str, Any], bool, Dict[str, Any] | None]:
         analysis_started = time.perf_counter()
         analysis = self.llm.analyze_user_query(query, vocab=self.allowed_filters)
@@ -346,7 +360,6 @@ class FashionRAGService:
         intent_hint = str(analysis.get("intent_hint", "") or "").strip()
         analysis_debug = analysis.get("debug", {}) if isinstance(analysis.get("debug"), dict) else {}
         intent_rules = analysis_debug.get("intent_rules", {}) if isinstance(analysis_debug, dict) else {}
-        has_anchor_reference = bool(intent_rules.get("has_anchor_reference"))
         llm_filters_raw = analysis_debug.get("llm_filters_raw", analysis.get("must_filters", {}))
         llm_must_not_raw = analysis_debug.get("llm_must_not_raw", analysis.get("must_not_filters", {}))
         dropped_filters: List[str] = []
@@ -384,18 +397,74 @@ class FashionRAGService:
                 }
 
         session_state = self.sessions.get_or_create(session_id)[1] if self.sessions else None
-        session_anchor = normalize_article_id(session_state.anchor_id) if session_state else ""
+        no_anchor = bool(no_anchor)
+        if no_anchor and session_state is not None and self.sessions:
+            self.sessions.clear_user_anchor(session_state)
+        # An anchor the user provides THIS turn (a typed #id, or a card they clicked) is always
+        # honored and becomes the sticky session anchor, so a later refinement ("no pattern",
+        # "flat soles") keeps the SAME item rather than re-anchoring on a returned result.
+        explicit_anchor = ""
+        if not no_anchor:
+            explicit_anchor = (
+                normalize_article_id(extract_article_id_from_text(query) or "")
+                or (normalize_article_id(selected_anchor_id) if selected_anchor_id else "")
+            )
+            if explicit_anchor and session_state is not None and self.sessions:
+                self.sessions.set_user_anchor(session_state, explicit_anchor)
+        # the sticky anchor persists across turns until the user changes or clears it (no_anchor)
+        session_anchor = "" if no_anchor else (normalize_article_id(session_state.user_anchor_id) if session_state else "")
         classifier_intent = str(((analysis_debug or {}).get("intent_classifier") or {}).get("intent", "")).strip()
         requested_colour = str(must_filters.get("colour_group", "")).strip()
-        referential_anchor = (
-            normalize_article_id(extract_article_id_from_text(query) or "")
-            or (normalize_article_id(selected_anchor_id) if (selected_anchor_id and has_anchor_reference) else "")
-            or session_anchor
-        )
+        referential_anchor = explicit_anchor or session_anchor
         if classifier_intent == INTENT_VARIANT and requested_colour and (image is not None or referential_anchor):
             intent_hint = INTENT_VARIANT
             if isinstance(intent_rules, dict):
                 intent_rules["rule_applied"] = "honor_color_variant_with_anchor"
+
+        # Refinement continuation: a terse follow-up that carries a fashion constraint ("without a
+        # pattern", "flat soles", "in beige") often reads as chit-chat/ambiguous in isolation. With a
+        # live anchor (or image) and a retrieval intent on the previous turn, continue that SAME
+        # intent on the SAME anchor instead of dropping to small-talk. Guarded by an extracted
+        # attribute (must/must_not), so plain greetings ("thanks!") still fall through to chit-chat.
+        last_intent = (session_state.last_intent if session_state else "") or ""
+        last_pt = (session_state.last_product_type if session_state else "") or ""
+        # A terse refinement reads as chit-chat/ambiguous in isolation, OR as a colour-variant with
+        # NO target colour ("no, nothing in orange" -> classifier says variant, but there is no
+        # colour to vary toward). Both are really "keep doing the last thing, with this constraint".
+        refine_candidate = intent_hint in (INTENT_CHAT, INTENT_COMPOSITE) or (
+            intent_hint == INTENT_VARIANT and not requested_colour)
+        if (last_intent in (INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT)
+                and refine_candidate
+                and (must_filters or must_not_filters)
+                and (referential_anchor or image is not None or last_pt)
+                and not confirmed_value):
+            cont = last_intent
+            # a colour-NEGATIVE refinement is not a colour variant -> continue the similar search
+            # excluding that colour, rather than the variant path that needs a target colour/anchor.
+            if cont == INTENT_VARIANT and not requested_colour:
+                cont = INTENT_SIMILAR
+            intent_hint = cont
+            if isinstance(intent_rules, dict):
+                intent_rules["rule_applied"] = "refine_continue_last_intent"
+
+        # Target-type inheritance (independent of the intent rule above, because the classifier is
+        # noisy and may even keep a retrieval intent while dropping the noun): a constrained follow-up
+        # that names NO garment ("nothing in orange", "without pattern", "in white") keeps searching
+        # the previous category instead of collapsing to a generic pool. Pairing is excluded (its
+        # product_type is the pairing TARGET, handled separately).
+        if (last_pt and not must_filters.get("product_type")
+                and (must_filters or must_not_filters)
+                and intent_hint in (INTENT_SIMILAR, INTENT_VARIANT)
+                and not confirmed_value):
+            must_filters["product_type"] = last_pt
+            if isinstance(intent_rules, dict):
+                intent_rules["rule_applied"] = (intent_rules.get("rule_applied", "") + "+inherit_product_type").lstrip("+")
+
+        # an uploaded image is a strong reference signal: never route it to small-talk
+        if image is not None and intent_hint in (INTENT_CHAT, INTENT_COMPOSITE):
+            intent_hint = INTENT_SIMILAR
+            if isinstance(intent_rules, dict):
+                intent_rules["rule_applied"] = "image_implies_similar"
 
         retrieval_path: List[str] = []
         direct_response: Dict[str, Any] | None = None
@@ -410,7 +479,7 @@ class FashionRAGService:
         elif intent_hint == INTENT_CHAT:
             retrieval_path.append("intent_chit_chat")
             direct_response = {"type": INTENT_CHAT}
-        elif classifier_intent == INTENT_VARIANT and not (image is not None or referential_anchor):
+        elif intent_hint == INTENT_VARIANT and not (image is not None or referential_anchor):
             retrieval_path.append("variant_needs_reference")
             direct_response = {"type": INTENT_NEEDS_REFERENCE, "message": NEEDS_REFERENCE_MESSAGE}
 
@@ -437,6 +506,8 @@ class FashionRAGService:
                 "filter_validation_debug": filter_validation_debug,
                 "must_not_validation_debug": must_not_validation_debug,
                 "retrieval_path": retrieval_path,
+                "active_anchor_id": referential_anchor,
+                "no_anchor": no_anchor,
                 "graph_anchor_id": "",
                 "graph_anchor_source": "",
                 "graph_neighbor_ids": [],
@@ -475,6 +546,7 @@ class FashionRAGService:
         graph_neighbor_ids: List[str] = []
         graph_candidate_count = 0
         graph_filtered_count = 0
+        graph_anchor_invalid = ""
         hybrid_result_count = 0
         # NOTE: retrieval_path was initialized before the direct-response block; every
         # branch that appends to it also sets direct_response and returns early, so it is
@@ -483,14 +555,21 @@ class FashionRAGService:
 
         if intent_hint == "graph_pairing":
             retrieval_path.append("intent_graph_pairing")
-            anchor_id = extract_article_id_from_text(query)
+            anchor_id = normalize_article_id(extract_article_id_from_text(query) or "")
             if anchor_id:
                 graph_anchor_source = "query_reference"
-            if not anchor_id and selected_anchor_id:
+            if not anchor_id and selected_anchor_id and not no_anchor:
                 anchor_id = normalize_article_id(selected_anchor_id)
                 if anchor_id:
                     graph_anchor_source = "selected_anchor"
                     retrieval_path.append("anchor_from_selection")
+            if not anchor_id and session_anchor:
+                # sticky session anchor: a follow-up pairing refinement ("no pattern") keeps the
+                # ORIGINAL item the user paired with, instead of re-deriving a new one from the
+                # refined query text (which would re-anchor onto a returned result).
+                anchor_id = session_anchor
+                graph_anchor_source = "session_anchor"
+                retrieval_path.append("anchor_from_session")
             if not anchor_id:
                 retrieval_path.append("anchor_from_hybrid_top1")
                 # in "X to go with Y" the extracted product_type is the TARGET (X), while
@@ -543,7 +622,7 @@ class FashionRAGService:
                 # unknown anchor (malformed id / stale session): without catalog meta the
                 # slot logic below cannot constrain the target -> drop it instead of
                 # proceeding unconstrained, and leave a trace in the log payload.
-                log_payload["graph_anchor_invalid"] = anchor_id
+                graph_anchor_invalid = anchor_id
                 anchor_id = ""
             anchor_slot = get_slot(self.catalog.get_meta(anchor_id).get("product_type_name", "")) if anchor_id else ""
 
@@ -582,7 +661,7 @@ class FashionRAGService:
                 points = self.store.retrieve_by_article_ids(graph_neighbor_ids)
                 points = self._filter_points(points, pairing_must, must_not_filters)
                 if requested_slot:
-                    points = [p for p in points if get_slot(str((getattr(p, "payload", {}) or {}).get("product_type", ""))) == requested_slot]
+                    points = [p for p in points if self.catalog.infer_article_slot(str((getattr(p, "payload", {}) or {}).get("article_id", ""))) == requested_slot]
                 graph_filtered_count = len(points)
 
                 if not points and self.catalog.aux_adj:
@@ -601,7 +680,7 @@ class FashionRAGService:
                         apoints = self.store.retrieve_by_article_ids(aux_ids)
                         apoints = self._filter_points(apoints, pairing_must, must_not_filters)
                         if requested_slot:
-                            apoints = [p for p in apoints if get_slot(str((getattr(p, "payload", {}) or {}).get("product_type", ""))) == requested_slot]
+                            apoints = [p for p in apoints if self.catalog.infer_article_slot(str((getattr(p, "payload", {}) or {}).get("article_id", ""))) == requested_slot]
                         if apoints:
                             retrieval_path.append("p3a_cold_neighbors")
                             points = apoints[: settings.graph_pair_limit]
@@ -629,7 +708,7 @@ class FashionRAGService:
                             bpoints = self.store.retrieve_by_article_ids(order)
                             bpoints = self._filter_points(bpoints, pairing_must, must_not_filters)
                             if requested_slot:
-                                bpoints = [p for p in bpoints if get_slot(str((getattr(p, "payload", {}) or {}).get("product_type", ""))) == requested_slot]
+                                bpoints = [p for p in bpoints if self.catalog.infer_article_slot(str((getattr(p, "payload", {}) or {}).get("article_id", ""))) == requested_slot]
                             brank = {normalize_article_id(o): i for i, o in enumerate(order)}
                             bpoints.sort(key=lambda p: brank.get(
                                 normalize_article_id(str((getattr(p, "payload", {}) or {}).get("article_id", ""))), 1_000_000))
@@ -664,12 +743,9 @@ class FashionRAGService:
                 if rid:
                     ref_id = normalize_article_id(rid)
                     ref_source = "query_reference"
-                elif selected_anchor_id and has_anchor_reference:
-                    ref_id = normalize_article_id(selected_anchor_id)
-                    ref_source = "selected_anchor"
-                elif has_anchor_reference and session_anchor:
-                    ref_id = session_anchor
-                    ref_source = "session_anchor"
+                elif referential_anchor:
+                    ref_id = referential_anchor
+                    ref_source = "selected_anchor" if explicit_anchor else "session_anchor"
                 if ref_id:
                     ref_emb = self.store.get_named_vector(ref_id, settings.vector_name_image)
                     ref_type = self.catalog.get_meta(ref_id).get("product_type_name", "")
@@ -693,7 +769,7 @@ class FashionRAGService:
                 ref_source = "uploaded_image"
             elif referential_anchor:
                 ref_id = referential_anchor
-                ref_source = "query_reference" if extract_article_id_from_text(query) else ("selected_anchor" if (selected_anchor_id and has_anchor_reference) else "session_anchor")
+                ref_source = "query_reference" if extract_article_id_from_text(query) else ("selected_anchor" if explicit_anchor else "session_anchor")
                 ref_emb = self.store.get_named_vector(ref_id, settings.vector_name_image)
                 ref_type = self.catalog.get_meta(ref_id).get("product_type_name", "")
             if ref_emb and requested_colour:
@@ -703,6 +779,8 @@ class FashionRAGService:
                 var_must = {"colour_group": requested_colour}
                 if ref_type:
                     var_must["product_type"] = ref_type
+                if must_filters.get("graphical_appearance"):
+                    var_must["graphical_appearance"] = must_filters["graphical_appearance"]
                 points = self._image_knn_points(ref_emb, ref_id, var_must, must_not_filters)
                 hybrid_result_count = len(points)
 
@@ -752,12 +830,20 @@ class FashionRAGService:
             retrieval_path.append("personalized_rerank")
 
         result_ids = [item.get("article_id", "") for item in items if item.get("article_id")]
-        if session_state is not None and result_ids:
-            self.sessions.touch_anchor(
-                session_state,
-                normalize_article_id(result_ids[0]),
-                [normalize_article_id(rid) for rid in result_ids],
-            )
+        if session_state is not None:
+            # remember the retrieval intent + target type so a terse follow-up can continue them
+            if intent_hint in (INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT):
+                session_state.last_intent = intent_hint
+                _pt = str(must_filters.get("product_type", "") or "").strip()
+                if _pt:
+                    session_state.last_product_type = _pt
+            if result_ids:
+                # cache results for reference only; the sticky user anchor is left untouched so a
+                # follow-up refinement keeps the original item (see set_user_anchor above)
+                self.sessions.touch_results(
+                    session_state,
+                    [normalize_article_id(rid) for rid in result_ids],
+                )
         log_payload = {
             "event": "chat",
             "request_id": request_id or "",
@@ -781,11 +867,14 @@ class FashionRAGService:
             "filter_validation_debug": filter_validation_debug,
             "must_not_validation_debug": must_not_validation_debug,
             "retrieval_path": retrieval_path,
+            "active_anchor_id": referential_anchor,
+            "no_anchor": no_anchor,
             "graph_anchor_id": anchor_id,
             "graph_anchor_source": graph_anchor_source,
             "graph_neighbor_ids": graph_neighbor_ids,
             "graph_candidate_count": graph_candidate_count,
             "graph_filtered_count": graph_filtered_count,
+            "graph_anchor_invalid": graph_anchor_invalid,
             "hybrid_result_count": hybrid_result_count,
             "has_image": bool(image),
             "result_ids": result_ids,
@@ -824,8 +913,9 @@ class FashionRAGService:
         confirmed_intent: str | None = None,
         customer_id: str | None = None,
         selected_anchor_id: str | None = None,
+        no_anchor: bool = False,
     ) -> tuple[List[dict], str, Dict[str, Any], bool, Dict[str, Any] | None]:
-        return self._prepare_chat(query, image, session_id, request_id, started_at, confirmed_intent, customer_id, selected_anchor_id)
+        return self._prepare_chat(query, image, session_id, request_id, started_at, confirmed_intent, customer_id, selected_anchor_id, no_anchor)
 
     def finalize_log(self, log_payload: Dict[str, Any], started_at: float, result_count: int) -> None:
         self._finalize_log(log_payload, started_at, result_count)
@@ -839,6 +929,7 @@ class FashionRAGService:
         confirmed_intent: str | None = None,
         customer_id: str | None = None,
         selected_anchor_id: str | None = None,
+        no_anchor: bool = False,
     ) -> tuple[str, List[dict], Dict[str, Any]]:
         started_at = time.perf_counter()
         items, full_prompt, log_payload, has_context, direct_response = self._prepare_chat(
@@ -850,7 +941,9 @@ class FashionRAGService:
             confirmed_intent=confirmed_intent,
             customer_id=customer_id,
             selected_anchor_id=selected_anchor_id,
+            no_anchor=no_anchor,
         )
+        active_anchor_id = log_payload.get("active_anchor_id", "")
 
         if direct_response is not None:
             intent_type = direct_response.get("type")
@@ -879,4 +972,4 @@ class FashionRAGService:
 
         message = self.llm.generate_answer(full_prompt, images=[image] if image else None)
         self._finalize_log(log_payload, started_at, len(items))
-        return message, items, {"intent": log_payload.get("intent_hint", "")}
+        return message, items, {"intent": log_payload.get("intent_hint", ""), "anchor_id": active_anchor_id}

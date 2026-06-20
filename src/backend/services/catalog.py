@@ -19,7 +19,7 @@ PT_SYNONYMS = {
     "trainers": "Sneakers", "trainer": "Sneakers", "kicks": "Sneakers", "sneaker": "Sneakers",
     "tank": "Vest top", "tank top": "Vest top", "singlet": "Vest top",
     "jackets": "Jacket", "coats": "Coat", "blazers": "Blazer", "shirts": "Shirt",
-    "dresses": "Dress", "skirts": "Skirt", "shorts ": "Shorts",
+    "dresses": "Dress", "skirts": "Skirt", "shorts": "Shorts",
 }
 
 
@@ -35,6 +35,7 @@ class FashionCatalog:
         self.valid_occasions: List[str] = []
         self.valid_fits: List[str] = []
         self.valid_seasonalities: List[str] = []
+        self.valid_graphical_appearances: List[str] = []
         self.graph_adj: Dict[str, List[Tuple[str, float]]] = {}
         # auxiliary transaction-derived edges (P3alpha) covering items the co-buy
         # graph misses; cold-tier #1 in pairing (md/refine_5.MD)
@@ -57,6 +58,7 @@ class FashionCatalog:
         occasion_values: set[str] = set()
         fit_values: set[str] = set()
         seasonality_values: set[str] = set()
+        graphical_values: set[str] = set()
         term_pt_counts: Dict[str, Counter] = defaultdict(Counter)
 
         with open(self.meta_file, newline="", encoding="utf-8") as handle:
@@ -80,6 +82,14 @@ class FashionCatalog:
                     "fit": fit,
                     "occasion": occasion,
                     "seasonality": seasonality,
+                    # slot 4-tier fallback inputs (infer_article_slot reads these): without them
+                    # get_slot only had Tier-1 (product_type), so ~111 Unknown-PT items resolved
+                    # to no slot at runtime and were dropped from slot-filtered pairing.
+                    "product_group_name": str(row.get("product_group_name", "") or "").strip(),
+                    "garment_group_name": str(row.get("garment_group_name", "") or "").strip(),
+                    "prod_name": str(row.get("prod_name", "") or "").strip(),
+                    "section_name": str(row.get("section_name", "") or "").strip(),
+                    "department_name": str(row.get("department_name", "") or "").strip(),
                     # gap C (audit_metadata): pattern / material / colour shade+family —
                     # usable attributes that were dropped from runtime meta, kept for
                     # grading and (future) hard/soft filtering.
@@ -103,6 +113,9 @@ class FashionCatalog:
                     fit_values.add(fit)
                 if seasonality:
                     seasonality_values.add(seasonality)
+                graphical = str(row.get("graphical_appearance_name", "") or "").strip()
+                if graphical:
+                    graphical_values.add(graphical)
 
         self.term_pt_counts = {t: c for t, c in term_pt_counts.items() if sum(c.values()) >= 5}
         self.valid_product_types = self._unique_values(product_type_values)
@@ -110,6 +123,7 @@ class FashionCatalog:
         self.valid_occasions = self._unique_values(occasion_values)
         self.valid_fits = self._unique_values(fit_values)
         self.valid_seasonalities = self._unique_values(seasonality_values)
+        self.valid_graphical_appearances = self._unique_values(graphical_values)
 
     def _build_graph_adjacency(self, graph_file: str = "") -> Dict[str, List[Tuple[str, float]]]:
         adjacency: Dict[str, Dict[str, float]] = {}
@@ -171,49 +185,6 @@ class FashionCatalog:
             department_name=meta.get("department_name", ""),
         )
         return "" if slot == "other" else slot
-
-    def infer_target_slots(self, user_query: str, anchor_id: str = "") -> List[str]:
-        query = normalize_text(user_query)
-        requested_slot = self.infer_slot_from_text(query)
-        anchor_slot = self.infer_article_slot(anchor_id)
-
-        if requested_slot == "top":
-            return ["top", "bottom", "shoe"]
-        if requested_slot == "bottom":
-            return ["bottom", "shoe", "outerwear"]
-        if requested_slot == "shoe":
-            return ["shoe", "bottom", "top"]
-        if requested_slot == "outerwear":
-            return ["outerwear", "top", "bottom"]
-        if requested_slot == "accessory":
-            return ["accessory", "top", "bottom"]
-
-        if anchor_slot == "top":
-            return ["bottom", "shoe", "accessory"]
-        if anchor_slot == "bottom":
-            return ["top", "shoe", "accessory"]
-        if anchor_slot == "shoe":
-            return ["bottom", "top", "accessory"]
-        if anchor_slot == "outerwear":
-            return ["top", "bottom", "shoe"]
-
-        return ["top", "bottom", "shoe"]
-
-    def _weighted_neighbors(
-        self,
-        article_id: str,
-        preferred_min_weight: int,
-        hard_min_weight: int,
-    ) -> List[Tuple[str, float]]:
-        aid = normalize_article_id(article_id)
-        neighbors = self.graph_adj.get(aid, [])
-        if not neighbors:
-            return []
-
-        preferred = [(nid, w) for nid, w in neighbors if w >= preferred_min_weight]
-        if preferred:
-            return preferred
-        return [(nid, w) for nid, w in neighbors if w >= hard_min_weight]
 
     def get_meta(self, article_id: str) -> Dict:
         return self.meta_by_article.get(normalize_article_id(article_id), {})
@@ -303,93 +274,4 @@ class FashionCatalog:
                 pt_count[pt] = pt_count.get(pt, 0) + 1
             if len(selected) >= limit:
                 break
-        return selected
-
-    def get_graph_multihop_outfit_ids(
-        self,
-        anchor_id: str,
-        max_hops: int,
-        branch_per_hop: int,
-        preferred_min_weight: int,
-        hard_min_weight: int,
-        limit: int,
-        target_slots: List[str] | None = None,
-    ) -> List[str]:
-        aid = normalize_article_id(anchor_id)
-        if not aid:
-            return []
-
-        hops = max(1, int(max_hops))
-        branch = max(1, int(branch_per_hop))
-        target_slots = target_slots or self.infer_target_slots("", anchor_id=aid)
-
-        frontier: List[Tuple[str, float, int]] = [(aid, 1.0, 0)]
-        best_score_by_node: Dict[str, float] = {aid: 1.0}
-        ranked_candidates: List[Tuple[float, str, str, int]] = []
-        best_by_slot: Dict[str, Tuple[float, str, int]] = {}
-
-        for hop in range(1, hops + 1):
-            next_frontier: List[Tuple[str, float, int]] = []
-            for node, node_score, _ in frontier:
-                neighbors = self._weighted_neighbors(node, preferred_min_weight, hard_min_weight)[:branch]
-                for neighbor_id, weight in neighbors:
-                    nid = normalize_article_id(neighbor_id)
-                    if not nid or nid == aid:
-                        continue
-
-                    score = float(node_score) * float(weight)
-                    prev_score = best_score_by_node.get(nid, -1.0)
-                    if score <= prev_score:
-                        continue
-
-                    best_score_by_node[nid] = score
-                    next_frontier.append((nid, score, hop))
-
-                    slot = self.infer_article_slot(nid)
-                    ranked_candidates.append((score, nid, slot, hop))
-                    if slot:
-                        current = best_by_slot.get(slot)
-                        if current is None or score > current[0]:
-                            best_by_slot[slot] = (score, nid, hop)
-
-            if not next_frontier:
-                break
-
-            next_frontier.sort(key=lambda x: x[1], reverse=True)
-            frontier = next_frontier[: branch * 2]
-
-        selected: List[str] = []
-        used = {aid}
-
-        for slot in target_slots:
-            slot_pick = best_by_slot.get(slot)
-            if slot_pick is None:
-                continue
-            nid = slot_pick[1]
-            if nid in used:
-                continue
-            selected.append(nid)
-            used.add(nid)
-            if len(selected) >= limit:
-                return selected
-
-        ranked_candidates.sort(key=lambda x: x[0], reverse=True)
-        pt_count: Dict[str, int] = {}
-        anchor_pt = self.get_meta(aid).get("product_type_name", "")
-        max_per_pt = 2
-        for _, nid, _, _ in ranked_candidates:
-            if nid in used:
-                continue
-            cand_pt = self.get_meta(nid).get("product_type_name", "")
-            if cand_pt and cand_pt == anchor_pt:
-                continue
-            if cand_pt and pt_count.get(cand_pt, 0) >= max_per_pt:
-                continue
-            selected.append(nid)
-            used.add(nid)
-            if cand_pt:
-                pt_count[cand_pt] = pt_count.get(cand_pt, 0) + 1
-            if len(selected) >= limit:
-                break
-
         return selected

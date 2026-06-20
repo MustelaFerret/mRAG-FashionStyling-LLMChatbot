@@ -62,6 +62,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
     session_id = (req.session_id or "").strip()
     customer_id = (req.customer_id or "").strip()
     selected_anchor_id = (req.selected_anchor_id or "").strip()
+    no_anchor = bool(getattr(req, "no_anchor", False))
     confirmed_intent = (req.confirmed_intent or "").strip()
     wants_stream = bool(getattr(req, "stream", False)) or "text/event-stream" in request.headers.get("accept", "")
     try:
@@ -75,6 +76,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
                 confirmed_intent=confirmed_intent,
                 customer_id=customer_id,
                 selected_anchor_id=selected_anchor_id,
+                no_anchor=no_anchor,
             )
             payload = {"message": message, "items": items}
             payload.update(extra or {})
@@ -95,8 +97,10 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
             confirmed_intent=confirmed_intent,
             customer_id=customer_id,
             selected_anchor_id=selected_anchor_id,
+            no_anchor=no_anchor,
         )
         intent_hint = log_payload.get("intent_hint", "")
+        active_anchor_id = log_payload.get("active_anchor_id", "")
 
         def event_generator():
             if direct_response is not None:
@@ -144,7 +148,7 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
 
             yield _format_sse(
                 "meta",
-                {"request_id": request_id, "items": items, "intent": intent_hint},
+                {"request_id": request_id, "items": items, "intent": intent_hint, "anchor_id": active_anchor_id},
             )
             if not has_context:
                 message = NO_PAIRING_MESSAGE if intent_hint == INTENT_GRAPH else NO_RESULTS_MESSAGE

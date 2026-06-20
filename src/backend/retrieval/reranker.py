@@ -17,6 +17,7 @@ import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 from src.backend.core.config import settings
+from src.backend.core.utils import get_local_model_path
 
 
 class CrossEncoderReranker:
@@ -31,13 +32,19 @@ class CrossEncoderReranker:
         self.device = device or settings.reranker_device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.max_length = max_length
         self.batch_size = batch_size
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, cache_dir=settings.cache_dir)
+        # resolve the local snapshot + honour offline mode, like every other model loader
+        # (was AutoTokenizer/Model.from_pretrained(model_id, cache_dir=...) which ignored
+        # llm_local_files_only and could attempt a network fetch on an offline machine).
+        model_path = get_local_model_path(settings.cache_dir, self.model_id)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_path, local_files_only=settings.llm_local_files_only
+        )
         # fp16 on GPU: halves VRAM (1.11GB -> ~0.56GB, the difference between fitting and
         # OOM on the 6GB card); XLM-R cross-encoder inference is fp16-safe, and gold-set
         # nDCG was verified unchanged vs fp32 (md/refine_2.MD)
         dtype = torch.float16 if self.device == "cuda" else torch.float32
         self.model = AutoModelForSequenceClassification.from_pretrained(
-            self.model_id, cache_dir=settings.cache_dir, torch_dtype=dtype
+            model_path, torch_dtype=dtype, local_files_only=settings.llm_local_files_only
         ).to(self.device).eval()
 
     @torch.no_grad()

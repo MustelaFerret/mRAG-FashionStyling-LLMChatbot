@@ -167,7 +167,7 @@ class QwenMultimodalService:
             return self.query_tokenizer
         return self.nlp_tokenizer
 
-    def _build_filter_schema(self, vocab: Dict[str, List[str]]) -> Dict:
+    def _build_filter_schema(self) -> Dict:
         # The LLM only extracts product_type (free-text: the taxonomy misses everyday words
         # like parka/anorak, and the model generalises these well) + the query rewrite. The
         # closed-vocabulary fields (colour/fit/occasion/season) are NOT asked of the LLM --
@@ -195,7 +195,7 @@ class QwenMultimodalService:
             return None
         signature = tuple((k, len(vocab.get(k) or [])) for k in sorted(vocab))
         if self._filter_schema is None or self._filter_schema_signature != signature:
-            self._filter_schema = self._build_filter_schema(vocab)
+            self._filter_schema = self._build_filter_schema()
             self._filter_schema_signature = signature
         try:
             if self._enforcer_tokenizer_data is None:
@@ -930,15 +930,23 @@ class QwenMultimodalService:
         intent_hint_raw = self._normalize_intent(intent_result.get("intent"))
         intent_hint, intent_rules = self._apply_intent_rules(query, intent_hint_raw)
         if intent_hint == INTENT_CHAT:
+            # Run the deterministic gazetteer even for chit-chat: a terse follow-up ("no, nothing
+            # in red", "without a pattern") classifies as chit-chat in isolation yet carries a real
+            # constraint, and the orchestration layer needs those filters to decide whether to
+            # continue the previous retrieval intent (rag_service refinement-continuation). The LLM
+            # rewrite is still skipped -- only the cheap closed-vocab extraction runs.
+            gz = self.gazetteer.extract(query, vocab)
+            neg = self.gazetteer.extract_negated(query, vocab)
             return {
                 "search_query_en": query,
                 "intent_hint": INTENT_CHAT,
-                "must_filters": {},
-                "must_not_filters": {},
+                "must_filters": gz,
+                # positive wins on a contradiction ("no pattern" -> Solid positive, not must_not Solid)
+                "must_not_filters": {f: [v] for f, v in neg.items() if gz.get(f) != v},
                 "debug": {
                     "intent_classifier": intent_result,
                     "intent_rules": intent_rules,
-                    "skipped_extraction": "chit_chat",
+                    "skipped_extraction": "chit_chat_filters_only",
                 },
             }
         prefix_allowed_tokens_fn = self._build_constrained_fn(vocab)
@@ -1003,11 +1011,20 @@ class QwenMultimodalService:
                 "using_query_llm": self.using_query_llm,
                 "query_llm_model_id": settings.query_llm_model_id or settings.qwen_text_model_id,
             }
+            # The LLM JSON failed to parse, but the rule-based intent and the deterministic
+            # gazetteer do NOT depend on it -- keep them instead of discarding the request's
+            # understanding (previously this returned intent="" and no filters, sending the
+            # user down the wrong path with no constraints).
+            gz = self.gazetteer.extract(query, vocab)
+            neg = self.gazetteer.extract_negated(query, vocab)
+            if intent_hint == INTENT_GRAPH:
+                gz.pop("colour_group", None)
+                neg.pop("colour_group", None)
             return {
                 "search_query_en": query,
-                "intent_hint": "",
-                "must_filters": {},
-                "must_not_filters": {},
+                "intent_hint": intent_hint,
+                "must_filters": gz,
+                "must_not_filters": {f: [v] for f, v in neg.items()},
                 "debug": debug,
             }
 
@@ -1043,6 +1060,18 @@ class QwenMultimodalService:
                 for f, v in _slot_added.items():
                     must_filters.setdefault(f, v)
         must_not_filters = self._normalize_must_not(raw_must_not)
+        # negation -> exclusion: the gazetteer detects negated attributes ("a dress but not red",
+        # "jeans that aren't too skinny") that were previously dropped silently; feed them to
+        # must_not so retrieval actually excludes the attribute instead of ignoring the negation.
+        negated = self.gazetteer.extract_negated(query, vocab)
+        if intent_hint == INTENT_GRAPH:
+            negated.pop("colour_group", None)  # colour belongs to the anchor in pairing
+        for f, v in negated.items():
+            if must_filters.get(f) == v:
+                continue  # contradictory ("red ... not red"); the positive wins
+            bucket = must_not_filters.setdefault(f, [])
+            if v not in bucket:
+                bucket.append(v)
         debug = {
             "intent_classifier": intent_result,
             "intent_rules": intent_rules,

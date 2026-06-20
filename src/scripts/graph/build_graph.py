@@ -277,7 +277,10 @@ class OutfitGraphBuilder:
         p_a = count_a / n_baskets
         p_b = count_b / n_baskets
         pmi = math.log(p_ab / (p_a * p_b))
-        return pmi / -math.log(p_ab)
+        denom = -math.log(p_ab)
+        if denom <= 0:  # p_ab == 1.0 (co-occurs in every basket) -> perfect association
+            return 1.0
+        return pmi / denom
 
     def select_edges(self) -> List[Tuple[str, str, float]]:
         if self.pair_counts is None or self.item_counts is None:

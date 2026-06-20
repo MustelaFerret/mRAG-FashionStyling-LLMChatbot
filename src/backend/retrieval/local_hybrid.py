@@ -123,17 +123,23 @@ class LocalHybridIndex:
     def _finalize(self) -> None:
         # L2-normalize dense once -> cosine becomes a dot product
         def norm(m):
+            # keep dense as fp32 in memory: the per-query fp16->fp32 upcast cost ~76ms/branch
+            # (measured) -- more than the matmul itself -- whereas casting once here removes it.
+            # The on-disk cache stays fp16 (saved before _finalize); only the RAM copy is fp32.
             m32 = m.astype(np.float32)
             n = np.linalg.norm(m32, axis=1, keepdims=True)
             n[n == 0] = 1.0
-            return (m32 / n).astype(np.float16)
+            return m32 / n
         self.text = norm(self.text)
         self.image = norm(self.image)
         # filterable payload columns as object arrays for vectorized equality
         keys = set()
         for aliases in _FILTER_ALIASES.values():
             keys.update(aliases)
-        for p in self.payloads[:50]:
+        # discover filterable columns from ALL payloads (was payloads[:50]): a must-filter on a
+        # key absent from the sample would have all-False -> silently zero results. The live
+        # schema is uniform so this is hardening, not a behaviour change today.
+        for p in self.payloads:
             keys.update(k for k, v in p.items() if isinstance(v, str))
         self.columns: Dict[str, np.ndarray] = {}
         for k in keys:
@@ -200,11 +206,11 @@ class LocalHybridIndex:
         if text_dense:
             q = np.asarray(text_dense, dtype=np.float32)
             q /= (np.linalg.norm(q) or 1.0)
-            branches.append(self._top_ranks(self.text.astype(np.float32) @ q, mask, prefetch_limit))
+            branches.append(self._top_ranks(self.text @ q, mask, prefetch_limit))
         if image_dense:
             q = np.asarray(image_dense, dtype=np.float32)
             q /= (np.linalg.norm(q) or 1.0)
-            branches.append(self._top_ranks(self.image.astype(np.float32) @ q, mask, prefetch_limit))
+            branches.append(self._top_ranks(self.image @ q, mask, prefetch_limit))
         if sparse_indices and sparse_values:
             qv = np.zeros(self.sparse.shape[1], dtype=np.float32)
             for i, v in zip(sparse_indices, sparse_values):

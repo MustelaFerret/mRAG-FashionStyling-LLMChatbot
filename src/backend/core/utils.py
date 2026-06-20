@@ -80,5 +80,10 @@ def get_local_model_path(cache_dir: str, repo_id: str) -> str:
     snapshots_dir = os.path.join(cache_dir, repo_folder, "snapshots")
     if not os.path.exists(snapshots_dir):
         return repo_id
-    snapshots = sorted(os.listdir(snapshots_dir))
-    return os.path.join(snapshots_dir, snapshots[-1]) if snapshots else repo_id
+    # newest by mtime, not lexicographic: snapshot dirs are commit hashes, so sorted()[-1]
+    # can return an older revision when several are cached.
+    snaps = [d for d in os.listdir(snapshots_dir) if os.path.isdir(os.path.join(snapshots_dir, d))]
+    if not snaps:
+        return repo_id
+    newest = max(snaps, key=lambda d: os.path.getmtime(os.path.join(snapshots_dir, d)))
+    return os.path.join(snapshots_dir, newest)

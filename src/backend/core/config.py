@@ -8,7 +8,7 @@ LOCAL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 def setup_environment() -> None:
     os.environ.setdefault("HF_HOME", str(LOCAL_CACHE_DIR))
-    os.environ.setdefault("HF_HUB_OFFLINE", os.getenv("HF_HUB_OFFLINE", "0"))
+    os.environ.setdefault("HF_HUB_OFFLINE", "0")
     os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     os.environ.setdefault("PYTORCH_ALLOC_CONF", "expandable_segments:True")
 
@@ -63,7 +63,6 @@ class Settings:
     encode_batch_image: int = int(os.getenv("ENCODE_BATCH_IMAGE", "32"))
 
     siglip_model_id: str = os.getenv("SIGLIP_MODEL_ID", "google/siglip-base-patch16-224")
-    qwen_model_id: str = os.getenv("QWEN_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     qwen_vl_model_id: str = os.getenv("QWEN_VL_MODEL_ID", "")
     qwen_text_model_id: str = os.getenv("QWEN_TEXT_MODEL_ID", "Qwen/Qwen2.5-1.5B-Instruct")
     query_llm_model_id: str = os.getenv("QUERY_LLM_MODEL_ID", "")

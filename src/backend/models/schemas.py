@@ -7,6 +7,7 @@ class ChatRequest(BaseModel):
     session_id: str | None = None
     customer_id: str | None = None
     selected_anchor_id: str | None = None
+    no_anchor: bool = False
     confirmed_intent: str | None = None
     stream: bool = False
 

@@ -24,7 +24,8 @@ _NON_ALNUM = re.compile(r"[^a-z0-9]+")
 # apostrophes are stripped by normalisation, so contractions arrive as "arent", "dont"...
 _NEGATIONS = {"not", "no", "never", "without", "except", "arent", "isnt", "dont",
               "doesnt", "wasnt", "werent", "cant", "avoid", "anti"}
-_NEG_WINDOW = 3  # tokens before a match to scan for a negation cue
+_NEG_WINDOW = 5  # tokens before a match to scan for a negation cue
+_NEG_STOP = {"but", "however", "though"}  # clause boundary: negation does not cross these
 
 COLOUR: Dict[str, str] = {
     "black": "Black",
@@ -99,10 +100,22 @@ SEASONALITY: Dict[str, str] = {
     "chilly": "Autumn/Winter", "cold weather": "Autumn/Winter", "snow": "Autumn/Winter", "skiing": "Autumn/Winter",
     "all year": "Core/All-year", "all-year": "Core/All-year", "year round": "Core/All-year",
 }
+# "no pattern / plain / basic" -> Solid (the majority value). The multi-word negative phrases
+# carry their own "no"/"without" INSIDE the surface, so the negation guard (which scans tokens
+# BEFORE a match) does not flip them -- they resolve to a POSITIVE Solid filter, which is what
+# the user means ("a plain white tee", "trousers without a pattern").
+GRAPHICAL: Dict[str, str] = {
+    "solid": "Solid", "plain": "Solid", "basic": "Solid", "minimal": "Solid", "minimalist": "Solid",
+    "unpatterned": "Solid", "no pattern": "Solid", "no patterns": "Solid", "without pattern": "Solid",
+    "without patterns": "Solid", "without any pattern": "Solid", "no print": "Solid",
+    "without print": "Solid", "without prints": "Solid", "no prints": "Solid", "plain colour": "Solid",
+    "solid colour": "Solid", "single colour": "Solid", "plain color": "Solid", "solid color": "Solid",
+}
 
 
 class AttributeGazetteer:
-    FIELD_MAPS = {"colour_group": COLOUR, "fit": FIT, "occasion": OCCASION, "seasonality": SEASONALITY}
+    FIELD_MAPS = {"colour_group": COLOUR, "fit": FIT, "occasion": OCCASION,
+                  "seasonality": SEASONALITY, "graphical_appearance": GRAPHICAL}
 
     def __init__(self) -> None:
         self._ordered = {
@@ -120,7 +133,12 @@ class AttributeGazetteer:
 
     def _negated(self, tokens: List[str], start: int) -> bool:
         lo = max(0, start - _NEG_WINDOW)
-        return any(t in _NEGATIONS for t in tokens[lo:start])
+        for t in reversed(tokens[lo:start]):
+            if t in _NEG_STOP:  # e.g. "no heels but a red dress" -> "no" must not reach "red"
+                break
+            if t in _NEGATIONS:
+                return True
+        return False
 
     def extract(self, text: str, vocab: Dict[str, List[str]] | None = None) -> Dict[str, str]:
         # drop apostrophes (join) so contractions stay one token: "aren't" -> "arent",
@@ -140,6 +158,31 @@ class AttributeGazetteer:
                 start = self._span_start(tokens, surface.split())
                 if start is not None and self._negated(tokens, start):
                     continue  # e.g. "aren't too skinny" -> do not extract fit
+                target = self.FIELD_MAPS[field][surface]
+                if valid is None or target in valid:
+                    out[field] = target
+                    break
+        return out
+
+    def extract_negated(self, text: str, vocab: Dict[str, List[str]] | None = None) -> Dict[str, str]:
+        """Mirror of extract() that keeps the NEGATED matches instead of dropping them
+        ("a dress but not red", "jeans that aren't too skinny") so the caller can feed them
+        to must_not and actually exclude the attribute, rather than silently ignoring it."""
+        cleaned = normalize_text(text or "").replace("'", "").replace("’", "")
+        raw = _NON_ALNUM.sub(" ", cleaned).strip()
+        if not raw:
+            return {}
+        tokens = raw.split()
+        norm = f" {raw} "
+        out: Dict[str, str] = {}
+        for field, surfaces in self._ordered.items():
+            valid = set(vocab.get(field, []) or []) if vocab else None
+            for surface in surfaces:
+                if f" {surface} " not in norm:
+                    continue
+                start = self._span_start(tokens, surface.split())
+                if start is None or not self._negated(tokens, start):
+                    continue  # keep ONLY negated matches here
                 target = self.FIELD_MAPS[field][surface]
                 if valid is None or target in valid:
                     out[field] = target

@@ -79,6 +79,42 @@ function normalizeItems(items) {
         .filter((item) => item.article_id);
 }
 
+function normalizeItem(item) {
+    return item ? (normalizeItems([item])[0] || null) : null;
+}
+
+const DRAG_MIME = "application/x-mrag-item";
+
+// per-session persistence so a reload keeps the conversation, picks and focus item
+const LS_KEY = {
+    msgs: (sid) => "mrag_msgs_" + sid,
+    picks: (sid) => "mrag_picks_" + sid,
+    anchor: (sid) => "mrag_anchor_" + sid,
+};
+
+function loadJSON(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+    } catch (_) {
+        return fallback;
+    }
+}
+
+function saveJSON(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (_) {
+        // quota or serialization failure -> skip persistence, keep running
+    }
+}
+
+// drop base64 image blobs before persisting (they blow the localStorage quota); the
+// conversation text + result cards (which reference server image paths) are kept.
+function messagesForStorage(messages) {
+    return (messages || []).slice(-40).map((m) => (m.image ? { ...m, image: null, hadImage: true } : m));
+}
+
 function ProductModal({ items, index, onClose, onNavigate }) {
     if (!Array.isArray(items) || items.length === 0) return null;
     const safeIndex = Math.max(0, Math.min(index || 0, items.length - 1));
@@ -237,23 +273,46 @@ function UserMessage({ message }) {
     );
 }
 
-function ItemCard({ item, onOpen }) {
+function startItemDrag(event, item) {
+    try {
+        event.dataTransfer.setData(DRAG_MIME, JSON.stringify(item));
+        event.dataTransfer.setData("text/plain", "#" + formatArticleId(item.article_id));
+        event.dataTransfer.effectAllowed = "copy";
+    } catch (_) {
+        // some browsers restrict custom mime types; the text fallback still works
+    }
+}
+
+function ItemCard({ item, isAnchor, isPinned, onOpen, onSetAnchor, onTogglePin }) {
     const aid = formatArticleId(item.article_id);
     const title = item.title || item.product_type || "Item";
     const subtitle = item.subtitle || item.colour_group || "";
 
     return (
         <div
-            className={"item-card " + (item.is_anchor ? "anchor" : "")}
-            onClick={onOpen}
+            className={"item-card " + (isAnchor ? "anchor" : "")}
+            draggable="true"
+            onDragStart={(e) => startItemDrag(e, item)}
         >
-            <div className="card-frame">
+            <div className="card-frame" onClick={onOpen}>
                 <img src={item.image_url || imagePathFromId(aid)} alt={title} />
+                <div className="card-actions">
+                    <button
+                        className={"card-act " + (isAnchor ? "on" : "")}
+                        title={isAnchor ? "Current focus" : "Set as focus"}
+                        onClick={(e) => { e.stopPropagation(); onSetAnchor(item); }}
+                    >◎</button>
+                    <button
+                        className={"card-act " + (isPinned ? "on" : "")}
+                        title={isPinned ? "Unpin from picks" : "Pin to picks"}
+                        onClick={(e) => { e.stopPropagation(); onTogglePin(item); }}
+                    >{isPinned ? "★" : "☆"}</button>
+                </div>
             </div>
-            <p className="card-name">{title}</p>
+            <p className="card-name" onClick={onOpen}>{title}</p>
             <div className="card-meta">
                 <span className="card-color">{subtitle || "—"}</span>
-                {item.is_anchor
+                {isAnchor
                     ? <span className="card-focus-tag">In focus</span>
                     : <span className="card-id">{aid}</span>}
             </div>
@@ -286,7 +345,7 @@ function IntentPicker({ options, onSelect, disabled }) {
     );
 }
 
-function AiMessage({ message, onOpenItem, onConfirmIntent }) {
+function AiMessage({ message, anchorId, pickedIds, onOpenItem, onConfirmIntent, onSetAnchor, onTogglePin }) {
     const intentLabel = (message.intentInfo && message.intentInfo.label) || INTENT_LABELS[message.intent] || "";
     const intentDescription = (message.intentInfo && message.intentInfo.description) || "";
     const cards = Array.isArray(message.cards) && message.cards.length > 0 ? message.cards : (message.items || []);
@@ -314,7 +373,15 @@ function AiMessage({ message, onOpenItem, onConfirmIntent }) {
             {Array.isArray(cards) && cards.length > 0 && (
                 <div className="cards-row w-full">
                     {cards.map((item, index) => (
-                        <ItemCard key={String(item.article_id) + "-" + index} item={item} onOpen={() => onOpenItem(item, cards)} />
+                        <ItemCard
+                            key={String(item.article_id) + "-" + index}
+                            item={item}
+                            isAnchor={formatArticleId(item.article_id) === anchorId}
+                            isPinned={pickedIds && pickedIds.has(formatArticleId(item.article_id))}
+                            onOpen={() => onOpenItem(item, cards)}
+                            onSetAnchor={onSetAnchor}
+                            onTogglePin={onTogglePin}
+                        />
                     ))}
                 </div>
             )}
@@ -336,43 +403,126 @@ function QuickActions({ actions, onPick }) {
     );
 }
 
-function ReferencePicker({ items, selectedAnchorId, onSelectAnchor }) {
+function AnchorChip({ anchor, onClear, onDropItem, onOpen }) {
+    const [over, setOver] = useState(false);
+    const onDrop = (e) => {
+        e.preventDefault();
+        setOver(false);
+        let raw = "";
+        try { raw = e.dataTransfer.getData(DRAG_MIME); } catch (_) { raw = ""; }
+        if (raw) {
+            try { onDropItem(JSON.parse(raw)); } catch (_) { /* ignore malformed payload */ }
+        }
+    };
     return (
-        <div className="panel p-5">
-            <p className="kicker mb-1">01 — Reference</p>
-            <h3 className="font-display text-2xl mb-3">Focus item</h3>
-
-            {!items.length && (
-                <div className="text-sm t-muted leading-relaxed">
-                    Once suggestions appear, pick one piece to anchor your next request.
+        <div
+            className={"anchor-dock " + (over ? "drag-over" : "")}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setOver(true); }}
+            onDragLeave={() => setOver(false)}
+            onDrop={onDrop}
+        >
+            {anchor ? (
+                <div className="anchor-chip">
+                    <img
+                        className="anchor-chip-thumb"
+                        src={anchor.image_url || imagePathFromId(anchor.article_id)}
+                        alt=""
+                        onClick={() => onOpen(anchor)}
+                    />
+                    <div className="anchor-chip-meta">
+                        <span className="anchor-chip-label">Focus item</span>
+                        <span className="anchor-chip-name">{anchor.title || anchor.product_type || "Item"}</span>
+                        <span className="anchor-chip-id">#{formatArticleId(anchor.article_id)}</span>
+                    </div>
+                    <button className="anchor-chip-clear" title="Clear focus — search with no anchor" onClick={onClear}>×</button>
+                </div>
+            ) : (
+                <div className="anchor-chip empty">
+                    <span className="anchor-chip-label">No focus</span>
+                    <span className="anchor-chip-hint">Click ◎ on a result, or drag an item here, to anchor your next request.</span>
                 </div>
             )}
+        </div>
+    );
+}
 
+function PicksPanel({ picks, onOpen, onUnpin, onSetAnchor }) {
+    return (
+        <div className="panel p-5">
+            <p className="kicker mb-1">01 — Your picks</p>
+            <h3 className="font-display text-2xl mb-3">Saved items</h3>
+            {!picks.length && (
+                <div className="text-sm t-muted leading-relaxed">
+                    Pin items (★) from results to gather them here. Click a pick for full details, or drag it into the chat to ask about it.
+                </div>
+            )}
+            {picks.length > 0 && (
+                <div className="picks-list">
+                    {picks.map((item) => {
+                        const aid = formatArticleId(item.article_id);
+                        return (
+                            <div
+                                key={aid}
+                                className="pick-item"
+                                draggable="true"
+                                onDragStart={(e) => startItemDrag(e, item)}
+                            >
+                                <img
+                                    className="pick-thumb"
+                                    src={item.image_url || imagePathFromId(aid)}
+                                    alt=""
+                                    onClick={() => onOpen(item)}
+                                />
+                                <div className="pick-meta" onClick={() => onOpen(item)}>
+                                    <p className="title">{item.title || item.product_type || "Item"}</p>
+                                    <p className="subtitle">{item.subtitle || item.colour_group || "No color"}</p>
+                                    <p className="article">#{aid}</p>
+                                </div>
+                                <div className="pick-actions">
+                                    <button className="pick-act" title="Set as focus" onClick={() => onSetAnchor(item)}>◎</button>
+                                    <button className="pick-act" title="Unpin" onClick={() => onUnpin(item)}>×</button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function RecentPanel({ items, anchorId, onSetAnchor }) {
+    return (
+        <div className="panel p-5">
+            <p className="kicker mb-1">02 — Recent results</p>
+            <h3 className="font-display text-2xl mb-3">Pick a focus</h3>
+            {!items.length && (
+                <div className="text-sm t-muted leading-relaxed">
+                    Suggestions appear here. Click one to anchor your next request — the focus stays put until you change it.
+                </div>
+            )}
             {items.length > 0 && (
                 <div className="reference-list">
                     {items.map((item) => {
                         const aid = formatArticleId(item.article_id);
-                        const isActive = aid === selectedAnchorId;
+                        const isActive = aid === anchorId;
                         const title = item.product_type || item.title || "Item";
                         const subtitle = item.colour_group || item.subtitle || "";
-
                         return (
                             <button
                                 key={aid}
                                 className={"reference-item " + (isActive ? "active" : "")}
-                                onClick={() => onSelectAnchor(aid)}
+                                onClick={() => onSetAnchor(item)}
+                                draggable="true"
+                                onDragStart={(e) => startItemDrag(e, item)}
                             >
-                                <img
-                                    src={item.image_url || imagePathFromId(aid)}
-                                    alt={title}
-                                    className="reference-thumb"
-                                />
+                                <img src={item.image_url || imagePathFromId(aid)} alt={title} className="reference-thumb" />
                                 <div className="reference-meta">
                                     <p className="title">{title}</p>
                                     <p className="subtitle">{subtitle || "No color specified"}</p>
                                     <p className="article">#{aid}</p>
                                 </div>
-                                <span className="reference-cta">Use</span>
+                                <span className="reference-cta">{isActive ? "Focus" : "Use"}</span>
                             </button>
                         );
                     })}
@@ -382,24 +532,14 @@ function ReferencePicker({ items, selectedAnchorId, onSelectAnchor }) {
     );
 }
 
-function MoodBoardPanel() {
-    return (
-        <div className="panel p-5">
-            <p className="kicker mb-1">02 — House notes</p>
-            <h3 className="font-display text-2xl mb-3">How to style</h3>
-            <ol className="notes-list">
-                <li>Upload a reference image, or name a piece by its article id.</li>
-                <li>Pick a focus item to anchor — pairings build around it.</li>
-                <li>Ask for matching bottoms, outerwear, or a colour variant.</li>
-            </ol>
-        </div>
-    );
-}
-
 function Composer({
     chatInput,
     setChatInput,
     currentImageBase64,
+    activeAnchor,
+    onClearAnchor,
+    onDropAnchor,
+    onOpenAnchor,
     onUploadClick,
     onFileChange,
     onRemoveImage,
@@ -414,11 +554,13 @@ function Composer({
                 <div className="flex items-center gap-3">
                     <img src={currentImageBase64} className="h-20 w-20 object-cover rounded border border-white/10" alt="Preview" />
                     <div>
-                        <p className="text-sm t-muted">A new image resets the context and focus item.</p>
+                        <p className="text-sm t-muted">A new image becomes the reference and clears the focus item.</p>
                         <button className="text-sm t-accent hover:underline mt-1" onClick={onRemoveImage}>Remove image</button>
                     </div>
                 </div>
             )}
+
+            <AnchorChip anchor={activeAnchor} onClear={onClearAnchor} onDropItem={onDropAnchor} onOpen={onOpenAnchor} />
 
             <div className="composer-row">
                 <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={onFileChange} />
@@ -450,10 +592,17 @@ function Workspace({
     sessionId,
     messages,
     quickActions,
+    activeAnchor,
     selectedAnchorId,
-    anchorItems,
-    onSelectAnchor,
+    recentItems,
+    picks,
+    pickedIds,
+    onSetAnchor,
+    onClearAnchor,
+    onTogglePin,
+    onUnpin,
     onOpenItem,
+    onOpenSingle,
     onPickQuickAction,
     onResetSession,
     onConfirmIntent,
@@ -493,7 +642,16 @@ function Workspace({
                         {messages.map((message) => (
                             message.role === "user"
                                 ? <UserMessage key={message.id} message={message} />
-                                : <AiMessage key={message.id} message={message} onOpenItem={onOpenItem} onConfirmIntent={onConfirmIntent} />
+                                : <AiMessage
+                                    key={message.id}
+                                    message={message}
+                                    anchorId={selectedAnchorId}
+                                    pickedIds={pickedIds}
+                                    onOpenItem={onOpenItem}
+                                    onConfirmIntent={onConfirmIntent}
+                                    onSetAnchor={onSetAnchor}
+                                    onTogglePin={onTogglePin}
+                                />
                         ))}
                         {isLoading && <div className="typing">Generating outfit suggestions...</div>}
                     </div>
@@ -502,6 +660,10 @@ function Workspace({
                         chatInput={chatInput}
                         setChatInput={setChatInput}
                         currentImageBase64={currentImageBase64}
+                        activeAnchor={activeAnchor}
+                        onClearAnchor={onClearAnchor}
+                        onDropAnchor={onSetAnchor}
+                        onOpenAnchor={onOpenSingle}
                         onUploadClick={onUploadClick}
                         onFileChange={onFileChange}
                         onRemoveImage={onRemoveImage}
@@ -513,8 +675,8 @@ function Workspace({
                 </div>
 
                 <div className="side-panel">
-                    <ReferencePicker items={anchorItems} selectedAnchorId={selectedAnchorId} onSelectAnchor={onSelectAnchor} />
-                    <MoodBoardPanel />
+                    <PicksPanel picks={picks} onOpen={onOpenSingle} onUnpin={onUnpin} onSetAnchor={onSetAnchor} />
+                    <RecentPanel items={recentItems} anchorId={selectedAnchorId} onSetAnchor={onSetAnchor} />
                 </div>
             </div>
         </section>
@@ -522,14 +684,18 @@ function Workspace({
 }
 
 function App() {
-    const [started, setStarted] = useState(false);
+    const sessionIdRef = useRef(getSessionId());
+    const sid = sessionIdRef.current;
+    const [started, setStarted] = useState(() => (loadJSON(LS_KEY.msgs(sid), []) || []).length > 0);
     const [bootstrap, setBootstrap] = useState(DEFAULT_BOOTSTRAP);
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState(() => loadJSON(LS_KEY.msgs(sid), []) || []);
     const [chatInput, setChatInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [currentImageBase64, setCurrentImageBase64] = useState(null);
-    const [selectedAnchorId, setSelectedAnchorId] = useState("");
-    const [anchorItems, setAnchorItems] = useState([]);
+    // the focus item is sticky and changed ONLY by an explicit user action; results never set it
+    const [activeAnchor, setActiveAnchor] = useState(() => loadJSON(LS_KEY.anchor(sid), null));
+    const [recentItems, setRecentItems] = useState([]);
+    const [picks, setPicks] = useState(() => loadJSON(LS_KEY.picks(sid), []) || []);
     const [quickActions, setQuickActions] = useState(DEFAULT_BOOTSTRAP.suggested_prompts.slice(0, 6));
     const [modalItems, setModalItems] = useState([]);
     const [modalIndex, setModalIndex] = useState(0);
@@ -538,11 +704,18 @@ function App() {
     const chatBoxRef = useRef(null);
     const fileInputRef = useRef(null);
     const textAreaRef = useRef(null);
-    const sessionIdRef = useRef(getSessionId());
     const lastUserImageRef = useRef(null);
     const prevMsgCountRef = useRef(0);
 
+    const selectedAnchorId = activeAnchor ? formatArticleId(activeAnchor.article_id) : "";
+    const pickedIds = useMemo(() => new Set((picks || []).map((p) => formatArticleId(p.article_id))), [picks]);
+
     const api = useMemo(() => window.MragApi || {}, []);
+
+    // per-session persistence: keep the conversation, picks and focus item across reloads
+    useEffect(() => { saveJSON(LS_KEY.msgs(sid), messagesForStorage(messages)); }, [messages, sid]);
+    useEffect(() => { saveJSON(LS_KEY.picks(sid), picks); }, [picks, sid]);
+    useEffect(() => { saveJSON(LS_KEY.anchor(sid), activeAnchor); }, [activeAnchor, sid]);
 
     useEffect(() => {
         let alive = true;
@@ -610,9 +783,29 @@ function App() {
         );
     }, [messages]);
 
-    function clearFocusState() {
-        setSelectedAnchorId("");
-        setAnchorItems([]);
+    function setAnchorFromItem(item) {
+        const normalized = normalizeItem(item);
+        if (normalized) setActiveAnchor(normalized);
+    }
+
+    function clearAnchor() {
+        setActiveAnchor(null);
+    }
+
+    function togglePin(item) {
+        const aid = formatArticleId(item.article_id);
+        setPicks((prev) => {
+            if (prev.some((p) => formatArticleId(p.article_id) === aid)) {
+                return prev.filter((p) => formatArticleId(p.article_id) !== aid);
+            }
+            const normalized = normalizeItem(item);
+            return normalized ? prev.concat([normalized]) : prev;
+        });
+    }
+
+    function unpin(item) {
+        const aid = formatArticleId(item.article_id);
+        setPicks((prev) => prev.filter((p) => formatArticleId(p.article_id) !== aid));
     }
 
     function handleFileChange(event) {
@@ -623,7 +816,7 @@ function App() {
         reader.onload = (e) => {
             const result = e.target && e.target.result ? e.target.result : null;
             setCurrentImageBase64(result);
-            clearFocusState();
+            setActiveAnchor(null);  // a fresh image becomes the reference; drop the article anchor
         };
         reader.readAsDataURL(file);
     }
@@ -636,7 +829,6 @@ function App() {
     }
 
     async function handleResetSession() {
-        const sid = sessionIdRef.current;
         try {
             if (api.resetSession) {
                 await api.resetSession(sid);
@@ -657,7 +849,14 @@ function App() {
         setLatestMeta(null);
         setModalItems([]);
         setModalIndex(0);
-        clearFocusState();
+        setActiveAnchor(null);
+        setRecentItems([]);
+        setPicks([]);
+        try {
+            localStorage.removeItem(LS_KEY.msgs(sid));
+            localStorage.removeItem(LS_KEY.picks(sid));
+            localStorage.removeItem(LS_KEY.anchor(sid));
+        } catch (_) { /* ignore */ }
         setQuickActions((bootstrap.suggested_prompts || DEFAULT_BOOTSTRAP.suggested_prompts).slice(0, 6));
     }
 
@@ -694,12 +893,11 @@ function App() {
                 text: payloadText,
                 image: payloadImage,
                 session_id: sessionIdRef.current,
+                // the user-controlled focus item; when there is none we tell the backend
+                // explicitly (no_anchor) so it does not fall back to a stale session anchor
                 selected_anchor_id: selectedAnchorId || null,
+                no_anchor: !selectedAnchorId,
                 confirmed_intent: confirmedIntent || null,
-                new_image_context: Boolean(payloadImage && !confirmedIntent),
-                response_mode: "rich",
-                include_debug: true,
-                max_ui_items: 10,
                 stream: true,
             };
 
@@ -766,11 +964,9 @@ function App() {
                         updateAiMessage({ text: finalText, items: pendingItems, cards: pendingItems });
                         applyIntentPayload(data);
                         if (pendingItems.length > 0) {
-                            setAnchorItems(pendingItems.slice(0, 10));
-                            setSelectedAnchorId(formatArticleId(pendingItems[0].article_id) || "");
-                        } else {
-                            clearFocusState();
+                            setRecentItems(pendingItems.slice(0, 10));
                         }
+                        // the focus item is the user's choice; results never change it
                         streamedText = "";
                         pendingItems = [];
                         return;
@@ -805,11 +1001,9 @@ function App() {
                     intentResolved: false,
                 });
                 if (normalizedItems.length > 0) {
-                    setAnchorItems(normalizedItems.slice(0, 10));
-                    setSelectedAnchorId(formatArticleId(normalizedItems[0].article_id) || "");
-                } else {
-                    clearFocusState();
+                    setRecentItems(normalizedItems.slice(0, 10));
                 }
+                // the focus item is the user's choice; results never change it
             }
 
             setLatestMeta(null);
@@ -870,9 +1064,15 @@ function App() {
                     sessionId={sessionIdRef.current}
                     messages={messages}
                     quickActions={quickActions}
+                    activeAnchor={activeAnchor}
                     selectedAnchorId={selectedAnchorId}
-                    anchorItems={anchorItems}
-                    onSelectAnchor={(aid) => setSelectedAnchorId(formatArticleId(aid))}
+                    recentItems={recentItems}
+                    picks={picks}
+                    pickedIds={pickedIds}
+                    onSetAnchor={setAnchorFromItem}
+                    onClearAnchor={clearAnchor}
+                    onTogglePin={togglePin}
+                    onUnpin={unpin}
                     onOpenItem={(item, items) => {
                         const normalized = normalizeItems(items || []);
                         const aid = formatArticleId(item.article_id);
@@ -880,12 +1080,17 @@ function App() {
                         setModalItems(normalized);
                         setModalIndex(idx);
                     }}
+                    onOpenSingle={(item) => {
+                        const normalized = normalizeItems([item]);
+                        setModalItems(normalized);
+                        setModalIndex(0);
+                    }}
                     onPickQuickAction={(text) => {
                         setChatInput(text);
                         if (textAreaRef.current) textAreaRef.current.focus();
                     }}
                     onResetSession={handleResetSession}
-                        onConfirmIntent={handleConfirmIntent}
+                    onConfirmIntent={handleConfirmIntent}
                     onSend={sendMessage}
                     chatInput={chatInput}
                     setChatInput={setChatInput}

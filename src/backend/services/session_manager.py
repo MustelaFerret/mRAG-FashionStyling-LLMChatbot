@@ -8,8 +8,12 @@ from typing import Dict, List, Tuple
 
 @dataclass
 class SessionState:
-    anchor_id: str = ""
-    recent_item_ids: List[str] = field(default_factory=list)
+    # the sticky anchor the USER chose (typed #id or clicked a card). It persists across turns
+    # and is changed ONLY by an explicit user action; returned results never overwrite it.
+    user_anchor_id: str = ""
+    recent_item_ids: List[str] = field(default_factory=list)  # last results (cache; not the anchor)
+    last_intent: str = ""  # last retrieval intent, so a terse refinement can continue it
+    last_product_type: str = ""  # last target product_type, inherited by a terse refinement
     history: List[Dict[str, str]] = field(default_factory=list)
     updated_at: float = field(default_factory=time.time)
 
@@ -61,13 +65,29 @@ class SessionStore:
         return True
 
     def reset(self, state: SessionState) -> None:
-        state.anchor_id = ""
+        state.user_anchor_id = ""
         state.recent_item_ids = []
+        state.last_intent = ""
+        state.last_product_type = ""
         state.history = []
         state.updated_at = time.time()
 
-    def touch_anchor(self, state: SessionState, anchor_id: str, item_ids: List[str]) -> None:
-        state.anchor_id = anchor_id
+    def set_user_anchor(self, state: SessionState, anchor_id: str) -> None:
+        """Set the sticky anchor from an explicit user action (typed id / picked card).
+        Persists until the user changes or clears it; results never overwrite it."""
+        anchor = (anchor_id or "").strip()
+        if not anchor:
+            return
+        state.user_anchor_id = anchor
+        state.updated_at = time.time()
+
+    def clear_user_anchor(self, state: SessionState) -> None:
+        state.user_anchor_id = ""
+        state.updated_at = time.time()
+
+    def touch_results(self, state: SessionState, item_ids: List[str]) -> None:
+        """Cache the latest results for reference only. Deliberately does NOT touch the anchor:
+        the anchor stays whatever the user last chose, so a follow-up refinement keeps it."""
         state.recent_item_ids = item_ids[:12]
         state.updated_at = time.time()
 

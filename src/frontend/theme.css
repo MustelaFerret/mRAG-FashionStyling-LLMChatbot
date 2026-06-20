@@ -718,3 +718,72 @@ body {
     .layout { grid-template-columns: 1fr; height: auto; min-height: calc(100vh - 44px); }
     .chat-panel { min-height: 74vh; height: auto; }
 }
+
+/* ============================================================ ANCHOR + PICKS (Phase 2 UX) */
+.anchor-dock {
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    transition: border-color 200ms ease, background 200ms ease;
+}
+.anchor-dock.drag-over { border-color: var(--accent); background: rgba(217, 88, 63, 0.08); }
+.anchor-chip { display: flex; align-items: center; gap: 12px; }
+.anchor-chip.empty { gap: 8px; flex-wrap: wrap; }
+.anchor-chip-thumb {
+    width: 46px; height: 58px; object-fit: cover; border-radius: 5px;
+    border: 1px solid var(--line); cursor: pointer; flex-shrink: 0;
+}
+.anchor-chip-meta { display: flex; flex-direction: column; min-width: 0; }
+.anchor-chip-label {
+    font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--accent-ink);
+}
+.anchor-chip-name {
+    font-size: 13px; color: var(--ink);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;
+}
+.anchor-chip-id { font-family: "Space Mono", monospace; font-size: 10px; color: var(--muted); }
+.anchor-chip-hint { font-size: 11px; color: var(--muted); }
+.anchor-chip-clear {
+    margin-left: auto; width: 26px; height: 26px; flex-shrink: 0;
+    border: 1px solid var(--line); border-radius: 50%; background: transparent;
+    color: var(--muted); font-size: 16px; line-height: 1; cursor: pointer;
+    transition: color 160ms ease, border-color 160ms ease;
+}
+.anchor-chip-clear:hover { color: var(--accent-ink); border-color: var(--accent); }
+
+.card-actions {
+    position: absolute; top: 8px; right: 8px; z-index: 2;
+    display: flex; gap: 6px; opacity: 0; transition: opacity 180ms ease;
+}
+.item-card .card-frame:hover .card-actions { opacity: 1; }
+.card-act {
+    width: 28px; height: 28px; border: 1px solid var(--line); border-radius: 50%;
+    background: rgba(20, 17, 14, 0.62); backdrop-filter: blur(2px);
+    color: #fff5ee; font-size: 14px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+}
+.card-act:hover { border-color: var(--accent); }
+.card-act.on { color: var(--accent-ink); border-color: var(--accent); background: rgba(217, 88, 63, 0.18); }
+
+.picks-list { display: flex; flex-direction: column; gap: 8px; }
+.pick-item {
+    display: grid; grid-template-columns: 44px 1fr auto; align-items: center; gap: 10px;
+    padding: 6px; border: 1px solid var(--line-soft); border-radius: 6px; cursor: grab;
+    transition: border-color 160ms ease, background 160ms ease;
+}
+.pick-item:hover { border-color: var(--line); background: var(--line-soft); }
+.pick-thumb { width: 44px; height: 56px; object-fit: cover; border-radius: 4px; cursor: pointer; }
+.pick-meta { min-width: 0; cursor: pointer; }
+.pick-meta .title { font-size: 12px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pick-meta .subtitle { font-size: 11px; color: var(--muted); }
+.pick-meta .article { font-family: "Space Mono", monospace; font-size: 9px; color: var(--muted); }
+.pick-actions { display: flex; flex-direction: column; gap: 4px; }
+.pick-act {
+    width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 5px;
+    background: transparent; color: var(--muted); font-size: 13px; line-height: 1; cursor: pointer;
+    transition: color 160ms ease, border-color 160ms ease;
+}
+.pick-act:hover { color: var(--accent-ink); border-color: var(--accent); }
