@@ -1,0 +1,3288 @@
+{
+  "summary": {
+    "by_tier": {
+      "easy": {
+        "conv_total": 6,
+        "conv_passed": 6,
+        "turn_total": 6,
+        "turn_passed": 6
+      },
+      "medium": {
+        "conv_total": 5,
+        "conv_passed": 5,
+        "turn_total": 5,
+        "turn_passed": 5
+      },
+      "hard": {
+        "conv_total": 9,
+        "conv_passed": 9,
+        "turn_total": 20,
+        "turn_passed": 20
+      }
+    },
+    "overall": {
+      "conv_total": 20,
+      "conv_passed": 20,
+      "conv_pass_rate": 1.0,
+      "turn_total": 31,
+      "turn_passed": 31,
+      "turn_pass_rate": 1.0
+    }
+  },
+  "conversations": [
+    {
+      "id": "E1",
+      "tier": "easy",
+      "title": "type + colour (dress, black)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "E1",
+          "query": "a black dress",
+          "passed": true,
+          "n_pred": 5,
+          "n_pred_pass": 5,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Dress",
+              "colour_group": "Black"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Party/Evening/Wedding",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Dress"
+              },
+              "passed": true,
+              "detail": "must.product_type=[dress] expected='Dress'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Black"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[black] expected='Black'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Dress"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Dress']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "Black"
+                ],
+                "min_frac": 0.8
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['Black']=1.00 min=0.8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E2",
+      "tier": "easy",
+      "title": "synonym type (jeans -> Trousers)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "E2",
+          "query": "blue jeans",
+          "passed": true,
+          "n_pred": 5,
+          "n_pred_pass": 5,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Trousers",
+              "colour_group": "Blue"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers"
+            ],
+            "result_colours": [
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Trousers"
+              },
+              "passed": true,
+              "detail": "must.product_type=[trousers] expected='Trousers'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Blue"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[blue] expected='Blue'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Trousers"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Trousers']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "Blue"
+                ],
+                "min_frac": 0.6
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['Blue']=1.00 min=0.6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E3",
+      "tier": "easy",
+      "title": "type + colour (sweater, grey)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "E3",
+          "query": "a grey sweater",
+          "passed": true,
+          "n_pred": 5,
+          "n_pred_pass": 5,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Sweater",
+              "colour_group": "Grey"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater"
+            ],
+            "result_colours": [
+              "Grey",
+              "Grey",
+              "Grey",
+              "Grey",
+              "Grey",
+              "Grey",
+              "Grey",
+              "Grey",
+              "Grey",
+              "Grey"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Sweater"
+              },
+              "passed": true,
+              "detail": "must.product_type=[sweater] expected='Sweater'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Grey"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[grey] expected='Grey'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Sweater"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Sweater']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "Grey"
+                ],
+                "min_frac": 0.8
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['Grey']=1.00 min=0.8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E4",
+      "tier": "easy",
+      "title": "accessory type (bag)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "E4",
+          "query": "a leather bag",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Bag"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Bag",
+              "Bag",
+              "Bag",
+              "Bag",
+              "Bag",
+              "Bag",
+              "Bag",
+              "Bag",
+              "Bag",
+              "Bag"
+            ],
+            "result_colours": [
+              "Black",
+              "Yellowish Brown",
+              "Black",
+              "Black",
+              "Black",
+              "Dark Orange",
+              "Black",
+              "Dark Beige",
+              "Beige",
+              "Yellowish Brown"
+            ],
+            "result_occasions": []
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Bag"
+              },
+              "passed": true,
+              "detail": "must.product_type=[bag] expected='Bag'"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=10 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Bag"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Bag']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E5",
+      "tier": "easy",
+      "title": "occasion-only (loungewear, no type)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "E5",
+          "query": "comfy loungewear set for sleeping",
+          "passed": true,
+          "n_pred": 6,
+          "n_pred_pass": 6,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "occasion": "Lounge/Sleep/Nightwear"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "filter+occasion",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Pyjama set",
+              "Pyjama set",
+              "Pyjama set",
+              "Pyjama set",
+              "Pyjama set",
+              "Pyjama bottom",
+              "Pyjama set",
+              "Pyjama set",
+              "Pyjama set",
+              "Pyjama set"
+            ],
+            "result_colours": [
+              "Black",
+              "Grey",
+              "Dark Red",
+              "Dark Blue",
+              "Grey",
+              "Beige",
+              "Dark Grey",
+              "Dark Turquoise",
+              "Grey",
+              "Grey"
+            ],
+            "result_occasions": [
+              "Lounge/Sleep/Nightwear",
+              "Lounge/Sleep/Nightwear",
+              "Lounge/Sleep/Nightwear",
+              "Lounge/Sleep/Nightwear",
+              "Lounge/Sleep/Nightwear",
+              "Lounge/Sleep/Nightwear",
+              "Lounge/Sleep/Nightwear",
+              "Lounge/Sleep/Nightwear",
+              "Lounge/Sleep/Nightwear",
+              "Lounge/Sleep/Nightwear"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "occasion",
+                "contains": "Lounge"
+              },
+              "passed": true,
+              "detail": "must.occasion=[lounge/sleep/nightwear] contains='Lounge'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "absent": true
+              },
+              "passed": true,
+              "detail": "must.product_type=[<none>]"
+            },
+            {
+              "pred": {
+                "check": "path",
+                "contains": "filter+occasion"
+              },
+              "passed": true,
+              "detail": "path=['filter+occasion', 'cross_encoder_rerank'] contains='filter+occasion'"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=10 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "occasion",
+                "values": [
+                  "Lounge/Sleep/Nightwear"
+                ],
+                "min_frac": 0.7
+              },
+              "passed": true,
+              "detail": "occasion frac_in ['Lounge/Sleep/Nightwear']=1.00 min=0.7"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "E6",
+      "tier": "easy",
+      "title": "occasion-only (gym, no type)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "E6",
+          "query": "something to wear to the gym",
+          "passed": true,
+          "n_pred": 5,
+          "n_pred_pass": 5,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "graph_pairing",
+            "direct_type": "",
+            "must": {
+              "occasion": "Sport/Active/Workout"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "filter+occasion",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "T-shirt",
+              "T-shirt",
+              "T-shirt",
+              "Shorts",
+              "T-shirt",
+              "T-shirt",
+              "Vest top",
+              "T-shirt",
+              "T-shirt",
+              "Leggings/Tights"
+            ],
+            "result_colours": [
+              "Black",
+              "Pink",
+              "Black",
+              "Black",
+              "Dark Blue",
+              "Dark Blue",
+              "Black",
+              "White",
+              "Light Turquoise",
+              "Dark Pink"
+            ],
+            "result_occasions": [
+              "Sport/Active/Workout",
+              "Sport/Active/Workout",
+              "Sport/Active/Workout",
+              "Sport/Active/Workout",
+              "Sport/Active/Workout",
+              "Sport/Active/Workout",
+              "Sport/Active/Workout",
+              "Sport/Active/Workout",
+              "Sport/Active/Workout",
+              "Sport/Active/Workout"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "occasion",
+                "contains": "Sport"
+              },
+              "passed": true,
+              "detail": "must.occasion=[sport/active/workout] contains='Sport'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "absent": true
+              },
+              "passed": true,
+              "detail": "must.product_type=[<none>]"
+            },
+            {
+              "pred": {
+                "check": "path",
+                "contains": "filter+occasion"
+              },
+              "passed": true,
+              "detail": "path=['filter+occasion', 'cross_encoder_rerank'] contains='filter+occasion'"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "occasion",
+                "values": [
+                  "Sport/Active/Workout"
+                ],
+                "min_frac": 0.6
+              },
+              "passed": true,
+              "detail": "occasion frac_in ['Sport/Active/Workout']=1.00 min=0.6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "M1",
+      "tier": "medium",
+      "title": "type + occasion (dress, wedding)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "M1",
+          "query": "a dress for a wedding",
+          "passed": true,
+          "n_pred": 5,
+          "n_pred_pass": 5,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Dress",
+              "occasion": "Party/Evening/Wedding"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "filter+occasion",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress"
+            ],
+            "result_colours": [
+              "Off White",
+              "Off White",
+              "Black",
+              "Off White",
+              "Black",
+              "Off White",
+              "Off White",
+              "Off White",
+              "Off White",
+              "Off White"
+            ],
+            "result_occasions": [
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Dress"
+              },
+              "passed": true,
+              "detail": "must.product_type=[dress] expected='Dress'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "occasion",
+                "contains": "Party"
+              },
+              "passed": true,
+              "detail": "must.occasion=[party/evening/wedding] contains='Party'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Dress"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Dress']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "occasion",
+                "values": [
+                  "Party/Evening/Wedding"
+                ],
+                "min_frac": 0.6
+              },
+              "passed": true,
+              "detail": "occasion frac_in ['Party/Evening/Wedding']=1.00 min=0.6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "M2",
+      "tier": "medium",
+      "title": "type + gender (shirt, men)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "M2",
+          "query": "a shirt for men",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Shirt"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank",
+              "gender_filter:Men"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt"
+            ],
+            "result_colours": [
+              "Beige",
+              "White",
+              "White",
+              "Red",
+              "Dark Blue",
+              "Black",
+              "White",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Shirt"
+              },
+              "passed": true,
+              "detail": "must.product_type=[shirt] expected='Shirt'"
+            },
+            {
+              "pred": {
+                "check": "path",
+                "contains": "gender_filter"
+              },
+              "passed": true,
+              "detail": "path=['hard_filters', 'cross_encoder_rerank', 'gender_filter:Men'] contains='gender_filter'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Shirt"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Shirt']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "M3",
+      "tier": "medium",
+      "title": "type + colour + fit (trousers, black, slim)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "M3",
+          "query": "slim fit black trousers",
+          "passed": true,
+          "n_pred": 6,
+          "n_pred_pass": 6,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Trousers",
+              "colour_group": "Black",
+              "fit": "Slim/Tailored"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Office/Workwear",
+              "Office/Workwear",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Office/Workwear"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Trousers"
+              },
+              "passed": true,
+              "detail": "must.product_type=[trousers] expected='Trousers'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Black"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[black] expected='Black'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "fit",
+                "contains": "Slim"
+              },
+              "passed": true,
+              "detail": "must.fit=[slim/tailored] contains='Slim'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Trousers"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Trousers']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "Black"
+                ],
+                "min_frac": 0.8
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['Black']=1.00 min=0.8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "M4",
+      "tier": "medium",
+      "title": "negation colour (sweater, not black)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "M4",
+          "query": "a sweater but not black",
+          "passed": true,
+          "n_pred": 6,
+          "n_pred_pass": 6,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Sweater"
+            },
+            "must_not": {
+              "colour_group": [
+                "Black"
+              ]
+            },
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater"
+            ],
+            "result_colours": [
+              "Dark Red",
+              "Dark Red",
+              "Dark Grey",
+              "Dark Blue",
+              "Dark Turquoise",
+              "Dark Purple",
+              "Dark Pink",
+              "Dark Blue",
+              "Light Orange",
+              "Red"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Sweater"
+              },
+              "passed": true,
+              "detail": "must.product_type=[sweater] expected='Sweater'"
+            },
+            {
+              "pred": {
+                "check": "must_not",
+                "field": "colour_group",
+                "contains": "Black"
+              },
+              "passed": true,
+              "detail": "must_not.colour_group=[black] contains='Black'"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=10 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Sweater"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Sweater']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_none_in",
+                "field": "colour_group",
+                "values": [
+                  "Black"
+                ]
+              },
+              "passed": true,
+              "detail": "colour_group none in ['Black']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "M5",
+      "tier": "medium",
+      "title": "OOV type + season (parka -> Jacket, winter)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "M5",
+          "query": "a parka for cold weather",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Jacket",
+              "seasonality": "Autumn/Winter"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Jacket",
+              "Jacket",
+              "Jacket",
+              "Jacket",
+              "Jacket",
+              "Jacket",
+              "Jacket",
+              "Jacket",
+              "Jacket",
+              "Jacket"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Dark Blue",
+              "Yellowish Brown",
+              "Greenish Khaki",
+              "Greenish Khaki",
+              "Black"
+            ],
+            "result_occasions": [
+              "Outdoor/Adventure",
+              "Outdoor/Adventure",
+              "Outdoor/Adventure",
+              "Outdoor/Adventure",
+              "Outdoor/Adventure",
+              "Outdoor/Adventure",
+              "Outdoor/Adventure",
+              "Outdoor/Adventure",
+              "Outdoor/Adventure",
+              "Outdoor/Adventure"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Jacket"
+              },
+              "passed": true,
+              "detail": "must.product_type=[jacket] expected='Jacket'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "seasonality",
+                "contains": "Winter"
+              },
+              "passed": true,
+              "detail": "must.seasonality=[autumn/winter] contains='Winter'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Jacket"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Jacket']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C1",
+      "tier": "hard",
+      "title": "refine colour, then switch type",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C1.1",
+          "query": "I want a white shirt",
+          "passed": true,
+          "n_pred": 5,
+          "n_pred_pass": 5,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Shirt",
+              "colour_group": "White"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt"
+            ],
+            "result_colours": [
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Shirt"
+              },
+              "passed": true,
+              "detail": "must.product_type=[shirt] expected='Shirt'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "White"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[white] expected='White'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Shirt"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Shirt']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "White"
+                ],
+                "min_frac": 0.8
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['White']=1.00 min=0.8"
+            }
+          ]
+        },
+        {
+          "id": "C1.2",
+          "query": "make it blue",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "color_variant",
+            "direct_type": "",
+            "must": {
+              "colour_group": "Blue",
+              "product_type": "Shirt"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt"
+            ],
+            "result_colours": [
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue",
+              "Blue"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Blue"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[blue] expected='Blue'"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=10 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Shirt"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Shirt']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "Blue"
+                ],
+                "min_frac": 0.6
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['Blue']=1.00 min=0.6"
+            }
+          ]
+        },
+        {
+          "id": "C1.3",
+          "query": "now show me black trousers instead",
+          "passed": true,
+          "n_pred": 5,
+          "n_pred_pass": 5,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "graph_pairing",
+            "direct_type": "",
+            "must": {
+              "product_type": "Trousers",
+              "colour_group": "Black"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Office/Workwear",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Sport/Active/Workout",
+              "Office/Workwear",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Trousers"
+              },
+              "passed": true,
+              "detail": "must.product_type=[trousers] expected='Trousers'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Black"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[black] expected='Black'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Trousers"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Trousers']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "Black"
+                ],
+                "min_frac": 0.8
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['Black']=1.00 min=0.8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "tier": "hard",
+      "title": "search, then pair with the item just found",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C2.1",
+          "query": "find me a white shirt",
+          "passed": true,
+          "n_pred": 3,
+          "n_pred_pass": 3,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Shirt",
+              "colour_group": "White"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt"
+            ],
+            "result_colours": [
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Shirt"
+              },
+              "passed": true,
+              "detail": "must.product_type=[shirt] expected='Shirt'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Shirt"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Shirt']? offenders=none"
+            }
+          ]
+        },
+        {
+          "id": "C2.2",
+          "query": "what goes well with this",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "graph_pairing",
+            "classifier_intent": "graph_pairing",
+            "direct_type": "",
+            "must": {},
+            "must_not": {},
+            "retrieval_path": [
+              "intent_graph_pairing",
+              "anchor_from_selection",
+              "graph_neighbors",
+              "compat_pairing_fallback",
+              "pairing_query_rerank"
+            ],
+            "anchor_id": "0681900001",
+            "graph_candidate_count": 3,
+            "n_results": 8,
+            "result_types": [
+              "Hat/beanie",
+              "Other accessories",
+              "Scarf",
+              "Earring",
+              "Scarf",
+              "Hat/beanie",
+              "Scarf",
+              "Hat/beanie"
+            ],
+            "result_colours": [
+              "Black",
+              "Dark Red",
+              "Orange",
+              "Gold",
+              "Pink",
+              "Dark Blue",
+              "Yellow",
+              "White"
+            ],
+            "result_occasions": []
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "graph_pairing"
+              },
+              "passed": true,
+              "detail": "intent='graph_pairing' expected='graph_pairing'"
+            },
+            {
+              "pred": {
+                "check": "anchor",
+                "resolved": true
+              },
+              "passed": true,
+              "detail": "anchor_id='0681900001' resolved_expected=True"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=8 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_none_in",
+                "field": "product_type",
+                "values": [
+                  "Shirt"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type none in ['Shirt']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "tier": "hard",
+      "title": "search, then colour variant of the item just found",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C3.1",
+          "query": "show me a black dress",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Dress",
+              "colour_group": "Black"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Party/Evening/Wedding",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Party/Evening/Wedding"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Dress"
+              },
+              "passed": true,
+              "detail": "must.product_type=[dress] expected='Dress'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Black"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[black] expected='Black'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Dress"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Dress']? offenders=none"
+            }
+          ]
+        },
+        {
+          "id": "C3.2",
+          "query": "do you have this in red",
+          "passed": true,
+          "n_pred": 5,
+          "n_pred_pass": 5,
+          "error": "",
+          "observed": {
+            "intent": "color_variant",
+            "classifier_intent": "color_variant",
+            "direct_type": "",
+            "must": {
+              "product_type": "Shirt",
+              "colour_group": "Red"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "color_variant_image_knn"
+            ],
+            "anchor_id": "0700842002",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress"
+            ],
+            "result_colours": [
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Party/Evening/Wedding"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "color_variant"
+              },
+              "passed": true,
+              "detail": "intent='color_variant' expected='color_variant'"
+            },
+            {
+              "pred": {
+                "check": "anchor",
+                "resolved": true
+              },
+              "passed": true,
+              "detail": "anchor_id='0700842002' resolved_expected=True"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=10 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Dress"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Dress']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "Red"
+                ],
+                "min_frac": 0.5
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['Red']=1.00 min=0.5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C4",
+      "tier": "hard",
+      "title": "negation refinement across turns",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C4.1",
+          "query": "a sweater",
+          "passed": true,
+          "n_pred": 3,
+          "n_pred_pass": 3,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Sweater"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater"
+            ],
+            "result_colours": [
+              "Dark Grey",
+              "White",
+              "Pink",
+              "White",
+              "Black",
+              "Grey",
+              "Dark Red",
+              "Red",
+              "Black",
+              "Red"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Sweater"
+              },
+              "passed": true,
+              "detail": "must.product_type=[sweater] expected='Sweater'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Sweater"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Sweater']? offenders=none"
+            }
+          ]
+        },
+        {
+          "id": "C4.2",
+          "query": "but not black",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "color_variant",
+            "direct_type": "",
+            "must": {
+              "product_type": "Sweater"
+            },
+            "must_not": {
+              "colour_group": [
+                "Black"
+              ]
+            },
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater",
+              "Sweater"
+            ],
+            "result_colours": [
+              "Dark Red",
+              "Dark Green",
+              "Dark Grey",
+              "Dark Blue",
+              "Grey",
+              "Dark Grey",
+              "Dark Grey",
+              "Dark Grey",
+              "Yellow",
+              "Light Pink"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "must_not",
+                "field": "colour_group",
+                "contains": "Black"
+              },
+              "passed": true,
+              "detail": "must_not.colour_group=[black] contains='Black'"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=10 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Sweater"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Sweater']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_none_in",
+                "field": "colour_group",
+                "values": [
+                  "Black"
+                ]
+              },
+              "passed": true,
+              "detail": "colour_group none in ['Black']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C5",
+      "tier": "hard",
+      "title": "chit-chat, then recover to a real search",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C5.1",
+          "query": "hi there, what can you do?",
+          "passed": true,
+          "n_pred": 2,
+          "n_pred_pass": 2,
+          "error": "",
+          "observed": {
+            "intent": "chit_chat",
+            "classifier_intent": "chit_chat",
+            "direct_type": "chit_chat",
+            "must": {},
+            "must_not": {},
+            "retrieval_path": [
+              "intent_chit_chat"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 0,
+            "result_types": [],
+            "result_colours": [],
+            "result_occasions": []
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "chit_chat"
+              },
+              "passed": true,
+              "detail": "intent='chit_chat' expected='chit_chat'"
+            },
+            {
+              "pred": {
+                "check": "direct",
+                "equals": "chit_chat"
+              },
+              "passed": true,
+              "detail": "direct='chit_chat' expected='chit_chat'"
+            }
+          ]
+        },
+        {
+          "id": "C5.2",
+          "query": "ok, show me a red dress",
+          "passed": true,
+          "n_pred": 5,
+          "n_pred_pass": 5,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "chit_chat",
+            "direct_type": "",
+            "must": {
+              "product_type": "Dress",
+              "colour_group": "Red"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress",
+              "Dress"
+            ],
+            "result_colours": [
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red",
+              "Red"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Party/Evening/Wedding",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Dress"
+              },
+              "passed": true,
+              "detail": "must.product_type=[dress] expected='Dress'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Red"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[red] expected='Red'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Dress"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Dress']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "Red"
+                ],
+                "min_frac": 0.8
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['Red']=1.00 min=0.8"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C6",
+      "tier": "hard",
+      "title": "multi-step accumulating refinement",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C6.1",
+          "query": "I want a white shirt",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Shirt",
+              "colour_group": "White"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt"
+            ],
+            "result_colours": [
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White",
+              "White"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Shirt"
+              },
+              "passed": true,
+              "detail": "must.product_type=[shirt] expected='Shirt'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "White"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[white] expected='White'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Shirt"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Shirt']? offenders=none"
+            }
+          ]
+        },
+        {
+          "id": "C6.2",
+          "query": "make it slim fit",
+          "passed": true,
+          "n_pred": 3,
+          "n_pred_pass": 3,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "chit_chat",
+            "direct_type": "",
+            "must": {
+              "fit": "Slim/Tailored",
+              "product_type": "Shirt"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt"
+            ],
+            "result_colours": [
+              "White",
+              "White",
+              "White",
+              "White",
+              "Black",
+              "Dark Red",
+              "Dark Red",
+              "Dark Blue",
+              "Black",
+              "Dark Green"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "must",
+                "field": "fit",
+                "contains": "Slim"
+              },
+              "passed": true,
+              "detail": "must.fit=[slim/tailored] contains='Slim'"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=10 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Shirt"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Shirt']? offenders=none"
+            }
+          ]
+        },
+        {
+          "id": "C6.3",
+          "query": "actually in black",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "color_variant",
+            "direct_type": "",
+            "must": {
+              "colour_group": "Black",
+              "product_type": "Shirt"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Black"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[black] expected='Black'"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=10 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Shirt"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Shirt']? offenders=none"
+            },
+            {
+              "pred": {
+                "check": "results_frac_in",
+                "field": "colour_group",
+                "values": [
+                  "Black"
+                ],
+                "min_frac": 0.6
+              },
+              "passed": true,
+              "detail": "colour_group frac_in ['Black']=1.00 min=0.6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C7",
+      "tier": "hard",
+      "title": "search trousers, then build an outfit around it",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C7.1",
+          "query": "find black trousers",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Trousers",
+              "colour_group": "Black"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Trousers"
+              },
+              "passed": true,
+              "detail": "must.product_type=[trousers] expected='Trousers'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "colour_group",
+                "equals": "Black"
+              },
+              "passed": true,
+              "detail": "must.colour_group=[black] expected='Black'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Trousers"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Trousers']? offenders=none"
+            }
+          ]
+        },
+        {
+          "id": "C7.2",
+          "query": "build an outfit around this",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "graph_pairing",
+            "classifier_intent": "graph_pairing",
+            "direct_type": "",
+            "must": {},
+            "must_not": {},
+            "retrieval_path": [
+              "intent_graph_pairing",
+              "anchor_from_selection",
+              "graph_neighbors",
+              "cold_twin_compat_rrf",
+              "pairing_query_rerank"
+            ],
+            "anchor_id": "0612075008",
+            "graph_candidate_count": 0,
+            "n_results": 8,
+            "result_types": [
+              "Cardigan",
+              "T-shirt",
+              "Vest top",
+              "Cardigan",
+              "Vest top",
+              "Sweater",
+              "Vest top",
+              "Vest top"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Green",
+              "Black",
+              "Dark Blue",
+              "Black",
+              "White"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "graph_pairing"
+              },
+              "passed": true,
+              "detail": "intent='graph_pairing' expected='graph_pairing'"
+            },
+            {
+              "pred": {
+                "check": "anchor",
+                "resolved": true
+              },
+              "passed": true,
+              "detail": "anchor_id='0612075008' resolved_expected=True"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=8 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_none_in",
+                "field": "product_type",
+                "values": [
+                  "Trousers"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type none in ['Trousers']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C8",
+      "tier": "hard",
+      "title": "implicit pronoun pairing via phrase (chat-rescue)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C8.1",
+          "query": "find black trousers",
+          "passed": true,
+          "n_pred": 3,
+          "n_pred_pass": 3,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Trousers",
+              "colour_group": "Black"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Trousers"
+              },
+              "passed": true,
+              "detail": "must.product_type=[trousers] expected='Trousers'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Trousers"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Trousers']? offenders=none"
+            }
+          ]
+        },
+        {
+          "id": "C8.2",
+          "query": "what goes well with it",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "graph_pairing",
+            "classifier_intent": "chit_chat",
+            "direct_type": "",
+            "must": {},
+            "must_not": {},
+            "retrieval_path": [
+              "intent_graph_pairing",
+              "anchor_from_selection",
+              "graph_neighbors",
+              "cold_twin_compat_rrf",
+              "pairing_query_rerank"
+            ],
+            "anchor_id": "0612075008",
+            "graph_candidate_count": 0,
+            "n_results": 8,
+            "result_types": [
+              "Hat/beanie",
+              "Hat/beanie",
+              "Other accessories",
+              "Scarf",
+              "Hat/beanie",
+              "Other accessories",
+              "Other accessories",
+              "Bag"
+            ],
+            "result_colours": [
+              "Black",
+              "Light Grey",
+              "Light Blue",
+              "Beige",
+              "White",
+              "Light Blue",
+              "White",
+              "White"
+            ],
+            "result_occasions": []
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "graph_pairing"
+              },
+              "passed": true,
+              "detail": "intent='graph_pairing' expected='graph_pairing'"
+            },
+            {
+              "pred": {
+                "check": "anchor",
+                "resolved": true
+              },
+              "passed": true,
+              "detail": "anchor_id='0612075008' resolved_expected=True"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=8 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_none_in",
+                "field": "product_type",
+                "values": [
+                  "Trousers"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type none in ['Trousers']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C9",
+      "tier": "hard",
+      "title": "phraseless pairing (graph re-honor via real anchor)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C9.1",
+          "query": "find black trousers",
+          "passed": true,
+          "n_pred": 3,
+          "n_pred_pass": 3,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Trousers",
+              "colour_group": "Black"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers",
+              "Trousers"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Office/Workwear",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Trousers"
+              },
+              "passed": true,
+              "detail": "must.product_type=[trousers] expected='Trousers'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Trousers"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Trousers']? offenders=none"
+            }
+          ]
+        },
+        {
+          "id": "C9.2",
+          "query": "what matches it",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "graph_pairing",
+            "classifier_intent": "graph_pairing",
+            "direct_type": "",
+            "must": {},
+            "must_not": {},
+            "retrieval_path": [
+              "intent_graph_pairing",
+              "anchor_from_selection",
+              "graph_neighbors",
+              "cold_twin_compat_rrf",
+              "pairing_query_rerank"
+            ],
+            "anchor_id": "0612075008",
+            "graph_candidate_count": 0,
+            "n_results": 8,
+            "result_types": [
+              "Hat/beanie",
+              "Hat/beanie",
+              "Scarf",
+              "Other accessories",
+              "Other accessories",
+              "Hat/beanie",
+              "Other accessories",
+              "Bag"
+            ],
+            "result_colours": [
+              "Black",
+              "Light Grey",
+              "Beige",
+              "Light Blue",
+              "White",
+              "White",
+              "Light Blue",
+              "White"
+            ],
+            "result_occasions": []
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "graph_pairing"
+              },
+              "passed": true,
+              "detail": "intent='graph_pairing' expected='graph_pairing'"
+            },
+            {
+              "pred": {
+                "check": "anchor",
+                "resolved": true
+              },
+              "passed": true,
+              "detail": "anchor_id='0612075008' resolved_expected=True"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=8 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_none_in",
+                "field": "product_type",
+                "values": [
+                  "Trousers"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type none in ['Trousers']? offenders=none"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

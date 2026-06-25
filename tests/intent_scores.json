@@ -1,0 +1,478 @@
+{
+  "summary": {
+    "n": 48,
+    "model_correct": 47,
+    "model_acc": 0.9791666666666666,
+    "rule_correct": 47,
+    "rule_acc": 0.9791666666666666,
+    "rules_hurt": 0,
+    "rules_help": 0,
+    "disagreements": 1,
+    "disagree_rate": 0.020833333333333332,
+    "per_class": {
+      "similar_items": {
+        "n": 12,
+        "model_correct": 12,
+        "rule_correct": 12
+      },
+      "graph_pairing": {
+        "n": 12,
+        "model_correct": 12,
+        "rule_correct": 12
+      },
+      "color_variant": {
+        "n": 8,
+        "model_correct": 7,
+        "rule_correct": 7
+      },
+      "composite_intent": {
+        "n": 6,
+        "model_correct": 6,
+        "rule_correct": 6
+      },
+      "chit_chat": {
+        "n": 10,
+        "model_correct": 10,
+        "rule_correct": 10
+      }
+    },
+    "conf_mean_model_correct": 0.9150598404255319,
+    "conf_min_model_correct": 0.5390625,
+    "conf_mean_model_wrong": 0.5625,
+    "conf_max_model_wrong": 0.5625
+  },
+  "rows": [
+    {
+      "query": "a black dress",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.9453125,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "show me white sneakers",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.953125,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "I'm looking for a wool coat",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.94140625,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "blue jeans",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.9453125,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "a leather handbag",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.94921875,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "floral summer blouse",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.94921875,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "a parka for cold weather",
+      "gold": "similar_items",
+      "hard": true,
+      "model": "similar_items",
+      "confidence": 0.93359375,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "something warm for winter",
+      "gold": "similar_items",
+      "hard": true,
+      "model": "similar_items",
+      "confidence": 0.71875,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "red high heels for a party",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.9453125,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "an oversized hoodie",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.94921875,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "a striped cotton shirt",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.953125,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "knitwear for the office",
+      "gold": "similar_items",
+      "hard": false,
+      "model": "similar_items",
+      "confidence": 0.69140625,
+      "rule_final": "similar_items",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "what goes with this",
+      "gold": "graph_pairing",
+      "hard": false,
+      "model": "graph_pairing",
+      "confidence": 0.94140625,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "what goes well with this",
+      "gold": "graph_pairing",
+      "hard": true,
+      "model": "graph_pairing",
+      "confidence": 0.93359375,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "what trousers go with a white shirt",
+      "gold": "graph_pairing",
+      "hard": false,
+      "model": "graph_pairing",
+      "confidence": 0.9453125,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "build an outfit around this",
+      "gold": "graph_pairing",
+      "hard": true,
+      "model": "graph_pairing",
+      "confidence": 0.9296875,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "what shoes pair with this dress",
+      "gold": "graph_pairing",
+      "hard": false,
+      "model": "graph_pairing",
+      "confidence": 0.9453125,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "I need a top to wear with these jeans",
+      "gold": "graph_pairing",
+      "hard": false,
+      "model": "graph_pairing",
+      "confidence": 0.94921875,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "what matches this jacket",
+      "gold": "graph_pairing",
+      "hard": true,
+      "model": "graph_pairing",
+      "confidence": 0.9453125,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "style this with something nice",
+      "gold": "graph_pairing",
+      "hard": false,
+      "model": "graph_pairing",
+      "confidence": 0.953125,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "help me put together an outfit with this",
+      "gold": "graph_pairing",
+      "hard": true,
+      "model": "graph_pairing",
+      "confidence": 0.93359375,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "complete the look for this skirt",
+      "gold": "graph_pairing",
+      "hard": true,
+      "model": "graph_pairing",
+      "confidence": 0.94140625,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "which bag suits this coat",
+      "gold": "graph_pairing",
+      "hard": true,
+      "model": "graph_pairing",
+      "confidence": 0.94921875,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "anything that goes nicely with my black trousers",
+      "gold": "graph_pairing",
+      "hard": true,
+      "model": "graph_pairing",
+      "confidence": 0.94921875,
+      "rule_final": "graph_pairing",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "do you have this in another colour",
+      "gold": "color_variant",
+      "hard": false,
+      "model": "color_variant",
+      "confidence": 0.94140625,
+      "rule_final": "color_variant",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "this but in red",
+      "gold": "color_variant",
+      "hard": false,
+      "model": "color_variant",
+      "confidence": 0.9453125,
+      "rule_final": "color_variant",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "same dress in black",
+      "gold": "color_variant",
+      "hard": false,
+      "model": "color_variant",
+      "confidence": 0.69921875,
+      "rule_final": "color_variant",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "any other colours",
+      "gold": "color_variant",
+      "hard": false,
+      "model": "color_variant",
+      "confidence": 0.94140625,
+      "rule_final": "color_variant",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "show me this in blue",
+      "gold": "color_variant",
+      "hard": true,
+      "model": "color_variant",
+      "confidence": 0.9453125,
+      "rule_final": "color_variant",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "is there a different colorway",
+      "gold": "color_variant",
+      "hard": true,
+      "model": "color_variant",
+      "confidence": 0.94140625,
+      "rule_final": "color_variant",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "the same one but green",
+      "gold": "color_variant",
+      "hard": true,
+      "model": "chit_chat",
+      "confidence": 0.5625,
+      "rule_final": "similar_items",
+      "rule_applied": "override_chit_chat_to_similar"
+    },
+    {
+      "query": "can I get this in a darker shade",
+      "gold": "color_variant",
+      "hard": true,
+      "model": "color_variant",
+      "confidence": 0.94140625,
+      "rule_final": "color_variant",
+      "rule_applied": "trust_classifier"
+    },
+    {
+      "query": "hello",
+      "gold": "chit_chat",
+      "hard": false,
+      "model": "chit_chat",
+      "confidence": 0.953125,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "hi there",
+      "gold": "chit_chat",
+      "hard": false,
+      "model": "chit_chat",
+      "confidence": 0.953125,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "how are you",
+      "gold": "chit_chat",
+      "hard": false,
+      "model": "chit_chat",
+      "confidence": 0.94921875,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "what can you do",
+      "gold": "chit_chat",
+      "hard": false,
+      "model": "chit_chat",
+      "confidence": 0.94921875,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "who are you",
+      "gold": "chit_chat",
+      "hard": false,
+      "model": "chit_chat",
+      "confidence": 0.94921875,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "thanks a lot",
+      "gold": "chit_chat",
+      "hard": false,
+      "model": "chit_chat",
+      "confidence": 0.953125,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "what's the weather like today",
+      "gold": "chit_chat",
+      "hard": false,
+      "model": "chit_chat",
+      "confidence": 0.94921875,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "tell me a joke",
+      "gold": "chit_chat",
+      "hard": false,
+      "model": "chit_chat",
+      "confidence": 0.953125,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "good morning",
+      "gold": "chit_chat",
+      "hard": false,
+      "model": "chit_chat",
+      "confidence": 0.953125,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "are you a robot",
+      "gold": "chit_chat",
+      "hard": true,
+      "model": "chit_chat",
+      "confidence": 0.94921875,
+      "rule_final": "chit_chat",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "I want a top and trousers and shoes",
+      "gold": "composite_intent",
+      "hard": false,
+      "model": "composite_intent",
+      "confidence": 0.94140625,
+      "rule_final": "composite_intent",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "show me a shirt, a jacket, and jeans",
+      "gold": "composite_intent",
+      "hard": false,
+      "model": "composite_intent",
+      "confidence": 0.94140625,
+      "rule_final": "composite_intent",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "find me a dress and matching shoes",
+      "gold": "composite_intent",
+      "hard": true,
+      "model": "composite_intent",
+      "confidence": 0.9453125,
+      "rule_final": "composite_intent",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "I need a full outfit: blazer, shirt, and trousers",
+      "gold": "composite_intent",
+      "hard": false,
+      "model": "composite_intent",
+      "confidence": 0.92578125,
+      "rule_final": "composite_intent",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "an entire look with a coat, scarf, and boots",
+      "gold": "composite_intent",
+      "hard": true,
+      "model": "composite_intent",
+      "confidence": 0.5390625,
+      "rule_final": "composite_intent",
+      "rule_applied": "pass_through"
+    },
+    {
+      "query": "give me a complete outfit for the office with everything",
+      "gold": "composite_intent",
+      "hard": true,
+      "model": "composite_intent",
+      "confidence": 0.65625,
+      "rule_final": "composite_intent",
+      "rule_applied": "pass_through"
+    }
+  ]
+}

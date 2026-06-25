@@ -30,13 +30,17 @@ class Settings:
     topk_similar: int = int(os.getenv("TOPK_SIMILAR", "8"))
     topk_graph: int = int(os.getenv("TOPK_GRAPH", "6"))
     topk_variants: int = int(os.getenv("TOPK_VARIANTS", "6"))
+    # items returned to the UI (a "show more" reveals beyond the first few); the grounded reply is
+    # still written from only the top `gen_context_items` so it stays concise.
+    ui_item_limit: int = int(os.getenv("UI_ITEM_LIMIT", "10"))
+    gen_context_items: int = int(os.getenv("GEN_CONTEXT_ITEMS", "5"))
 
     graph_hard_min_weight: int = int(os.getenv("GRAPH_HARD_MIN_WEIGHT", "3"))
     graph_preferred_min_weight: int = int(os.getenv("GRAPH_PREFERRED_MIN_WEIGHT", "4"))
     graph_max_hops: int = int(os.getenv("GRAPH_MAX_HOPS", "3"))
     graph_branch_per_hop: int = int(os.getenv("GRAPH_BRANCH_PER_HOP", "3"))
     graph_max_per_pt: int = int(os.getenv("GRAPH_MAX_PER_PT", "2"))
-    graph_pair_limit: int = int(os.getenv("GRAPH_PAIR_LIMIT", "3"))
+    graph_pair_limit: int = int(os.getenv("GRAPH_PAIR_LIMIT", "8"))
     product_type_match_threshold: float = float(os.getenv("PRODUCT_TYPE_MATCH_THRESHOLD", "0.85"))
 
     use_llm_router: bool = os.getenv("USE_LLM_ROUTER", "1") == "1"

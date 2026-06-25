@@ -3,10 +3,10 @@
   "analysis_debug": {
     "constrained": true,
     "gazetteer_filters": {
-      "colour_group": "White"
+      "occasion": "Lounge/Sleep/Nightwear"
     },
     "intent_classifier": {
-      "confidence": 0.92578125,
+      "confidence": 0.94921875,
       "index": 0,
       "intent": "similar_items",
       "raw_label": "similar_items",
@@ -14,34 +14,34 @@
     },
     "intent_rules": {
       "classifier_intent": "similar_items",
-      "has_anchor_reference": true,
+      "has_anchor_reference": false,
       "in_colour_cue": false,
       "is_color_variant_request": false,
       "is_graph_pairing_request": false,
       "looks_fashion": true,
-      "query_normalized": "i want to find some white t-shirt that have the word newyork printed on it",
+      "query_normalized": "comfy loungewear set for sleeping",
       "rule_applied": "default_similar",
       "strong_pairing": false
     },
     "llm_filters_raw": {
-      "product_type": "T-shirt"
+      "product_type": "sleepwear"
     },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {
-        "product_type": "T-shirt"
+        "product_type": "sleepwear"
       },
-      "search_query_en": "white T-shirt with 'New York' printed"
+      "search_query_en": "comfy loungewear set for sleeping"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"white T-shirt with 'New York' printed\",\n  \"must_filters\": {\n    \"product_type\": \"T-shirt\"\n  }\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"comfy loungewear set for sleeping\",\n  \"must_filters\": {\n    \"product_type\": \"sleepwear\"\n  }\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "slot_filters": {},
     "using_query_llm": false
   },
-  "boost_applied": true,
-  "boosted_product_type": "T-shirt",
-  "dense_query": "white T-shirt with 'New York' printed",
+  "boost_applied": false,
+  "boosted_product_type": "",
+  "dense_query": "comfy loungewear set for sleeping",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
@@ -49,17 +49,17 @@
     {
       "allowed_count": 113,
       "allowed_has_value": true,
-      "input": "T-shirt",
+      "input": "sleepwear",
       "key": "product_type",
-      "matched": "T-shirt",
+      "matched": "Night gown",
       "scope": "must_filters"
     },
     {
-      "allowed_count": 50,
+      "allowed_count": 9,
       "allowed_has_value": true,
-      "input": "White",
-      "key": "colour_group",
-      "matched": "White",
+      "input": "Lounge/Sleep/Nightwear",
+      "key": "occasion",
+      "matched": "Lounge/Sleep/Nightwear",
       "scope": "must_filters"
     }
   ],
@@ -71,194 +71,96 @@
   "graph_neighbor_ids": [],
   "graph_used": false,
   "has_image": false,
-  "hybrid_result_count": 5,
+  "hybrid_result_count": 10,
   "intent_hint": "similar_items",
-  "latency_ms": 46553,
+  "latency_ms": 54855,
   "llm_filters_raw": {
-    "product_type": "T-shirt"
+    "product_type": "sleepwear"
   },
   "llm_must_not_raw": {},
   "must_filters": {
-    "colour_group": "White",
-    "product_type": "T-shirt"
+    "occasion": "Lounge/Sleep/Nightwear"
   },
   "must_not_filters": {},
   "must_not_validation_debug": [],
   "no_anchor": true,
-  "query": "I want to find some white T-shirt that have the word NewYork printed on it",
-  "request_id": "5c08c4976895",
-  "result_count": 5,
+  "query": "comfy loungewear set for sleeping",
+  "request_id": "cd193752c06c",
+  "result_count": 10,
   "result_ids": [
-    "0699923067",
-    "0621522018",
-    "0590951010",
-    "0699923001",
-    "0649440035"
+    "0710387001",
+    "0598604001",
+    "0691683001",
+    "0683123006",
+    "0655791004",
+    "0536139054",
+    "0732382001",
+    "0655791002",
+    "0792557002",
+    "0605970004"
   ],
   "retrieval_path": [
-    "hard_filters",
+    "filter+occasion",
     "cross_encoder_rerank"
   ],
-  "search_query": "white T-shirt with 'New York' printed",
-  "search_query_raw": "white T-shirt with 'New York' printed",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "soft_product_type": "",
-  "sparse_query": "T-shirt white T-shirt with 'New York' printed",
-  "timestamp_utc": "2026-06-20T07:05:19.056882+00:00",
+  "search_query": "comfy loungewear set for sleeping",
+  "search_query_raw": "comfy loungewear set for sleeping",
+  "session_id": "m3_comfy",
+  "soft_product_type": "Night gown",
+  "sparse_query": "comfy loungewear set for sleeping",
+  "timestamp_utc": "2026-06-24T17:34:46.874007+00:00",
   "timing_ms": {
-    "analysis": 24472,
-    "embedding": 47,
-    "total": 46553
+    "analysis": 31894,
+    "embedding": 21,
+    "total": 54855
   }
 }
 
 {
-  "active_anchor_id": "0699923001",
+  "active_anchor_id": "",
   "analysis_debug": {
     "constrained": true,
     "gazetteer_filters": {
-      "graphical_appearance": "Solid"
+      "colour_group": "Black",
+      "fit": "Tight/Skinny/Bodycon"
     },
     "intent_classifier": {
-      "confidence": 0.77734375,
-      "index": 4,
-      "intent": "chit_chat",
-      "raw_label": "chit_chat",
+      "confidence": 0.94921875,
+      "index": 0,
+      "intent": "similar_items",
+      "raw_label": "similar_items",
       "source": "intent_classifier"
     },
     "intent_rules": {
-      "classifier_intent": "chit_chat",
-      "has_anchor_reference": true,
+      "classifier_intent": "similar_items",
+      "has_anchor_reference": false,
       "in_colour_cue": false,
       "is_color_variant_request": false,
       "is_graph_pairing_request": false,
-      "looks_fashion": true,
-      "query_normalized": "i like this style but i want it without any pattern pls",
-      "rule_applied": "override_chit_chat_to_similar+inherit_product_type",
+      "looks_fashion": false,
+      "query_normalized": "black skinny jeans",
+      "rule_applied": "default_similar",
       "strong_pairing": false
     },
     "llm_filters_raw": {
-      "product_type": "garment"
+      "product_type": "jeans"
     },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {
-        "product_type": "garment"
+        "product_type": "jeans"
       },
-      "search_query_en": "style without pattern"
+      "search_query_en": "black skinny jeans"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"style without pattern\",\n  \"must_filters\": {\"product_type\": \"garment\"}\n}",
-    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
-    "slot_filters": {},
-    "using_query_llm": false
-  },
-  "boost_applied": true,
-  "boosted_product_type": "T-shirt",
-  "dense_query": "style without pattern",
-  "dropped_filters": [],
-  "dropped_must_not": [],
-  "event": "chat",
-  "filter_validation_debug": [
-    {
-      "allowed_count": 30,
-      "allowed_has_value": true,
-      "input": "Solid",
-      "key": "graphical_appearance",
-      "matched": "Solid",
-      "scope": "must_filters"
-    }
-  ],
-  "graph_anchor_id": "0699923001",
-  "graph_anchor_invalid": "",
-  "graph_anchor_source": "selected_anchor",
-  "graph_candidate_count": 0,
-  "graph_filtered_count": 0,
-  "graph_neighbor_ids": [],
-  "graph_used": false,
-  "has_image": false,
-  "hybrid_result_count": 5,
-  "intent_hint": "similar_items",
-  "latency_ms": 14673,
-  "llm_filters_raw": {
-    "product_type": "garment"
-  },
-  "llm_must_not_raw": {},
-  "must_filters": {
-    "graphical_appearance": "Solid",
-    "product_type": "T-shirt"
-  },
-  "must_not_filters": {},
-  "must_not_validation_debug": [],
-  "no_anchor": false,
-  "query": "I like this style but i want it without any pattern pls",
-  "request_id": "ebcd47e0fa7a",
-  "result_count": 5,
-  "result_ids": [
-    "0717490002",
-    "0508903008",
-    "0738431001",
-    "0691555001",
-    "0635789007"
-  ],
-  "retrieval_path": [
-    "similar_image_knn"
-  ],
-  "search_query": "style without pattern",
-  "search_query_raw": "style without pattern",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "soft_product_type": "",
-  "sparse_query": "T-shirt style without pattern",
-  "timestamp_utc": "2026-06-20T07:10:26.296657+00:00",
-  "timing_ms": {
-    "analysis": 5833,
-    "embedding": 48,
-    "total": 14673
-  }
-}
-
-{
-  "active_anchor_id": "0508903008",
-  "analysis_debug": {
-    "constrained": true,
-    "gazetteer_filters": {},
-    "intent_classifier": {
-      "confidence": 0.94921875,
-      "index": 1,
-      "intent": "graph_pairing",
-      "raw_label": "graph_pairing",
-      "source": "intent_classifier"
-    },
-    "intent_rules": {
-      "classifier_intent": "graph_pairing",
-      "has_anchor_reference": true,
-      "in_colour_cue": false,
-      "is_color_variant_request": false,
-      "is_graph_pairing_request": true,
-      "looks_fashion": true,
-      "query_normalized": "do you have trouser to go with this",
-      "rule_applied": "explicit_graph_pairing",
-      "strong_pairing": true
-    },
-    "llm_filters_raw": {
-      "product_type": "trouser"
-    },
-    "llm_must_not_raw": {},
-    "llm_parse_ok": true,
-    "llm_parsed": {
-      "must_filters": {
-        "product_type": "trouser"
-      },
-      "search_query_en": "pants to match"
-    },
-    "llm_raw": "{\n  \"search_query_en\": \"pants to match\",\n  \"must_filters\": {\"product_type\": \"trouser\"}\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"black skinny jeans\",\n  \"must_filters\": {\n    \"product_type\": \"jeans\"\n  }\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "slot_filters": {},
     "using_query_llm": false
   },
   "boost_applied": true,
   "boosted_product_type": "Trousers",
-  "dense_query": "pants to match",
+  "dense_query": "black skinny jeans",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
@@ -266,274 +168,127 @@
     {
       "allowed_count": 113,
       "allowed_has_value": true,
-      "input": "trouser",
+      "input": "Trousers",
       "key": "product_type",
       "matched": "Trousers",
       "scope": "must_filters"
+    },
+    {
+      "allowed_count": 50,
+      "allowed_has_value": true,
+      "input": "Black",
+      "key": "colour_group",
+      "matched": "Black",
+      "scope": "must_filters"
+    },
+    {
+      "allowed_count": 7,
+      "allowed_has_value": true,
+      "input": "Tight/Skinny/Bodycon",
+      "key": "fit",
+      "matched": "Tight/Skinny/Bodycon",
+      "scope": "must_filters"
     }
   ],
-  "graph_anchor_id": "0508903008",
+  "graph_anchor_id": "",
   "graph_anchor_invalid": "",
-  "graph_anchor_source": "selected_anchor",
+  "graph_anchor_source": "",
   "graph_candidate_count": 0,
   "graph_filtered_count": 0,
-  "graph_neighbor_ids": [
-    "0706016002",
-    "0636323001",
-    "0745232002"
-  ],
-  "graph_used": true,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
   "has_image": false,
-  "hybrid_result_count": 0,
-  "intent_hint": "graph_pairing",
-  "latency_ms": 15424,
+  "hybrid_result_count": 10,
+  "intent_hint": "similar_items",
+  "latency_ms": 15208,
   "llm_filters_raw": {
-    "product_type": "trouser"
+    "product_type": "jeans"
   },
   "llm_must_not_raw": {},
   "must_filters": {
+    "colour_group": "Black",
+    "fit": "Tight/Skinny/Bodycon",
     "product_type": "Trousers"
   },
   "must_not_filters": {},
   "must_not_validation_debug": [],
-  "no_anchor": false,
-  "query": "Do you have trouser to go with this",
-  "request_id": "20f89db929d1",
-  "result_count": 3,
+  "no_anchor": true,
+  "query": "black skinny jeans",
+  "request_id": "ebcd8feb8b98",
+  "result_count": 10,
   "result_ids": [
-    "0706016002",
-    "0636323001",
-    "0745232002"
+    "0634393001",
+    "0519583042",
+    "0555099001",
+    "0881111001",
+    "0554450001",
+    "0610662001",
+    "0549253003",
+    "0549253001",
+    "0469562058",
+    "0469562006"
   ],
   "retrieval_path": [
-    "intent_graph_pairing",
-    "anchor_from_selection",
-    "graph_neighbors",
-    "p3a_cold_neighbors"
+    "hard_filters",
+    "cross_encoder_rerank"
   ],
-  "search_query": "pants to match",
-  "search_query_raw": "pants to match",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "search_query": "black skinny jeans",
+  "search_query_raw": "black skinny jeans",
+  "session_id": "m3_black",
   "soft_product_type": "",
-  "sparse_query": "Trousers pants to match",
-  "timestamp_utc": "2026-06-20T07:11:13.396863+00:00",
+  "sparse_query": "Trousers black skinny jeans",
+  "timestamp_utc": "2026-06-24T17:35:02.097122+00:00",
   "timing_ms": {
-    "analysis": 6066,
-    "embedding": 26,
-    "total": 15424
+    "analysis": 5008,
+    "embedding": 22,
+    "total": 15208
   }
 }
 
 {
-  "active_anchor_id": "0636323001",
+  "active_anchor_id": "",
   "analysis_debug": {
     "constrained": true,
-    "gazetteer_filters": {},
+    "gazetteer_filters": {
+      "occasion": "Party/Evening/Wedding"
+    },
     "intent_classifier": {
-      "confidence": 0.53125,
-      "index": 1,
-      "intent": "graph_pairing",
-      "raw_label": "graph_pairing",
+      "confidence": 0.8671875,
+      "index": 0,
+      "intent": "similar_items",
+      "raw_label": "similar_items",
       "source": "intent_classifier"
     },
     "intent_rules": {
-      "classifier_intent": "graph_pairing",
-      "has_anchor_reference": true,
-      "in_colour_cue": false,
-      "is_color_variant_request": false,
-      "is_graph_pairing_request": true,
-      "looks_fashion": true,
-      "query_normalized": "this one look good, now find shoe or boot to match with",
-      "rule_applied": "explicit_graph_pairing",
-      "strong_pairing": true
-    },
-    "llm_filters_raw": {
-      "product_type": "shoe"
-    },
-    "llm_must_not_raw": {},
-    "llm_parse_ok": true,
-    "llm_parsed": {
-      "must_filters": {
-        "product_type": "shoe"
-      },
-      "search_query_en": "matching shoes"
-    },
-    "llm_raw": "{\n  \"search_query_en\": \"matching shoes\",\n  \"must_filters\": {\"product_type\": \"shoe\"}\n}",
-    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
-    "slot_filters": {},
-    "using_query_llm": false
-  },
-  "boost_applied": true,
-  "boosted_product_type": "Other shoe",
-  "dense_query": "matching shoes",
-  "dropped_filters": [],
-  "dropped_must_not": [],
-  "event": "chat",
-  "filter_validation_debug": [
-    {
-      "allowed_count": 113,
-      "allowed_has_value": true,
-      "input": "shoe",
-      "key": "product_type",
-      "matched": "Other shoe",
-      "scope": "must_filters"
-    }
-  ],
-  "graph_anchor_id": "0636323001",
-  "graph_anchor_invalid": "",
-  "graph_anchor_source": "selected_anchor",
-  "graph_candidate_count": 3,
-  "graph_filtered_count": 0,
-  "graph_neighbor_ids": [
-    "0482733006"
-  ],
-  "graph_used": true,
-  "has_image": false,
-  "hybrid_result_count": 0,
-  "intent_hint": "graph_pairing",
-  "latency_ms": 10504,
-  "llm_filters_raw": {
-    "product_type": "shoe"
-  },
-  "llm_must_not_raw": {},
-  "must_filters": {
-    "product_type": "Other shoe"
-  },
-  "must_not_filters": {},
-  "must_not_validation_debug": [],
-  "no_anchor": false,
-  "query": "This one look good, now find shoe or boot to match with",
-  "request_id": "47b5dc2e02c7",
-  "result_count": 1,
-  "result_ids": [
-    "0482733006"
-  ],
-  "retrieval_path": [
-    "intent_graph_pairing",
-    "anchor_from_selection",
-    "graph_neighbors",
-    "p3a_cold_neighbors"
-  ],
-  "search_query": "matching shoes",
-  "search_query_raw": "matching shoes",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "soft_product_type": "",
-  "sparse_query": "Other shoe matching shoes",
-  "timestamp_utc": "2026-06-20T07:12:02.844189+00:00",
-  "timing_ms": {
-    "analysis": 5223,
-    "embedding": 19,
-    "total": 10504
-  }
-}
-
-{
-  "active_anchor_id": "0482733006",
-  "analysis_debug": {
-    "intent_classifier": {
-      "confidence": 0.953125,
-      "index": 4,
-      "intent": "chit_chat",
-      "raw_label": "chit_chat",
-      "source": "intent_classifier"
-    },
-    "intent_rules": {
-      "classifier_intent": "chit_chat",
+      "classifier_intent": "similar_items",
       "has_anchor_reference": false,
       "in_colour_cue": false,
       "is_color_variant_request": false,
       "is_graph_pairing_request": false,
-      "looks_fashion": false,
-      "query_normalized": "hmm, actually i want something for male",
-      "rule_applied": "pass_through",
-      "strong_pairing": false
-    },
-    "skipped_extraction": "chit_chat_filters_only"
-  },
-  "boost_applied": false,
-  "boosted_product_type": "",
-  "dense_query": "hmm, actually I want something for male",
-  "dropped_filters": [],
-  "dropped_must_not": [],
-  "event": "chat",
-  "filter_validation_debug": [],
-  "graph_anchor_id": "",
-  "graph_anchor_source": "",
-  "graph_candidate_count": 0,
-  "graph_filtered_count": 0,
-  "graph_neighbor_ids": [],
-  "graph_used": false,
-  "has_image": false,
-  "hybrid_result_count": 0,
-  "intent_hint": "chit_chat",
-  "latency_ms": 2830,
-  "llm_filters_raw": {},
-  "llm_must_not_raw": {},
-  "must_filters": {},
-  "must_not_filters": {},
-  "must_not_validation_debug": [],
-  "no_anchor": false,
-  "query": "hmm, actually I want something for male",
-  "request_id": "90cc36734b75",
-  "result_count": 0,
-  "result_ids": [],
-  "retrieval_path": [
-    "intent_chit_chat"
-  ],
-  "search_query": "hmm, actually I want something for male",
-  "search_query_raw": "hmm, actually I want something for male",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "sparse_query": "hmm, actually I want something for male",
-  "timestamp_utc": "2026-06-20T07:12:41.400702+00:00",
-  "timing_ms": {
-    "analysis": 83,
-    "embedding": 0,
-    "total": 2830
-  }
-}
-
-{
-  "active_anchor_id": "0482733006",
-  "analysis_debug": {
-    "constrained": true,
-    "gazetteer_filters": {},
-    "intent_classifier": {
-      "confidence": 0.921875,
-      "index": 4,
-      "intent": "chit_chat",
-      "raw_label": "chit_chat",
-      "source": "intent_classifier"
-    },
-    "intent_rules": {
-      "classifier_intent": "chit_chat",
-      "has_anchor_reference": true,
-      "in_colour_cue": false,
-      "is_color_variant_request": false,
-      "is_graph_pairing_request": false,
       "looks_fashion": true,
-      "query_normalized": "i want some shoe for male, not this one",
-      "rule_applied": "override_chit_chat_to_similar",
+      "query_normalized": "a dress for a party",
+      "rule_applied": "default_similar",
       "strong_pairing": false
     },
     "llm_filters_raw": {
-      "product_type": "shoe"
+      "product_type": "dress"
     },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {
-        "product_type": "shoe"
+        "product_type": "dress"
       },
-      "search_query_en": "shoes for men"
+      "search_query_en": "party dress"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"shoes for men\",\n  \"must_filters\": {\"product_type\": \"shoe\"}\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"party dress\",\n  \"must_filters\": {\"product_type\": \"dress\"}\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "slot_filters": {},
     "using_query_llm": false
   },
   "boost_applied": true,
-  "boosted_product_type": "Other shoe",
-  "dense_query": "shoes for men",
+  "boosted_product_type": "Dress",
+  "dense_query": "party dress",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
@@ -541,101 +296,20 @@
     {
       "allowed_count": 113,
       "allowed_has_value": true,
-      "input": "shoe",
+      "input": "Dress",
       "key": "product_type",
-      "matched": "Other shoe",
+      "matched": "Dress",
+      "scope": "must_filters"
+    },
+    {
+      "allowed_count": 9,
+      "allowed_has_value": true,
+      "input": "Party/Evening/Wedding",
+      "key": "occasion",
+      "matched": "Party/Evening/Wedding",
       "scope": "must_filters"
     }
   ],
-  "graph_anchor_id": "0482733006",
-  "graph_anchor_invalid": "",
-  "graph_anchor_source": "selected_anchor",
-  "graph_candidate_count": 0,
-  "graph_filtered_count": 0,
-  "graph_neighbor_ids": [],
-  "graph_used": false,
-  "has_image": false,
-  "hybrid_result_count": 5,
-  "intent_hint": "similar_items",
-  "latency_ms": 13171,
-  "llm_filters_raw": {
-    "product_type": "shoe"
-  },
-  "llm_must_not_raw": {},
-  "must_filters": {
-    "product_type": "Other shoe"
-  },
-  "must_not_filters": {},
-  "must_not_validation_debug": [],
-  "no_anchor": false,
-  "query": "I want some shoe for male, not this one",
-  "request_id": "7b06fc49c669",
-  "result_count": 5,
-  "result_ids": [
-    "0674002002",
-    "0642687005",
-    "0642687002",
-    "0475827010",
-    "0808953002"
-  ],
-  "retrieval_path": [
-    "similar_image_knn"
-  ],
-  "search_query": "shoes for men",
-  "search_query_raw": "shoes for men",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "soft_product_type": "",
-  "sparse_query": "Other shoe shoes for men",
-  "timestamp_utc": "2026-06-20T07:13:19.808996+00:00",
-  "timing_ms": {
-    "analysis": 5395,
-    "embedding": 19,
-    "total": 13171
-  }
-}
-
-{
-  "active_anchor_id": "0699923001",
-  "analysis_debug": {
-    "constrained": true,
-    "gazetteer_filters": {},
-    "intent_classifier": {
-      "confidence": 0.94140625,
-      "index": 2,
-      "intent": "color_variant",
-      "raw_label": "color_variant",
-      "source": "intent_classifier"
-    },
-    "intent_rules": {
-      "classifier_intent": "color_variant",
-      "has_anchor_reference": true,
-      "in_colour_cue": false,
-      "is_color_variant_request": true,
-      "is_graph_pairing_request": false,
-      "looks_fashion": true,
-      "query_normalized": "do you have this style but in different color?",
-      "rule_applied": "explicit_color_variant",
-      "strong_pairing": false
-    },
-    "llm_filters_raw": {},
-    "llm_must_not_raw": {},
-    "llm_parse_ok": true,
-    "llm_parsed": {
-      "must_filters": {},
-      "search_query_en": "style in different colors"
-    },
-    "llm_raw": "{\n  \"search_query_en\": \"style in different colors\",\n  \"must_filters\": {}\n}",
-    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
-    "slot_filters": {},
-    "using_query_llm": false
-  },
-  "boost_applied": false,
-  "boosted_product_type": "",
-  "dense_query": "style in different colors",
-  "dropped_filters": [],
-  "dropped_must_not": [],
-  "event": "chat",
-  "filter_validation_debug": [],
   "graph_anchor_id": "",
   "graph_anchor_invalid": "",
   "graph_anchor_source": "",
@@ -644,39 +318,49 @@
   "graph_neighbor_ids": [],
   "graph_used": false,
   "has_image": false,
-  "hybrid_result_count": 5,
-  "intent_hint": "color_variant",
-  "latency_ms": 30612,
-  "llm_filters_raw": {},
+  "hybrid_result_count": 10,
+  "intent_hint": "similar_items",
+  "latency_ms": 14273,
+  "llm_filters_raw": {
+    "product_type": "dress"
+  },
   "llm_must_not_raw": {},
-  "must_filters": {},
+  "must_filters": {
+    "occasion": "Party/Evening/Wedding",
+    "product_type": "Dress"
+  },
   "must_not_filters": {},
   "must_not_validation_debug": [],
-  "no_anchor": false,
-  "query": "do you have this style but in different color?",
-  "request_id": "a4e5c7959972",
-  "result_count": 5,
+  "no_anchor": true,
+  "query": "a dress for a party",
+  "request_id": "6d62f1dfe13f",
+  "result_count": 10,
   "result_ids": [
-    "0814015001",
-    "0688728018",
-    "0820542014",
-    "0665873003",
-    "0865691001"
+    "0589835001",
+    "0796644002",
+    "0702043002",
+    "0788106003",
+    "0889621001",
+    "0694671001",
+    "0608007012",
+    "0796638001",
+    "0653380001",
+    "0663988001"
   ],
   "retrieval_path": [
-    "relax_no_filters",
+    "filter+occasion",
     "cross_encoder_rerank"
   ],
-  "search_query": "style in different colors",
-  "search_query_raw": "style in different colors",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "search_query": "party dress",
+  "search_query_raw": "party dress",
+  "session_id": "m3_a dre",
   "soft_product_type": "",
-  "sparse_query": "style in different colors",
-  "timestamp_utc": "2026-06-20T07:19:27.836202+00:00",
+  "sparse_query": "Dress party dress",
+  "timestamp_utc": "2026-06-24T17:35:16.376298+00:00",
   "timing_ms": {
-    "analysis": 4132,
-    "embedding": 24,
-    "total": 30612
+    "analysis": 4349,
+    "embedding": 18,
+    "total": 14273
   }
 }
 

@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "title": "Intent labelset (test the classifier itself, model-alone vs model+rules)",
+    "purpose": "Measure whether the hand-written rule layer (_apply_intent_rules: _is_small_talk, force_similar_no_explicit_pairing, ...) improves on the raw finetuned DeBERTa for TEXT-ONLY intent, before deciding whether the override rules are worth keeping.",
+    "classes": {
+      "similar_items": "search for items matching attributes (the default product search)",
+      "graph_pairing": "items that go WITH a referenced item (complementary outfit)",
+      "color_variant": "the same/similar item in a different colour",
+      "composite_intent": "multiple distinct garment types requested at once",
+      "chit_chat": "small talk / bot-meta / non-shopping"
+    },
+    "labelling_rule": "gold = intent a human reads from the TEXT ALONE (the classifier sees only text; anchor/image/session are injected later by a separate, legitimate layer). 'hard' marks phrasings outside the obvious lexical pattern."
+  },
+  "labels": [
+    {"query": "a black dress", "gold": "similar_items", "hard": false},
+    {"query": "show me white sneakers", "gold": "similar_items", "hard": false},
+    {"query": "I'm looking for a wool coat", "gold": "similar_items", "hard": false},
+    {"query": "blue jeans", "gold": "similar_items", "hard": false},
+    {"query": "a leather handbag", "gold": "similar_items", "hard": false},
+    {"query": "floral summer blouse", "gold": "similar_items", "hard": false},
+    {"query": "a parka for cold weather", "gold": "similar_items", "hard": true, "note": "contains 'weather' -> trips _is_small_talk"},
+    {"query": "something warm for winter", "gold": "similar_items", "hard": true},
+    {"query": "red high heels for a party", "gold": "similar_items", "hard": false},
+    {"query": "an oversized hoodie", "gold": "similar_items", "hard": false},
+    {"query": "a striped cotton shirt", "gold": "similar_items", "hard": false},
+    {"query": "knitwear for the office", "gold": "similar_items", "hard": false},
+
+    {"query": "what goes with this", "gold": "graph_pairing", "hard": false},
+    {"query": "what goes well with this", "gold": "graph_pairing", "hard": true, "note": "adverb 'well' breaks the 'goes with' substring"},
+    {"query": "what trousers go with a white shirt", "gold": "graph_pairing", "hard": false},
+    {"query": "build an outfit around this", "gold": "graph_pairing", "hard": true, "note": "no pairing verb in the phrase list"},
+    {"query": "what shoes pair with this dress", "gold": "graph_pairing", "hard": false},
+    {"query": "I need a top to wear with these jeans", "gold": "graph_pairing", "hard": false},
+    {"query": "what matches this jacket", "gold": "graph_pairing", "hard": true, "note": "'matches' (no 'with')"},
+    {"query": "style this with something nice", "gold": "graph_pairing", "hard": false},
+    {"query": "help me put together an outfit with this", "gold": "graph_pairing", "hard": true},
+    {"query": "complete the look for this skirt", "gold": "graph_pairing", "hard": true, "note": "'complete the look'"},
+    {"query": "which bag suits this coat", "gold": "graph_pairing", "hard": true, "note": "'suits'"},
+    {"query": "anything that goes nicely with my black trousers", "gold": "graph_pairing", "hard": true, "note": "'goes nicely with'"},
+
+    {"query": "do you have this in another colour", "gold": "color_variant", "hard": false},
+    {"query": "this but in red", "gold": "color_variant", "hard": false},
+    {"query": "same dress in black", "gold": "color_variant", "hard": false},
+    {"query": "any other colours", "gold": "color_variant", "hard": false},
+    {"query": "show me this in blue", "gold": "color_variant", "hard": true, "note": "no explicit 'colour'/'variant' word"},
+    {"query": "is there a different colorway", "gold": "color_variant", "hard": true},
+    {"query": "the same one but green", "gold": "color_variant", "hard": true, "note": "colour named, no 'colour' keyword"},
+    {"query": "can I get this in a darker shade", "gold": "color_variant", "hard": true, "note": "'shade' not 'colour'"},
+
+    {"query": "hello", "gold": "chit_chat", "hard": false},
+    {"query": "hi there", "gold": "chit_chat", "hard": false},
+    {"query": "how are you", "gold": "chit_chat", "hard": false},
+    {"query": "what can you do", "gold": "chit_chat", "hard": false},
+    {"query": "who are you", "gold": "chit_chat", "hard": false},
+    {"query": "thanks a lot", "gold": "chit_chat", "hard": false},
+    {"query": "what's the weather like today", "gold": "chit_chat", "hard": false, "note": "genuine small talk that uses 'weather'"},
+    {"query": "tell me a joke", "gold": "chit_chat", "hard": false},
+    {"query": "good morning", "gold": "chit_chat", "hard": false},
+    {"query": "are you a robot", "gold": "chit_chat", "hard": true},
+
+    {"query": "I want a top and trousers and shoes", "gold": "composite_intent", "hard": false},
+    {"query": "show me a shirt, a jacket, and jeans", "gold": "composite_intent", "hard": false},
+    {"query": "find me a dress and matching shoes", "gold": "composite_intent", "hard": true, "note": "'matching' could read as pairing"},
+    {"query": "I need a full outfit: blazer, shirt, and trousers", "gold": "composite_intent", "hard": false},
+    {"query": "an entire look with a coat, scarf, and boots", "gold": "composite_intent", "hard": true},
+    {"query": "give me a complete outfit for the office with everything", "gold": "composite_intent", "hard": true}
+  ]
+}

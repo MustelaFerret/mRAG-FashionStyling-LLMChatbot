@@ -265,9 +265,16 @@ function StatusRibbon({ meta, sessionId }) {
 }
 
 function UserMessage({ message }) {
+    const anchor = message.anchor;
     return (
         <div className="chat-message flex flex-col items-end gap-2">
             {message.image && <img src={message.image} className="max-w-[200px] md:max-w-[240px] rounded border border-white/10" alt="Uploaded" />}
+            {anchor && (
+                <div className="msg-anchor" title={"Focus: " + (anchor.title || anchor.article_id)}>
+                    <img src={anchor.image_url || imagePathFromId(anchor.article_id)} alt={anchor.title || ""} />
+                    <span className="msg-anchor-tag">focus · {anchor.title || ("#" + formatArticleId(anchor.article_id))}</span>
+                </div>
+            )}
             {message.text && <div className="msg-user-note">{message.text}</div>}
         </div>
     );
@@ -310,6 +317,7 @@ function ItemCard({ item, isAnchor, isPinned, onOpen, onSetAnchor, onTogglePin }
                 </div>
             </div>
             <p className="card-name" onClick={onOpen}>{title}</p>
+            {item.product_type && <p className="card-type">{item.product_type}</p>}
             <div className="card-meta">
                 <span className="card-color">{subtitle || "—"}</span>
                 {isAnchor
@@ -345,10 +353,14 @@ function IntentPicker({ options, onSelect, disabled }) {
     );
 }
 
+const CARDS_PREVIEW = 5;
+
 function AiMessage({ message, anchorId, pickedIds, onOpenItem, onConfirmIntent, onSetAnchor, onTogglePin }) {
+    const [showAll, setShowAll] = useState(false);
     const intentLabel = (message.intentInfo && message.intentInfo.label) || INTENT_LABELS[message.intent] || "";
     const intentDescription = (message.intentInfo && message.intentInfo.description) || "";
     const cards = Array.isArray(message.cards) && message.cards.length > 0 ? message.cards : (message.items || []);
+    const visibleCards = showAll ? cards : cards.slice(0, CARDS_PREVIEW);
     const intentOptions = Array.isArray(message.intentOptions) ? message.intentOptions : [];
     const showIntentPicker = message.intent === "composite_intent" && intentOptions.length > 0 && !message.intentResolved;
 
@@ -372,7 +384,7 @@ function AiMessage({ message, anchorId, pickedIds, onOpenItem, onConfirmIntent, 
 
             {Array.isArray(cards) && cards.length > 0 && (
                 <div className="cards-row w-full">
-                    {cards.map((item, index) => (
+                    {visibleCards.map((item, index) => (
                         <ItemCard
                             key={String(item.article_id) + "-" + index}
                             item={item}
@@ -384,6 +396,11 @@ function AiMessage({ message, anchorId, pickedIds, onOpenItem, onConfirmIntent, 
                         />
                     ))}
                 </div>
+            )}
+            {cards.length > CARDS_PREVIEW && !showAll && (
+                <button className="show-more-btn" onClick={() => setShowAll(true)}>
+                    Show {cards.length - CARDS_PREVIEW} more
+                </button>
             )}
         </div>
     );
@@ -874,7 +891,13 @@ function App() {
         if (!payloadText && !payloadImage) return;
 
         const displayText = userDisplayText || payloadText;
-        setMessages((prev) => prev.concat([{ id: uid(), role: "user", text: displayText, image: payloadImage }]));
+        // attach a slim copy of the active focus item so it renders right next to the message
+        const msgAnchor = activeAnchor ? {
+            article_id: activeAnchor.article_id,
+            image_url: activeAnchor.image_url,
+            title: activeAnchor.title || activeAnchor.product_type,
+        } : null;
+        setMessages((prev) => prev.concat([{ id: uid(), role: "user", text: displayText, image: payloadImage, anchor: msgAnchor }]));
 
         if (!userDisplayText) {
             setChatInput("");

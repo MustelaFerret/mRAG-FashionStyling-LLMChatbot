@@ -1,0 +1,86 @@
+{
+  "meta": {
+    "title": "NLU end-to-end exam (de thi) -- multi-turn conversations",
+    "description": "Each case is a CONVERSATION: a list of turns sharing one session, driven through the full production pipeline via FashionRAGService.prepare_chat. Every turn is scored against its own gold (answer_key.json, keyed by turn id). easy/medium are single-turn atomic NLU; hard are multi-turn chains (refinement, type switch, cross-turn pairing/variant, negation, recovery).",
+    "turn_context_schema": {
+      "image": "repo-relative path to a query image, or null",
+      "selected_anchor_id": "article_id clicked as the reference item, or null",
+      "anchor_from_prev": "int i -> simulate clicking result #i of the PREVIOUS turn (resolved at run time to that article_id)",
+      "no_anchor": "true to suppress anchor resolution"
+    },
+    "anchors": {"warm_trousers_black": "0601284002"}
+  },
+  "conversations": [
+    {"id": "E1", "tier": "easy", "title": "type + colour (dress, black)",
+     "turns": [{"id": "E1", "query": "a black dress"}]},
+    {"id": "E2", "tier": "easy", "title": "synonym type (jeans -> Trousers)",
+     "turns": [{"id": "E2", "query": "blue jeans"}]},
+    {"id": "E3", "tier": "easy", "title": "type + colour (sweater, grey)",
+     "turns": [{"id": "E3", "query": "a grey sweater"}]},
+    {"id": "E4", "tier": "easy", "title": "accessory type (bag)",
+     "turns": [{"id": "E4", "query": "a leather bag"}]},
+    {"id": "E5", "tier": "easy", "title": "occasion-only (loungewear, no type)",
+     "turns": [{"id": "E5", "query": "comfy loungewear set for sleeping"}]},
+    {"id": "E6", "tier": "easy", "title": "occasion-only (gym, no type)",
+     "turns": [{"id": "E6", "query": "something to wear to the gym"}]},
+
+    {"id": "M1", "tier": "medium", "title": "type + occasion (dress, wedding)",
+     "turns": [{"id": "M1", "query": "a dress for a wedding"}]},
+    {"id": "M2", "tier": "medium", "title": "type + gender (shirt, men)",
+     "turns": [{"id": "M2", "query": "a shirt for men"}]},
+    {"id": "M3", "tier": "medium", "title": "type + colour + fit (trousers, black, slim)",
+     "turns": [{"id": "M3", "query": "slim fit black trousers"}]},
+    {"id": "M4", "tier": "medium", "title": "negation colour (sweater, not black)",
+     "turns": [{"id": "M4", "query": "a sweater but not black"}]},
+    {"id": "M5", "tier": "medium", "title": "OOV type + season (parka -> Jacket, winter)",
+     "turns": [{"id": "M5", "query": "a parka for cold weather"}]},
+
+    {"id": "C1", "tier": "hard", "title": "refine colour, then switch type",
+     "turns": [
+       {"id": "C1.1", "query": "I want a white shirt"},
+       {"id": "C1.2", "query": "make it blue"},
+       {"id": "C1.3", "query": "now show me black trousers instead"}
+     ]},
+    {"id": "C2", "tier": "hard", "title": "search, then pair with the item just found",
+     "turns": [
+       {"id": "C2.1", "query": "find me a white shirt"},
+       {"id": "C2.2", "query": "what goes well with this", "context": {"anchor_from_prev": 0}}
+     ]},
+    {"id": "C3", "tier": "hard", "title": "search, then colour variant of the item just found",
+     "turns": [
+       {"id": "C3.1", "query": "show me a black dress"},
+       {"id": "C3.2", "query": "do you have this in red", "context": {"anchor_from_prev": 0}}
+     ]},
+    {"id": "C4", "tier": "hard", "title": "negation refinement across turns",
+     "turns": [
+       {"id": "C4.1", "query": "a sweater"},
+       {"id": "C4.2", "query": "but not black"}
+     ]},
+    {"id": "C5", "tier": "hard", "title": "chit-chat, then recover to a real search",
+     "turns": [
+       {"id": "C5.1", "query": "hi there, what can you do?"},
+       {"id": "C5.2", "query": "ok, show me a red dress"}
+     ]},
+    {"id": "C6", "tier": "hard", "title": "multi-step accumulating refinement",
+     "turns": [
+       {"id": "C6.1", "query": "I want a white shirt"},
+       {"id": "C6.2", "query": "make it slim fit"},
+       {"id": "C6.3", "query": "actually in black"}
+     ]},
+    {"id": "C7", "tier": "hard", "title": "search trousers, then build an outfit around it",
+     "turns": [
+       {"id": "C7.1", "query": "find black trousers"},
+       {"id": "C7.2", "query": "build an outfit around this", "context": {"anchor_from_prev": 0}}
+     ]},
+    {"id": "C8", "tier": "hard", "title": "implicit pronoun pairing via phrase (chat-rescue)",
+     "turns": [
+       {"id": "C8.1", "query": "find black trousers"},
+       {"id": "C8.2", "query": "what goes well with it", "context": {"anchor_from_prev": 0}}
+     ]},
+    {"id": "C9", "tier": "hard", "title": "phraseless pairing (graph re-honor via real anchor)",
+     "turns": [
+       {"id": "C9.1", "query": "find black trousers"},
+       {"id": "C9.2", "query": "what matches it", "context": {"anchor_from_prev": 0}}
+     ]}
+  ]
+}

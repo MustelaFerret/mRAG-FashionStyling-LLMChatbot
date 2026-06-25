@@ -787,3 +787,26 @@ body {
     transition: color 160ms ease, border-color 160ms ease;
 }
 .pick-act:hover { color: var(--accent-ink); border-color: var(--accent); }
+
+.card-type {
+    font-family: "Space Mono", monospace; font-size: 10px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--accent-ink); margin-top: 2px;
+}
+.show-more-btn {
+    align-self: flex-start; margin-top: 4px; padding: 6px 14px;
+    border: 1px solid var(--line); border-radius: 999px; background: transparent;
+    color: var(--ink-soft); font-size: 12px; letter-spacing: 0.04em; cursor: pointer;
+    transition: border-color 160ms ease, color 160ms ease;
+}
+.show-more-btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+.msg-anchor {
+    position: relative; align-self: flex-end; border: 1px solid var(--accent);
+    border-radius: 8px; overflow: hidden; width: 132px; box-shadow: var(--shadow-soft);
+}
+.msg-anchor img { width: 100%; height: 168px; object-fit: cover; display: block; }
+.msg-anchor-tag {
+    display: block; padding: 4px 8px; text-align: center;
+    font-family: "Space Mono", monospace; font-size: 9px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #fff5ee; background: rgba(217, 88, 63, 0.92);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}

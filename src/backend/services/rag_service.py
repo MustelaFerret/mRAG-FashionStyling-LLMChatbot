@@ -30,6 +30,9 @@ COMPOSITE_INTENT_MESSAGE = (
     "Could you help me confirm your intent so I can assist you better?"
 )
 HARD_FILTER_KEYS = ("product_type", "colour_group", "graphical_appearance")
+# generic "shoe" maps to the catch-all type "Other shoe"; expand it to closed-shoe types so a
+# pairing/search for "shoe" returns sneakers/flats/pumps but NOT boots or sandals.
+_SHOE_TYPES = {"other shoe", "sneakers", "flat shoe", "flat shoes", "ballerinas", "pumps", "heels", "wedge"}
 INTENT_NEEDS_REFERENCE = "needs_reference"
 NEEDS_REFERENCE_MESSAGE = (
     "I'd be happy to find that in another colour — which item do you mean? "
@@ -49,6 +52,10 @@ class FashionRAGService:
         self.llm = llm
         self.catalog = catalog
         self.limit = max(1, int(limit))
+        # how many items reach the UI (show-more reveals these); the reply text is grounded on
+        # only the first `gen_limit` so it stays concise even when more cards are shown.
+        self.ui_limit = max(self.limit, int(getattr(settings, "ui_item_limit", 10)))
+        self.gen_limit = max(1, int(getattr(settings, "gen_context_items", self.limit)))
         self.personalization = personalization
         self.sessions = sessions
         self._reranker = None  # cross-encoder, lazy-loaded when settings.use_reranker
@@ -106,6 +113,7 @@ class FashionRAGService:
             "occasion": list(getattr(self.catalog, "valid_occasions", []) or []),
             "seasonality": list(getattr(self.catalog, "valid_seasonalities", []) or []),
             "graphical_appearance": list(getattr(self.catalog, "valid_graphical_appearances", []) or []),
+            "gender": ["Men", "Women"],  # virtual field; applied as a post-filter, not a Qdrant key
         }
 
     def _validate_filter_value(
@@ -222,7 +230,15 @@ class FashionRAGService:
         retrieval_path: List[str],
     ) -> List[Any]:
         hard = self._hard_filters(must_filters)
+        # occasion is NOT a hard key (an item legitimately Unknown for it must not be excluded
+        # outright), but for an occasion-defined query with no product_type ("loungewear for
+        # sleeping", "gym gear") it is the ONLY structured signal -- without it the raw query
+        # latches onto literal token matches ("sleeping" -> "sleeping mask"). Apply it as the
+        # TIGHTEST, first-relaxed cascade tier, with the existing relaxation as the safety net.
+        occ = str((must_filters or {}).get("occasion", "")).strip()
         cascade: List[tuple[str, Dict[str, str]]] = []
+        if occ and occ.lower() != "unknown":
+            cascade.append(("filter+occasion", {**hard, "occasion": occ}))
         if hard:
             cascade.append(("hard_filters", hard))
         pt_only = {k: v for k, v in hard.items() if k == "product_type"}
@@ -282,7 +298,7 @@ class FashionRAGService:
             image_dense=ref_emb,
             sparse_indices=None,
             sparse_values=None,
-            limit=self.limit + 5,
+            limit=self.ui_limit + 5,
             must_filters=must_filters or None,
             must_not_filters=must_not_filters,
         ) or []
@@ -291,12 +307,32 @@ class FashionRAGService:
             p for p in raw
             if not ex or normalize_article_id(str((getattr(p, "payload", {}) or {}).get("article_id", ""))) != ex
         ]
-        return points[: self.limit]
+        return points[: self.ui_limit]
 
     _FILTER_ALIASES = {
         "product_type": ("product_type", "product_type_name"),
         "colour_group": ("colour_group", "colour_group_name"),
     }
+
+    @staticmethod
+    def _gender_of_payload(payload: Dict[str, Any]) -> str:
+        # gender isn't a clean field; derive it from index_name / section_name. Divided / Sport /
+        # Mama and the like stay "" (unknown/unisex) so a gender filter only drops the OPPOSITE sex.
+        idx = normalize_text(str(payload.get("index_name", "") or ""))
+        sec = str(payload.get("section_name", "") or "")
+        sec_first = normalize_text(sec.split()[0]) if sec.split() else ""
+        sec_norm = normalize_text(sec)
+        if idx == "menswear" or sec_first == "men":
+            return "Men"
+        if idx == "ladieswear" or "ladies" in idx or sec_first in ("womens", "ladies", "mama") or "women" in sec_norm:
+            return "Women"
+        return ""
+
+    def _filter_gender(self, points: List[Any], gender: str) -> List[Any]:
+        if not gender:
+            return points
+        kept = [p for p in points if self._gender_of_payload(getattr(p, "payload", {}) or {}) in (gender, "")]
+        return kept
 
     def _payload_field(self, payload: Dict[str, Any], key: str) -> str:
         for alias in self._FILTER_ALIASES.get(key, (key,)):
@@ -416,10 +452,34 @@ class FashionRAGService:
         classifier_intent = str(((analysis_debug or {}).get("intent_classifier") or {}).get("intent", "")).strip()
         requested_colour = str(must_filters.get("colour_group", "")).strip()
         referential_anchor = explicit_anchor or session_anchor
-        if classifier_intent == INTENT_VARIANT and requested_colour and (image is not None or referential_anchor):
-            intent_hint = INTENT_VARIANT
+        # The text-only classifier cannot see the sticky/selected anchor. When it predicts a colour
+        # variant and an anchor (or image) is actually present, pin the variant sub-path by what the
+        # user mentions: a target colour -> that-colour branch; only "other/different colours"
+        # without a target -> the same-type-other-colours branch.
+        if classifier_intent == INTENT_VARIANT and (image is not None or referential_anchor):
+            _qn = normalize_text(query)
+            mentions_colour = "colour" in _qn or "color" in _qn
+            if requested_colour:
+                intent_hint = INTENT_VARIANT
+                if isinstance(intent_rules, dict):
+                    intent_rules["rule_applied"] = "honor_color_variant_with_anchor"
+            elif mentions_colour:
+                intent_hint = INTENT_VARIANT
+                if isinstance(intent_rules, dict):
+                    intent_rules["rule_applied"] = "honor_other_colours_with_anchor"
+
+        # Symmetric to the variant re-honor: a confident graph_pairing prediction can be demoted by
+        # the text-only rule layer when the query references the anchor implicitly ("what goes well
+        # with it") -- no anchor WORD and no hardcoded pairing phrase. With a real clicked/session
+        # anchor the referent demonstrably exists, so re-honor pairing. Guard against the classifier's
+        # graph false-positives on self-contained searches ("something to wear to the gym" -> graph):
+        # only re-honor when the query did not extract its own defining product_type/occasion.
+        if (classifier_intent == INTENT_GRAPH and referential_anchor
+                and intent_hint == INTENT_SIMILAR
+                and not (must_filters.get("product_type") or must_filters.get("occasion"))):
+            intent_hint = INTENT_GRAPH
             if isinstance(intent_rules, dict):
-                intent_rules["rule_applied"] = "honor_color_variant_with_anchor"
+                intent_rules["rule_applied"] = "honor_graph_pairing_with_anchor"
 
         # Refinement continuation: a terse follow-up that carries a fashion constraint ("without a
         # pattern", "flat soles", "in beige") often reads as chit-chat/ambiguous in isolation. With a
@@ -522,6 +582,12 @@ class FashionRAGService:
                 },
             }
             return [], "", log_payload, False, direct_response
+
+        # gender is a VIRTUAL filter (no clean Qdrant field) -> pull it out of must/must_not so it
+        # never reaches the hard filter or _filter_points (which would drop every item), and apply
+        # it as a post-filter on the retrieved points instead.
+        gender_filter = str(must_filters.pop("gender", "")).strip()
+        (must_not_filters or {}).pop("gender", None)
 
         dense_query = search_query
         sparse_query = search_query
@@ -664,10 +730,52 @@ class FashionRAGService:
                     points = [p for p in points if self.catalog.infer_article_slot(str((getattr(p, "payload", {}) or {}).get("article_id", ""))) == requested_slot]
                 graph_filtered_count = len(points)
 
+                if not points and graph_candidate_count == 0 and self.compat_index is not None:
+                    # COLD tier 1 — fuse the two cold methods that EACH match the warm co-buy quality
+                    # ceiling (VLM-judged outfit-compat 4.62 == warm; P3alpha alone only 3.88). RRF of
+                    # visual-twin borrow + compatibility embedding beat either alone on held-out co-buy
+                    # recall@10 (0.55/0.57 -> 0.64) AND on outfit quality (-> 4.67); compat covers 100%
+                    # of the catalog so this loses no reach (md/exp_pairing_coldtier.md). Gated to a
+                    # truly cold anchor (no co-buys at all): "has co-buys but none match the target"
+                    # still returns no pairing rather than a fabricated visual guess.
+                    twins = self.compat_index.nearest_warm_twins(anchor_id, self.catalog.graph_adj, k=5)
+                    borrowed: Dict[str, float] = {}
+                    for twin_id, sim in twins:
+                        for nid in self.catalog.get_graph_diverse_neighbors(
+                            twin_id,
+                            limit=settings.graph_pair_limit * 2,
+                            max_per_pt=settings.graph_max_per_pt,
+                            preferred_min_weight=settings.graph_preferred_min_weight,
+                            hard_min_weight=settings.graph_hard_min_weight,
+                        ):
+                            nid = normalize_article_id(nid)
+                            borrowed[nid] = borrowed.get(nid, 0.0) + sim
+                    twin_rank = sorted(borrowed, key=lambda n: borrowed[n], reverse=True)
+                    compat_rank = [normalize_article_id(c) for c in self.compat_index.complement_ids(
+                        anchor_id, self.limit * 10, target_slot=requested_slot)]
+                    rrf_score: Dict[str, float] = {}
+                    for ranked in (twin_rank, compat_rank):
+                        for r, nid in enumerate(ranked):
+                            rrf_score[nid] = rrf_score.get(nid, 0.0) + 1.0 / (60 + r)
+                    fused = sorted(rrf_score, key=lambda n: rrf_score[n], reverse=True)
+                    if fused:
+                        fpoints = self.store.retrieve_by_article_ids(fused)
+                        fpoints = self._filter_points(fpoints, pairing_must, must_not_filters)
+                        if requested_slot:
+                            fpoints = [p for p in fpoints if self.catalog.infer_article_slot(str((getattr(p, "payload", {}) or {}).get("article_id", ""))) == requested_slot]
+                        frank = {normalize_article_id(o): i for i, o in enumerate(fused)}
+                        fpoints.sort(key=lambda p: frank.get(
+                            normalize_article_id(str((getattr(p, "payload", {}) or {}).get("article_id", ""))), 1_000_000))
+                        if fpoints:
+                            retrieval_path.append("cold_twin_compat_rrf")
+                            points = fpoints[: settings.graph_pair_limit]
+                            graph_neighbor_ids = [str((getattr(p, "payload", {}) or {}).get("article_id", "")) for p in points]
+
                 if not points and self.catalog.aux_adj:
-                    # COLD tier 1 — P3alpha transaction edges for THIS item (real purchase
-                    # evidence beats twin proxy: 2x marginal future-basket recall,
-                    # md/refine_5.MD). Same filters as the main graph path.
+                    # COLD supplement — P3alpha transaction edges (the co-buy COMPLEMENT, so it targets
+                    # future-basket partners, not the current outfit; VLM-judged 3.88 < twin/compat
+                    # 4.62, so it now runs only AFTER the RRF tier, as a backstop / for the
+                    # graph_candidate_count>0-but-filtered-empty case). md/refine_5.MD, exp_pairing_coldtier.md.
                     aux_ids = self.catalog.get_graph_diverse_neighbors(
                         anchor_id,
                         limit=settings.graph_pair_limit * 2,
@@ -687,10 +795,12 @@ class FashionRAGService:
                             graph_neighbor_ids = [
                                 str((getattr(p, "payload", {}) or {}).get("article_id", "")) for p in points
                             ]
-                if not points and self.compat_index is not None:
-                    # COLD tier 2 — borrow the co-buy partners of the anchor's visually-
-                    # nearest warm same-slot twins (cold MRR 0.459 -> 0.529, md/refine_4.MD);
-                    # covers items with no transactions at all (P3alpha cannot).
+                if not points and self.compat_index is not None and graph_candidate_count == 0:
+                    # COLD tier 2 — visual-compatibility GUESS. Only used when the anchor is truly
+                    # cold (no co-buy neighbours at all). If it HAS co-buys but none match the target
+                    # (graph_candidate_count > 0, filtered to 0), the data says people don't buy this
+                    # target with it -> trust that and return no pairing, rather than fabricating a
+                    # visual guess (the "boots that don't match the trousers" hallucination).
                     twins = self.compat_index.nearest_warm_twins(anchor_id, self.catalog.graph_adj, k=5)
                     if twins:
                         borrowed: Dict[str, float] = {}
@@ -783,12 +893,55 @@ class FashionRAGService:
                     var_must["graphical_appearance"] = must_filters["graphical_appearance"]
                 points = self._image_knn_points(ref_emb, ref_id, var_must, must_not_filters)
                 hybrid_result_count = len(points)
+            elif ref_emb:
+                # "in a different / other colour" with NO specific target colour: show the SAME item
+                # type in OTHER colours -> image-KNN of the anchor's type, excluding its own colour
+                # (previously this fell through to a generic text search and returned unrelated junk).
+                retrieval_path.append("color_variant_other_colours")
+                anchor_id = ref_id
+                graph_anchor_source = ref_source
+                oc_must = {"product_type": ref_type} if ref_type else {}
+                anchor_colour = self.catalog.get_meta(ref_id).get("colour_group_name", "")
+                oc_must_not = dict(must_not_filters or {})
+                if anchor_colour:
+                    oc_must_not["colour_group"] = list({*(oc_must_not.get("colour_group") or []), anchor_colour})
+                points = self._image_knn_points(ref_emb, ref_id, oc_must, oc_must_not)
+                hybrid_result_count = len(points)
+
+        if intent_hint == "graph_pairing" and points and requested_pt:
+            # the user named a SPECIFIC target type ("trousers", "shoe") -> keep ONLY that exact
+            # product type, so a Skirt/Shorts cannot pass for "trousers" and a Boot cannot pass for
+            # "shoe". Quality over quantity: if nothing of that type pairs, return none (-> the
+            # honest "no pairings" message) rather than padding with off-type items from the slot.
+            _rpt = normalize_text(self.catalog.canonical_product_type(requested_pt) or requested_pt)
+            # generic "shoe" -> "Other shoe": accept the whole closed-shoe family (sneakers/flats/
+            # pumps), excluding boots/sandals; a concrete type ("Boots", "Trousers") stays exact.
+            _allowed = _SHOE_TYPES if _rpt == "other shoe" else {_rpt}
+
+            def _ptype(p):
+                aid = normalize_article_id(str((getattr(p, "payload", {}) or {}).get("article_id", "")))
+                return normalize_text(self.catalog.get_meta(aid).get("product_type_name", ""))
+
+            exact = [p for p in points if _ptype(p) in _allowed]
+            points = exact
+            if exact:
+                retrieval_path.append("pairing_exact_type")
+            else:
+                retrieval_path.append("pairing_no_exact_type")
+
+        if intent_hint == "graph_pairing" and len(points) > 1 and settings.use_reranker and query:
+            # the candidates are confident co-buy / P3a pairings already; reorder THEM by relevance
+            # to the QUERY so free-text nuance ("elegant", "minimal", a material) the structured
+            # filters can't capture still steers the result -- staying close to the query instead of
+            # only intent + slot. (Does not add items, so it cannot reintroduce off-pairing junk.)
+            points = self._rerank_blend(query, points, self.ui_limit)
+            retrieval_path.append("pairing_query_rerank")
 
         if not points and intent_hint == "graph_pairing":
             retrieval_path.append("no_graph_pairing")
         elif not points:
             do_rerank = settings.use_reranker and bool(query)
-            pool = max(settings.rerank_candidate_depth, self.limit) if do_rerank else self.limit
+            pool = max(settings.rerank_candidate_depth, self.ui_limit) if do_rerank else self.ui_limit
             points = self._hybrid_with_relaxation(
                 text_dense=text_dense,
                 image_dense=image_dense,
@@ -800,11 +953,19 @@ class FashionRAGService:
                 retrieval_path=retrieval_path,
             )
             if do_rerank and len(points) > 1:
-                points = self._rerank_blend(query, points, self.limit)
+                points = self._rerank_blend(query, points, self.ui_limit)
                 retrieval_path.append("cross_encoder_rerank")
             else:
-                points = points[:self.limit]
+                points = points[:self.ui_limit]
             hybrid_result_count = len(points)
+
+        # gender post-filter: drop the opposite sex (keep matching + unisex). Skip if it would
+        # empty the results -- a partial gender hint should not return nothing.
+        if gender_filter and points:
+            gendered = self._filter_gender(points, gender_filter)
+            if gendered:
+                points = gendered
+                retrieval_path.append("gender_filter:" + gender_filter)
 
         items: List[dict] = []
         for point in points:
@@ -884,7 +1045,8 @@ class FashionRAGService:
             },
         }
 
-        context = self._format_context(points)
+        # ground the reply on only the top few even though more cards (items) are returned
+        context = self._format_context(points[:self.gen_limit])
         if not context:
             return items, "", log_payload, False, None
 

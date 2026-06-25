@@ -22,6 +22,14 @@ INTENT_VARIANT = "color_variant"
 INTENT_CHAT = "chit_chat"
 INTENT_COMPOSITE = "composite_intent"
 
+# in a pairing query, text BEFORE one of these connectives describes the TARGET item, AFTER it the
+# anchor: "blue trousers TO GO WITH this navy shirt" -> target=blue trousers, anchor=navy shirt.
+_PAIR_CONNECTIVES = (
+    "to go with", "to match", "to wear with", "to pair with", "to go under", "to go over",
+    "that goes with", "that go with", "to complement", "goes with", "go with", "pair with",
+    "match with", "with this", "with my", "with the", "with these", "with that", "for this", "for my",
+)
+
 CHIT_CHAT_SYSTEM_PROMPT = (
     "You are a fashion assistant. Reply in English. "
     "You must never answer the user's question. "
@@ -687,24 +695,19 @@ class QwenMultimodalService:
         return any(marker in text for marker in anchor_markers)
 
     @staticmethod
-    def _is_small_talk(text: str) -> bool:
-        # positive small-talk / bot-meta / non-fashion detector (avoids misrouting a fashion
-        # query whose garment word just isn't in the fashion lexicon, e.g. "a parka").
-        if not text:
-            return False
-        phrases = ["hello", "hi there", "hey", "good morning", "good afternoon",
-                   "thanks", "thank you", "how are you", "what can you do", "who are you",
-                   "what are you", "how do you work", "what's the weather", "whats the weather",
-                   "weather", "tell me a joke", "what is your name"]
-        return any(p in text for p in phrases)
-
-    @staticmethod
     def _has_strong_pairing_phrase(text: str) -> bool:
         # explicit pairing verb phrases imply an anchor described in the query itself
         # ("what trousers go with a white shirt") even without a this/that marker.
         strong = ["go with", "goes with", "to match", "pair with", "wear with",
                   "style with", "combine with", "matches with"]
-        return any(p in text for p in strong)
+        if any(p in text for p in strong):
+            return True
+        # adverb-inserted forms the substrings above miss: "goes WELL with", "go REALLY WELL with",
+        # "pairs NICELY with". Restricted to pairing-specific adverbs so it does not fire on an
+        # incidental "go ... with" ("go to the shop with a friend").
+        return bool(re.search(
+            r"\b(go|goes|going|pair|pairs|wear|wears|match|matches|style|styles|combine|combines)\s+"
+            r"(well|really well|nicely|great|perfectly|best)\s+with\b", text))
 
     @staticmethod
     def _is_color_variant_request(text: str) -> bool:
@@ -814,6 +817,10 @@ class QwenMultimodalService:
         debug = self._build_intent_rule_debug(query, intent_hint)
         has_anchor = debug.get("has_anchor_reference")
         is_variant = debug.get("is_color_variant_request") or debug.get("in_colour_cue")
+        # the narrow variant cue ("another/different colour", "colorway") counts as a referent
+        # signal; the weak "in <colour>" cue does not (it also fires on plain searches/negations
+        # like "nothing in black, a white shirt").
+        is_variant_phrase = debug.get("is_color_variant_request")
         is_pairing = debug.get("is_graph_pairing_request")
         strong_pairing = debug.get("strong_pairing")
 
@@ -834,23 +841,37 @@ class QwenMultimodalService:
             debug["rule_applied"] = "empty_query_default_similar"
             return INTENT_SIMILAR, debug
 
-        # classifier said a search intent but it is actually small talk / bot-meta
-        # ("what can you do", "what's the weather").
-        if self._is_small_talk(text):
-            debug["rule_applied"] = "downgrade_to_chit_chat"
-            return INTENT_CHAT, debug
+        # The intent classifier scores 97.9% on the labelset (tests/intent_model_eval.py, 2026-06-25),
+        # so trust it -- the former "distrust" rules (force_similar_no_explicit_pairing, is_small_talk)
+        # only ever removed correct, confident predictions (0 helped / 12 hurt at conf >= 0.93, see
+        # md/audit_intent_model_vs_rules.md). The one residual model failure mode is OVER-firing the
+        # referent-requiring intents (graph_pairing / color_variant) on a self-contained SEARCH
+        # ("something to wear to the gym" -> graph; "nothing in black, a white shirt" -> variant).
+        # Those intents are only meaningful with a referent, so keep the model's call when the TEXT
+        # carries a referent signal (anchor word / pairing or variant phrase) and fall back to search
+        # otherwise. This gates on referent PRESENCE, not on matching a hardcoded phrase, so it no
+        # longer demotes valid pairing like "goes well with this" / "build an outfit around this".
+        # rag_service additionally re-honors a variant when a real clicked/session anchor or image
+        # exists (the text-only layer here cannot see it).
+        if intent_hint in {INTENT_GRAPH, INTENT_VARIANT}:
+            referent = has_anchor or is_pairing or strong_pairing or is_variant_phrase
+            if not referent:
+                debug["rule_applied"] = "demote_referentless_to_similar"
+                return INTENT_SIMILAR, debug
+            debug["rule_applied"] = "trust_classifier"
+            return intent_hint, debug
+
+        # The classifier predicts a generic search; upgrade only when the text unambiguously names a
+        # more specific intent (catches the model's rare under-prediction toward search).
         if has_anchor and is_variant:
             debug["rule_applied"] = "explicit_color_variant"
             return INTENT_VARIANT, debug
         if (has_anchor and is_pairing) or strong_pairing:
             debug["rule_applied"] = "explicit_graph_pairing"
             return INTENT_GRAPH, debug
-        if intent_hint in {INTENT_GRAPH, INTENT_VARIANT}:
-            debug["rule_applied"] = "force_similar_no_explicit_pairing"
-            return INTENT_SIMILAR, debug
 
-        debug["rule_applied"] = "default_similar"
-        return INTENT_SIMILAR, debug
+        debug["rule_applied"] = "trust_classifier"
+        return intent_hint, debug
 
     def _classify_intent_local(
         self,
@@ -924,6 +945,21 @@ class QwenMultimodalService:
             except Exception:
                 self._slot_extractor = False  # load failed -> don't retry
         return self._slot_extractor or None
+
+    def _target_part(self, query: str) -> str:
+        """The TARGET side of a pairing query: text before the connective ("blue trousers TO GO WITH
+        this navy shirt" -> "blue trousers"). Whole query if there is no connective."""
+        q = (query or "").lower()
+        cut = len(q)
+        for c in _PAIR_CONNECTIVES:
+            i = q.find(c)
+            if i != -1:
+                cut = min(cut, i)
+        return q[:cut]
+
+    def _colour_on_target(self, query: str, vocab: Dict[str, List[str]] | None = None) -> bool:
+        """True if a colour modifies the pairing TARGET (before the connective)."""
+        return bool(self.gazetteer.extract(self._target_part(query), vocab).get("colour_group"))
 
     def analyze_user_query(self, query: str, vocab: Dict[str, List[str]] | None = None) -> Dict:
         intent_result = self._classify_intent_local(query, [], anchor_item=None)
@@ -1018,7 +1054,8 @@ class QwenMultimodalService:
             gz = self.gazetteer.extract(query, vocab)
             neg = self.gazetteer.extract_negated(query, vocab)
             if intent_hint == INTENT_GRAPH:
-                gz.pop("colour_group", None)
+                if not self._colour_on_target(query, vocab):
+                    gz.pop("colour_group", None)
                 neg.pop("colour_group", None)
             return {
                 "search_query_en": query,
@@ -1036,10 +1073,14 @@ class QwenMultimodalService:
         # LLM supplies product_type only; closed-vocab enums come from the deterministic
         # gazetteer (md/audit_nlu.md). Validate enum targets against the live vocab.
         gazetteer_filters = self.gazetteer.extract(query, vocab)
-        # in a pairing query ("trousers to go with my navy blazer") the colour usually
-        # describes the anchor, not the target -> do not turn it into a target colour filter.
+        # product_type is resolved separately so pairing can take it from the TARGET side only
+        gz_pt = gazetteer_filters.pop("product_type", "")
         if intent_hint == INTENT_GRAPH:
-            gazetteer_filters.pop("colour_group", None)
+            # "shoe to go with this dress" -> target type = shoe (before the connective), not the
+            # anchor (dress); likewise keep a colour only when it modifies that target.
+            gz_pt = self.gazetteer.extract(self._target_part(query), vocab).get("product_type", "")
+            if not self._colour_on_target(query, vocab):
+                gazetteer_filters.pop("colour_group", None)
         must_filters = {k: v for k, v in self._normalize_filters(raw_filters).items() if k == "product_type"}
         _slot_added = {}
         # the LLM sometimes returns a vague non-garment word for a query that names no item
@@ -1049,13 +1090,17 @@ class QwenMultimodalService:
                                         "anything", "clothes")):
             must_filters.pop("product_type", None)
         must_filters.update(gazetteer_filters)
+        if gz_pt:
+            # deterministic common-garment product_type beats the flaky 1.5B extraction
+            # ("boot" -> Boots, "shoe" -> Other shoe); the LLM still handles rarer / OOV types.
+            must_filters["product_type"] = gz_pt
         # ENSEMBLE: DeBERTa slot tagger fills enum fields the gazetteer missed (rare colours /
         # paraphrases). Gazetteer wins on conflict; tagger only fills gaps. (md/slot_extractor_plan.md)
         if settings.use_slot_extractor:
             se = self._get_slot_extractor(vocab)
             if se is not None:
                 _slot_added = se.fill_missing(query, must_filters)
-                if intent_hint == INTENT_GRAPH:
+                if intent_hint == INTENT_GRAPH and not self._colour_on_target(query, vocab):
                     _slot_added.pop("colour_group", None)  # colour belongs to the anchor in pairing
                 for f, v in _slot_added.items():
                     must_filters.setdefault(f, v)

@@ -1,0 +1,215 @@
+{
+  "meta": {
+    "title": "Answer key (dap an) -- keyed by turn id",
+    "description": "Gold predicates per TURN id (matches tests/exam_cases.json turn ids). Encodes CORRECT expected behaviour (the spec), not the system's current output -- a failing turn is a genuine finding. A turn passes only when every predicate passes; a conversation passes only when all its turns pass. Predicate schema: see the Grader docstring in run_nlu_eval.py.",
+    "notes": {
+      "refinement_turns": "terse follow-ups (C1.2, C4.2, C6.2, C6.3) are scored on observable behaviour (carried product_type + new constraint in the results), not on the exact intent label, since refinement-continuation is an internal routing detail.",
+      "colour_is_hard_filter": "an extracted colour filters Qdrant on the exact colour_group_name, so a correct run returns results almost entirely of that colour"
+    }
+  },
+  "answers": {
+    "E1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Dress"},
+      {"check": "must", "field": "colour_group", "equals": "Black"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Dress"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["Black"], "min_frac": 0.8}
+    ],
+    "E2": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Trousers"},
+      {"check": "must", "field": "colour_group", "equals": "Blue"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Trousers"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["Blue"], "min_frac": 0.6}
+    ],
+    "E3": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Sweater"},
+      {"check": "must", "field": "colour_group", "equals": "Grey"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Sweater"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["Grey"], "min_frac": 0.8}
+    ],
+    "E4": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Bag"},
+      {"check": "results_min", "n": 1},
+      {"check": "results_all_in", "field": "product_type", "values": ["Bag"]}
+    ],
+    "E5": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "occasion", "contains": "Lounge"},
+      {"check": "must", "field": "product_type", "absent": true},
+      {"check": "path", "contains": "filter+occasion"},
+      {"check": "results_min", "n": 1},
+      {"check": "results_frac_in", "field": "occasion", "values": ["Lounge/Sleep/Nightwear"], "min_frac": 0.7}
+    ],
+    "E6": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "occasion", "contains": "Sport"},
+      {"check": "must", "field": "product_type", "absent": true},
+      {"check": "path", "contains": "filter+occasion"},
+      {"check": "results_frac_in", "field": "occasion", "values": ["Sport/Active/Workout"], "min_frac": 0.6}
+    ],
+    "M1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Dress"},
+      {"check": "must", "field": "occasion", "contains": "Party"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Dress"]},
+      {"check": "results_frac_in", "field": "occasion", "values": ["Party/Evening/Wedding"], "min_frac": 0.6}
+    ],
+    "M2": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Shirt"},
+      {"check": "path", "contains": "gender_filter"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Shirt"]}
+    ],
+    "M3": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Trousers"},
+      {"check": "must", "field": "colour_group", "equals": "Black"},
+      {"check": "must", "field": "fit", "contains": "Slim"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Trousers"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["Black"], "min_frac": 0.8}
+    ],
+    "M4": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Sweater"},
+      {"check": "must_not", "field": "colour_group", "contains": "Black"},
+      {"check": "results_min", "n": 1},
+      {"check": "results_all_in", "field": "product_type", "values": ["Sweater"]},
+      {"check": "results_none_in", "field": "colour_group", "values": ["Black"]}
+    ],
+    "M5": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Jacket"},
+      {"check": "must", "field": "seasonality", "contains": "Winter"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Jacket"]}
+    ],
+
+    "C1.1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Shirt"},
+      {"check": "must", "field": "colour_group", "equals": "White"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Shirt"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["White"], "min_frac": 0.8}
+    ],
+    "C1.2": [
+      {"check": "must", "field": "colour_group", "equals": "Blue"},
+      {"check": "results_min", "n": 1},
+      {"check": "results_all_in", "field": "product_type", "values": ["Shirt"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["Blue"], "min_frac": 0.6}
+    ],
+    "C1.3": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Trousers"},
+      {"check": "must", "field": "colour_group", "equals": "Black"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Trousers"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["Black"], "min_frac": 0.8}
+    ],
+
+    "C2.1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Shirt"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Shirt"]}
+    ],
+    "C2.2": [
+      {"check": "intent", "equals": "graph_pairing"},
+      {"check": "anchor", "resolved": true},
+      {"check": "results_min", "n": 1},
+      {"check": "results_none_in", "field": "product_type", "values": ["Shirt"]}
+    ],
+
+    "C3.1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Dress"},
+      {"check": "must", "field": "colour_group", "equals": "Black"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Dress"]}
+    ],
+    "C3.2": [
+      {"check": "intent", "equals": "color_variant"},
+      {"check": "anchor", "resolved": true},
+      {"check": "results_min", "n": 1},
+      {"check": "results_all_in", "field": "product_type", "values": ["Dress"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["Red"], "min_frac": 0.5}
+    ],
+
+    "C4.1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Sweater"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Sweater"]}
+    ],
+    "C4.2": [
+      {"check": "must_not", "field": "colour_group", "contains": "Black"},
+      {"check": "results_min", "n": 1},
+      {"check": "results_all_in", "field": "product_type", "values": ["Sweater"]},
+      {"check": "results_none_in", "field": "colour_group", "values": ["Black"]}
+    ],
+
+    "C5.1": [
+      {"check": "intent", "equals": "chit_chat"},
+      {"check": "direct", "equals": "chit_chat"}
+    ],
+    "C5.2": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Dress"},
+      {"check": "must", "field": "colour_group", "equals": "Red"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Dress"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["Red"], "min_frac": 0.8}
+    ],
+
+    "C6.1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Shirt"},
+      {"check": "must", "field": "colour_group", "equals": "White"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Shirt"]}
+    ],
+    "C6.2": [
+      {"check": "must", "field": "fit", "contains": "Slim"},
+      {"check": "results_min", "n": 1},
+      {"check": "results_all_in", "field": "product_type", "values": ["Shirt"]}
+    ],
+    "C6.3": [
+      {"check": "must", "field": "colour_group", "equals": "Black"},
+      {"check": "results_min", "n": 1},
+      {"check": "results_all_in", "field": "product_type", "values": ["Shirt"]},
+      {"check": "results_frac_in", "field": "colour_group", "values": ["Black"], "min_frac": 0.6}
+    ],
+
+    "C7.1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Trousers"},
+      {"check": "must", "field": "colour_group", "equals": "Black"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Trousers"]}
+    ],
+    "C7.2": [
+      {"check": "intent", "equals": "graph_pairing"},
+      {"check": "anchor", "resolved": true},
+      {"check": "results_min", "n": 1},
+      {"check": "results_none_in", "field": "product_type", "values": ["Trousers"]}
+    ],
+
+    "C8.1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Trousers"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Trousers"]}
+    ],
+    "C8.2": [
+      {"check": "intent", "equals": "graph_pairing"},
+      {"check": "anchor", "resolved": true},
+      {"check": "results_min", "n": 1},
+      {"check": "results_none_in", "field": "product_type", "values": ["Trousers"]}
+    ],
+
+    "C9.1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Trousers"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Trousers"]}
+    ],
+    "C9.2": [
+      {"check": "intent", "equals": "graph_pairing"},
+      {"check": "anchor", "resolved": true},
+      {"check": "results_min", "n": 1},
+      {"check": "results_none_in", "field": "product_type", "values": ["Trousers"]}
+    ]
+  }
+}
