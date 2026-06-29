@@ -14,18 +14,18 @@
         "turn_passed": 5
       },
       "hard": {
-        "conv_total": 9,
-        "conv_passed": 9,
-        "turn_total": 20,
-        "turn_passed": 20
+        "conv_total": 11,
+        "conv_passed": 11,
+        "turn_total": 23,
+        "turn_passed": 23
       }
     },
     "overall": {
-      "conv_total": 20,
-      "conv_passed": 20,
+      "conv_total": 22,
+      "conv_passed": 22,
       "conv_pass_rate": 1.0,
-      "turn_total": 31,
-      "turn_passed": 31,
+      "turn_total": 34,
+      "turn_passed": 34,
       "turn_pass_rate": 1.0
     }
   },
@@ -91,8 +91,8 @@
               "Casual/Everyday",
               "Casual/Everyday",
               "Casual/Everyday",
-              "Casual/Everyday",
               "Party/Evening/Wedding",
+              "Casual/Everyday",
               "Casual/Everyday"
             ]
           },
@@ -432,15 +432,15 @@
             ],
             "result_colours": [
               "Black",
+              "Off White",
+              "Yellow",
               "Yellowish Brown",
               "Black",
               "Black",
               "Black",
               "Dark Orange",
-              "Black",
-              "Dark Beige",
-              "Beige",
-              "Yellowish Brown"
+              "Green",
+              "Light Beige"
             ],
             "result_occasions": []
           },
@@ -519,23 +519,23 @@
               "Pyjama set",
               "Pyjama set",
               "Pyjama set",
-              "Pyjama bottom",
               "Pyjama set",
               "Pyjama set",
               "Pyjama set",
-              "Pyjama set"
+              "Pyjama set",
+              "Pyjama bottom"
             ],
             "result_colours": [
+              "Dark Blue",
               "Black",
               "Grey",
+              "Light Grey",
+              "Black",
+              "Beige",
               "Dark Red",
               "Dark Blue",
               "Grey",
-              "Beige",
-              "Dark Grey",
-              "Dark Turquoise",
-              "Grey",
-              "Grey"
+              "Beige"
             ],
             "result_occasions": [
               "Lounge/Sleep/Nightwear",
@@ -646,10 +646,10 @@
               "T-shirt",
               "Vest top",
               "T-shirt",
-              "T-shirt",
-              "Leggings/Tights"
+              "T-shirt"
             ],
             "result_colours": [
+              "Grey",
               "Black",
               "Pink",
               "Black",
@@ -658,8 +658,7 @@
               "Dark Blue",
               "Black",
               "White",
-              "Light Turquoise",
-              "Dark Pink"
+              "Light Turquoise"
             ],
             "result_occasions": [
               "Sport/Active/Workout",
@@ -887,22 +886,23 @@
               "Shirt"
             ],
             "result_colours": [
-              "Beige",
-              "White",
-              "White",
-              "Red",
-              "Dark Blue",
               "Black",
               "White",
+              "White",
+              "White",
               "Black",
-              "Black"
+              "Black",
+              "White",
+              "White",
+              "Yellowish Brown",
+              "White"
             ],
             "result_occasions": [
               "Casual/Everyday",
               "Casual/Everyday",
+              "Casual/Everyday",
               "Office/Workwear",
-              "Casual/Everyday",
-              "Casual/Everyday",
+              "Office/Workwear",
               "Casual/Everyday",
               "Casual/Everyday",
               "Casual/Everyday",
@@ -1008,14 +1008,14 @@
             "result_occasions": [
               "Office/Workwear",
               "Office/Workwear",
+              "Casual/Everyday",
+              "Office/Workwear",
               "Office/Workwear",
               "Casual/Everyday",
               "Casual/Everyday",
-              "Office/Workwear",
               "Casual/Everyday",
               "Casual/Everyday",
-              "Office/Workwear",
-              "Office/Workwear"
+              "Casual/Everyday"
             ]
           },
           "verdicts": [
@@ -1127,15 +1127,15 @@
             ],
             "result_colours": [
               "Dark Red",
-              "Dark Red",
+              "Blue",
               "Dark Grey",
-              "Dark Blue",
-              "Dark Turquoise",
-              "Dark Purple",
-              "Dark Pink",
-              "Dark Blue",
-              "Light Orange",
-              "Red"
+              "Dark Red",
+              "White",
+              "Light Beige",
+              "Yellow",
+              "Light Beige",
+              "Grey",
+              "Dark Grey"
             ],
             "result_occasions": [
               "Casual/Everyday",
@@ -1254,13 +1254,13 @@
             ],
             "result_colours": [
               "Black",
+              "Dark Orange",
               "Black",
-              "Black",
-              "Black",
-              "Black",
-              "Dark Blue",
-              "Yellowish Brown",
+              "Dark Yellow",
               "Greenish Khaki",
+              "Black",
+              "Black",
+              "Black",
               "Greenish Khaki",
               "Black"
             ],
@@ -1382,7 +1382,7 @@
               "Casual/Everyday",
               "Casual/Everyday",
               "Casual/Everyday",
-              "Office/Workwear"
+              "Casual/Everyday"
             ]
           },
           "verdicts": [
@@ -1890,7 +1890,6 @@
               "Black"
             ],
             "result_occasions": [
-              "Casual/Everyday",
               "Party/Evening/Wedding",
               "Casual/Everyday",
               "Casual/Everyday",
@@ -1899,7 +1898,8 @@
               "Casual/Everyday",
               "Casual/Everyday",
               "Casual/Everyday",
-              "Party/Evening/Wedding"
+              "Party/Evening/Wedding",
+              "Casual/Everyday"
             ]
           },
           "verdicts": [
@@ -1961,7 +1961,7 @@
             "retrieval_path": [
               "color_variant_image_knn"
             ],
-            "anchor_id": "0700842002",
+            "anchor_id": "0842290001",
             "graph_candidate_count": 0,
             "n_results": 10,
             "result_types": [
@@ -1989,15 +1989,15 @@
               "Red"
             ],
             "result_occasions": [
+              "Party/Evening/Wedding",
               "Casual/Everyday",
-              "Casual/Everyday",
-              "Casual/Everyday",
-              "Casual/Everyday",
-              "Casual/Everyday",
-              "Casual/Everyday",
-              "Casual/Everyday",
-              "Casual/Everyday",
-              "Casual/Everyday",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
+              "Party/Evening/Wedding",
               "Party/Evening/Wedding"
             ]
           },
@@ -2016,7 +2016,7 @@
                 "resolved": true
               },
               "passed": true,
-              "detail": "anchor_id='0700842002' resolved_expected=True"
+              "detail": "anchor_id='0842290001' resolved_expected=True"
             },
             {
               "pred": {
@@ -2095,14 +2095,14 @@
             ],
             "result_colours": [
               "Dark Grey",
+              "Yellow",
               "White",
               "Pink",
               "White",
               "Black",
               "Grey",
+              "Green",
               "Dark Red",
-              "Red",
-              "Black",
               "Red"
             ],
             "result_occasions": [
@@ -2189,15 +2189,15 @@
             ],
             "result_colours": [
               "Dark Red",
-              "Dark Green",
+              "Dark Red",
+              "Blue",
+              "Light Beige",
               "Dark Grey",
-              "Dark Blue",
-              "Grey",
-              "Dark Grey",
-              "Dark Grey",
-              "Dark Grey",
+              "White",
+              "Light Beige",
               "Yellow",
-              "Light Pink"
+              "Dark Grey",
+              "Grey"
             ],
             "result_occasions": [
               "Casual/Everyday",
@@ -2353,8 +2353,8 @@
             ],
             "result_occasions": [
               "Casual/Everyday",
-              "Casual/Everyday",
               "Party/Evening/Wedding",
+              "Casual/Everyday",
               "Casual/Everyday",
               "Casual/Everyday",
               "Casual/Everyday",
@@ -2481,7 +2481,7 @@
               "Casual/Everyday",
               "Casual/Everyday",
               "Casual/Everyday",
-              "Office/Workwear"
+              "Casual/Everyday"
             ]
           },
           "verdicts": [
@@ -2562,21 +2562,21 @@
             "result_colours": [
               "White",
               "White",
-              "White",
-              "White",
               "Black",
+              "White",
+              "White",
+              "White",
               "Dark Red",
-              "Dark Red",
+              "Dark Green",
               "Dark Blue",
-              "Black",
-              "Dark Green"
+              "Black"
             ],
             "result_occasions": [
-              "Casual/Everyday",
-              "Casual/Everyday",
-              "Casual/Everyday",
+              "Office/Workwear",
               "Casual/Everyday",
               "Office/Workwear",
+              "Casual/Everyday",
+              "Casual/Everyday",
               "Casual/Everyday",
               "Casual/Everyday",
               "Casual/Everyday",
@@ -3279,6 +3279,305 @@
               },
               "passed": true,
               "detail": "product_type none in ['Trousers']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C10",
+      "tier": "hard",
+      "title": "variant without a target colour (not swept into refine)",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C10.1",
+          "query": "show me a black hoodie",
+          "passed": true,
+          "n_pred": 3,
+          "n_pred_pass": 3,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "colour_group": "Black",
+              "product_type": "Hoodie"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie"
+            ],
+            "result_colours": [
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black",
+              "Black"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Hoodie"
+              },
+              "passed": true,
+              "detail": "must.product_type=[hoodie] expected='Hoodie'"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Hoodie"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Hoodie']? offenders=none"
+            }
+          ]
+        },
+        {
+          "id": "C10.2",
+          "query": "any different color of this one?",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "color_variant",
+            "classifier_intent": "color_variant",
+            "direct_type": "",
+            "must": {
+              "product_type": "Dress"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "color_variant_other_colours"
+            ],
+            "anchor_id": "0715624054",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie",
+              "Hoodie"
+            ],
+            "result_colours": [
+              "Light Orange",
+              "Dark Grey",
+              "Dark Blue",
+              "Grey",
+              "Light Purple",
+              "Grey",
+              "Dark Grey",
+              "Grey",
+              "Dark Grey",
+              "Grey"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "color_variant"
+              },
+              "passed": true,
+              "detail": "intent='color_variant' expected='color_variant'"
+            },
+            {
+              "pred": {
+                "check": "anchor",
+                "resolved": true
+              },
+              "passed": true,
+              "detail": "anchor_id='0715624054' resolved_expected=True"
+            },
+            {
+              "pred": {
+                "check": "results_min",
+                "n": 1
+              },
+              "passed": true,
+              "detail": "n_results=10 min=1"
+            },
+            {
+              "pred": {
+                "check": "results_all_in",
+                "field": "product_type",
+                "values": [
+                  "Hoodie"
+                ]
+              },
+              "passed": true,
+              "detail": "product_type all in ['Hoodie']? offenders=none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C11",
+      "tier": "hard",
+      "title": "no <type> with the term -> cross-category suggestion",
+      "passed": true,
+      "turns": [
+        {
+          "id": "C11",
+          "query": "I want a shirt that has the word NASA printed on it",
+          "passed": true,
+          "n_pred": 4,
+          "n_pred_pass": 4,
+          "error": "",
+          "observed": {
+            "intent": "similar_items",
+            "classifier_intent": "similar_items",
+            "direct_type": "",
+            "must": {
+              "product_type": "Shirt"
+            },
+            "must_not": {},
+            "retrieval_path": [
+              "hard_filters",
+              "cross_encoder_rerank",
+              "cross_category_suggestion"
+            ],
+            "anchor_id": "",
+            "graph_candidate_count": 0,
+            "n_results": 10,
+            "result_types": [
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt",
+              "Shirt"
+            ],
+            "result_colours": [
+              "Greenish Khaki",
+              "White",
+              "Dark Red",
+              "Black",
+              "White",
+              "Black",
+              "Black",
+              "Other Green",
+              "Dark Red",
+              "White"
+            ],
+            "result_occasions": [
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday",
+              "Casual/Everyday"
+            ]
+          },
+          "verdicts": [
+            {
+              "pred": {
+                "check": "intent",
+                "equals": "similar_items"
+              },
+              "passed": true,
+              "detail": "intent='similar_items' expected='similar_items'"
+            },
+            {
+              "pred": {
+                "check": "must",
+                "field": "product_type",
+                "equals": "Shirt"
+              },
+              "passed": true,
+              "detail": "must.product_type=[shirt] expected='Shirt'"
+            },
+            {
+              "pred": {
+                "check": "path",
+                "contains": "cross_category_suggestion"
+              },
+              "passed": true,
+              "detail": "path=['hard_filters', 'cross_encoder_rerank', 'cross_category_suggestion'] contains='cross_category_suggestion'"
+            },
+            {
+              "pred": {
+                "check": "suggestions",
+                "min": 1
+              },
+              "passed": true,
+              "detail": "n_suggestions=4 min=1"
             }
           ]
         }

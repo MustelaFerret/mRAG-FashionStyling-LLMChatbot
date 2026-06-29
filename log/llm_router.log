@@ -2,11 +2,9 @@
   "active_anchor_id": "",
   "analysis_debug": {
     "constrained": true,
-    "gazetteer_filters": {
-      "occasion": "Lounge/Sleep/Nightwear"
-    },
+    "gazetteer_filters": {},
     "intent_classifier": {
-      "confidence": 0.94921875,
+      "confidence": 0.8359375,
       "index": 0,
       "intent": "similar_items",
       "raw_label": "similar_items",
@@ -14,153 +12,34 @@
     },
     "intent_rules": {
       "classifier_intent": "similar_items",
-      "has_anchor_reference": false,
+      "has_anchor_reference": true,
       "in_colour_cue": false,
       "is_color_variant_request": false,
       "is_graph_pairing_request": false,
       "looks_fashion": true,
-      "query_normalized": "comfy loungewear set for sleeping",
-      "rule_applied": "default_similar",
+      "query_normalized": "i want to find some shirt that have the word nasa printed on it",
+      "rule_applied": "trust_classifier",
       "strong_pairing": false
     },
     "llm_filters_raw": {
-      "product_type": "sleepwear"
+      "product_type": "shirt"
     },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {
-        "product_type": "sleepwear"
+        "product_type": "shirt"
       },
-      "search_query_en": "comfy loungewear set for sleeping"
+      "search_query_en": "shirt with NASA print"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"comfy loungewear set for sleeping\",\n  \"must_filters\": {\n    \"product_type\": \"sleepwear\"\n  }\n}",
-    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
-    "slot_filters": {},
-    "using_query_llm": false
-  },
-  "boost_applied": false,
-  "boosted_product_type": "",
-  "dense_query": "comfy loungewear set for sleeping",
-  "dropped_filters": [],
-  "dropped_must_not": [],
-  "event": "chat",
-  "filter_validation_debug": [
-    {
-      "allowed_count": 113,
-      "allowed_has_value": true,
-      "input": "sleepwear",
-      "key": "product_type",
-      "matched": "Night gown",
-      "scope": "must_filters"
-    },
-    {
-      "allowed_count": 9,
-      "allowed_has_value": true,
-      "input": "Lounge/Sleep/Nightwear",
-      "key": "occasion",
-      "matched": "Lounge/Sleep/Nightwear",
-      "scope": "must_filters"
-    }
-  ],
-  "graph_anchor_id": "",
-  "graph_anchor_invalid": "",
-  "graph_anchor_source": "",
-  "graph_candidate_count": 0,
-  "graph_filtered_count": 0,
-  "graph_neighbor_ids": [],
-  "graph_used": false,
-  "has_image": false,
-  "hybrid_result_count": 10,
-  "intent_hint": "similar_items",
-  "latency_ms": 54855,
-  "llm_filters_raw": {
-    "product_type": "sleepwear"
-  },
-  "llm_must_not_raw": {},
-  "must_filters": {
-    "occasion": "Lounge/Sleep/Nightwear"
-  },
-  "must_not_filters": {},
-  "must_not_validation_debug": [],
-  "no_anchor": true,
-  "query": "comfy loungewear set for sleeping",
-  "request_id": "cd193752c06c",
-  "result_count": 10,
-  "result_ids": [
-    "0710387001",
-    "0598604001",
-    "0691683001",
-    "0683123006",
-    "0655791004",
-    "0536139054",
-    "0732382001",
-    "0655791002",
-    "0792557002",
-    "0605970004"
-  ],
-  "retrieval_path": [
-    "filter+occasion",
-    "cross_encoder_rerank"
-  ],
-  "search_query": "comfy loungewear set for sleeping",
-  "search_query_raw": "comfy loungewear set for sleeping",
-  "session_id": "m3_comfy",
-  "soft_product_type": "Night gown",
-  "sparse_query": "comfy loungewear set for sleeping",
-  "timestamp_utc": "2026-06-24T17:34:46.874007+00:00",
-  "timing_ms": {
-    "analysis": 31894,
-    "embedding": 21,
-    "total": 54855
-  }
-}
-
-{
-  "active_anchor_id": "",
-  "analysis_debug": {
-    "constrained": true,
-    "gazetteer_filters": {
-      "colour_group": "Black",
-      "fit": "Tight/Skinny/Bodycon"
-    },
-    "intent_classifier": {
-      "confidence": 0.94921875,
-      "index": 0,
-      "intent": "similar_items",
-      "raw_label": "similar_items",
-      "source": "intent_classifier"
-    },
-    "intent_rules": {
-      "classifier_intent": "similar_items",
-      "has_anchor_reference": false,
-      "in_colour_cue": false,
-      "is_color_variant_request": false,
-      "is_graph_pairing_request": false,
-      "looks_fashion": false,
-      "query_normalized": "black skinny jeans",
-      "rule_applied": "default_similar",
-      "strong_pairing": false
-    },
-    "llm_filters_raw": {
-      "product_type": "jeans"
-    },
-    "llm_must_not_raw": {},
-    "llm_parse_ok": true,
-    "llm_parsed": {
-      "must_filters": {
-        "product_type": "jeans"
-      },
-      "search_query_en": "black skinny jeans"
-    },
-    "llm_raw": "{\n  \"search_query_en\": \"black skinny jeans\",\n  \"must_filters\": {\n    \"product_type\": \"jeans\"\n  }\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"shirt with NASA print\",\n  \"must_filters\": {\"product_type\": \"shirt\"}\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "slot_filters": {},
     "using_query_llm": false
   },
   "boost_applied": true,
-  "boosted_product_type": "Trousers",
-  "dense_query": "black skinny jeans",
+  "boosted_product_type": "Shirt",
+  "dense_query": "shirt with NASA print",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
@@ -168,25 +47,9 @@
     {
       "allowed_count": 113,
       "allowed_has_value": true,
-      "input": "Trousers",
+      "input": "Shirt",
       "key": "product_type",
-      "matched": "Trousers",
-      "scope": "must_filters"
-    },
-    {
-      "allowed_count": 50,
-      "allowed_has_value": true,
-      "input": "Black",
-      "key": "colour_group",
-      "matched": "Black",
-      "scope": "must_filters"
-    },
-    {
-      "allowed_count": 7,
-      "allowed_has_value": true,
-      "input": "Tight/Skinny/Bodycon",
-      "key": "fit",
-      "matched": "Tight/Skinny/Bodycon",
+      "matched": "Shirt",
       "scope": "must_filters"
     }
   ],
@@ -200,48 +63,46 @@
   "has_image": false,
   "hybrid_result_count": 10,
   "intent_hint": "similar_items",
-  "latency_ms": 15208,
+  "latency_ms": 33332,
   "llm_filters_raw": {
-    "product_type": "jeans"
+    "product_type": "shirt"
   },
   "llm_must_not_raw": {},
   "must_filters": {
-    "colour_group": "Black",
-    "fit": "Tight/Skinny/Bodycon",
-    "product_type": "Trousers"
+    "product_type": "Shirt"
   },
   "must_not_filters": {},
   "must_not_validation_debug": [],
   "no_anchor": true,
-  "query": "black skinny jeans",
-  "request_id": "ebcd8feb8b98",
+  "query": "I want to find some shirt that have the word NASA printed on it",
+  "request_id": "77c8fd71ef1e",
   "result_count": 10,
   "result_ids": [
-    "0634393001",
-    "0519583042",
-    "0555099001",
-    "0881111001",
-    "0554450001",
-    "0610662001",
-    "0549253003",
-    "0549253001",
-    "0469562058",
-    "0469562006"
+    "0701574001",
+    "0501620043",
+    "0802224001",
+    "0606692001",
+    "0722503001",
+    "0501620047",
+    "0835666002",
+    "0535388008",
+    "0395127001",
+    "0695324006"
   ],
   "retrieval_path": [
     "hard_filters",
     "cross_encoder_rerank"
   ],
-  "search_query": "black skinny jeans",
-  "search_query_raw": "black skinny jeans",
-  "session_id": "m3_black",
+  "search_query": "shirt with NASA print",
+  "search_query_raw": "shirt with NASA print",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
   "soft_product_type": "",
-  "sparse_query": "Trousers black skinny jeans",
-  "timestamp_utc": "2026-06-24T17:35:02.097122+00:00",
+  "sparse_query": "Shirt shirt with NASA print",
+  "timestamp_utc": "2026-06-25T08:17:10.505058+00:00",
   "timing_ms": {
-    "analysis": 5008,
-    "embedding": 22,
-    "total": 15208
+    "analysis": 20216,
+    "embedding": 26,
+    "total": 33332
   }
 }
 
@@ -249,25 +110,131 @@
   "active_anchor_id": "",
   "analysis_debug": {
     "constrained": true,
-    "gazetteer_filters": {
-      "occasion": "Party/Evening/Wedding"
-    },
+    "gazetteer_filters": {},
     "intent_classifier": {
-      "confidence": 0.8671875,
-      "index": 0,
-      "intent": "similar_items",
-      "raw_label": "similar_items",
+      "confidence": 0.92578125,
+      "index": 4,
+      "intent": "chit_chat",
+      "raw_label": "chit_chat",
       "source": "intent_classifier"
     },
     "intent_rules": {
-      "classifier_intent": "similar_items",
-      "has_anchor_reference": false,
+      "classifier_intent": "chit_chat",
+      "has_anchor_reference": true,
       "in_colour_cue": false,
       "is_color_variant_request": false,
       "is_graph_pairing_request": false,
       "looks_fashion": true,
-      "query_normalized": "a dress for a party",
-      "rule_applied": "default_similar",
+      "query_normalized": "how about some hoodie that have the word nasa printed on ti?",
+      "rule_applied": "override_chit_chat_to_similar",
+      "strong_pairing": false
+    },
+    "llm_filters_raw": {
+      "product_type": "hoodie"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": "hoodie"
+      },
+      "search_query_en": "hoodie with NASA print"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"hoodie with NASA print\",\n  \"must_filters\": {\n    \"product_type\": \"hoodie\"\n  }\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
+    "using_query_llm": false
+  },
+  "boost_applied": true,
+  "boosted_product_type": "Hoodie",
+  "dense_query": "hoodie with NASA print",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "Hoodie",
+      "key": "product_type",
+      "matched": "Hoodie",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "",
+  "graph_anchor_invalid": "",
+  "graph_anchor_source": "",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": false,
+  "hybrid_result_count": 10,
+  "intent_hint": "similar_items",
+  "latency_ms": 17063,
+  "llm_filters_raw": {
+    "product_type": "hoodie"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "product_type": "Hoodie"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "no_anchor": true,
+  "query": "How about some hoodie that have the word NASA printed on ti?",
+  "request_id": "d5d62be8c1f3",
+  "result_count": 10,
+  "result_ids": [
+    "0782880014",
+    "0782880006",
+    "0648414001",
+    "0782880016",
+    "0564048016",
+    "0633136004",
+    "0799209002",
+    "0782880007",
+    "0799209003",
+    "0925656001"
+  ],
+  "retrieval_path": [
+    "hard_filters",
+    "cross_encoder_rerank"
+  ],
+  "search_query": "hoodie with NASA print",
+  "search_query_raw": "hoodie with NASA print",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "Hoodie hoodie with NASA print",
+  "timestamp_utc": "2026-06-25T08:19:52.337851+00:00",
+  "timing_ms": {
+    "analysis": 6317,
+    "embedding": 21,
+    "total": 17063
+  }
+}
+
+{
+  "active_anchor_id": "0782880006",
+  "analysis_debug": {
+    "constrained": true,
+    "gazetteer_filters": {},
+    "intent_classifier": {
+      "confidence": 0.9375,
+      "index": 2,
+      "intent": "color_variant",
+      "raw_label": "color_variant",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "color_variant",
+      "has_anchor_reference": true,
+      "in_colour_cue": false,
+      "is_color_variant_request": true,
+      "is_graph_pairing_request": false,
+      "looks_fashion": true,
+      "query_normalized": "any different color of this one?",
+      "rule_applied": "refine_continue_last_intent",
       "strong_pairing": false
     },
     "llm_filters_raw": {
@@ -279,16 +246,16 @@
       "must_filters": {
         "product_type": "dress"
       },
-      "search_query_en": "party dress"
+      "search_query_en": "different colors of [color name from original query] dress"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"party dress\",\n  \"must_filters\": {\"product_type\": \"dress\"}\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"different colors of [color name from original query] dress\",\n  \"must_filters\": {\"product_type\": \"dress\"}\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "slot_filters": {},
     "using_query_llm": false
   },
   "boost_applied": true,
   "boosted_product_type": "Dress",
-  "dense_query": "party dress",
+  "dense_query": "different colors of [color name from original query] dress",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
@@ -296,23 +263,15 @@
     {
       "allowed_count": 113,
       "allowed_has_value": true,
-      "input": "Dress",
+      "input": "dress",
       "key": "product_type",
       "matched": "Dress",
       "scope": "must_filters"
-    },
-    {
-      "allowed_count": 9,
-      "allowed_has_value": true,
-      "input": "Party/Evening/Wedding",
-      "key": "occasion",
-      "matched": "Party/Evening/Wedding",
-      "scope": "must_filters"
     }
   ],
-  "graph_anchor_id": "",
+  "graph_anchor_id": "0782880006",
   "graph_anchor_invalid": "",
-  "graph_anchor_source": "",
+  "graph_anchor_source": "selected_anchor",
   "graph_candidate_count": 0,
   "graph_filtered_count": 0,
   "graph_neighbor_ids": [],
@@ -320,47 +279,135 @@
   "has_image": false,
   "hybrid_result_count": 10,
   "intent_hint": "similar_items",
-  "latency_ms": 14273,
+  "latency_ms": 10901,
   "llm_filters_raw": {
     "product_type": "dress"
   },
   "llm_must_not_raw": {},
   "must_filters": {
-    "occasion": "Party/Evening/Wedding",
     "product_type": "Dress"
   },
   "must_not_filters": {},
   "must_not_validation_debug": [],
-  "no_anchor": true,
-  "query": "a dress for a party",
-  "request_id": "6d62f1dfe13f",
+  "no_anchor": false,
+  "query": "any different color of this one?",
+  "request_id": "038546c85af0",
   "result_count": 10,
   "result_ids": [
-    "0589835001",
-    "0796644002",
-    "0702043002",
-    "0788106003",
-    "0889621001",
-    "0694671001",
-    "0608007012",
-    "0796638001",
-    "0653380001",
-    "0663988001"
+    "0797075004",
+    "0811291006",
+    "0681178006",
+    "0747204008",
+    "0617830002",
+    "0662448002",
+    "0543738021",
+    "0747204002",
+    "0776179001",
+    "0677932001"
   ],
   "retrieval_path": [
-    "filter+occasion",
-    "cross_encoder_rerank"
+    "similar_image_knn"
   ],
-  "search_query": "party dress",
-  "search_query_raw": "party dress",
-  "session_id": "m3_a dre",
+  "search_query": "different colors of [color name from original query] dress",
+  "search_query_raw": "different colors of [color name from original query] dress",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
   "soft_product_type": "",
-  "sparse_query": "Dress party dress",
-  "timestamp_utc": "2026-06-24T17:35:16.376298+00:00",
+  "sparse_query": "Dress different colors of [color name from original query] dress",
+  "timestamp_utc": "2026-06-25T08:21:15.939591+00:00",
   "timing_ms": {
-    "analysis": 4349,
-    "embedding": 18,
-    "total": 14273
+    "analysis": 6437,
+    "embedding": 23,
+    "total": 10901
+  }
+}
+
+{
+  "active_anchor_id": "0782880006",
+  "analysis_debug": {
+    "constrained": true,
+    "gazetteer_filters": {},
+    "intent_classifier": {
+      "confidence": 0.9375,
+      "index": 2,
+      "intent": "color_variant",
+      "raw_label": "color_variant",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "color_variant",
+      "has_anchor_reference": true,
+      "in_colour_cue": false,
+      "is_color_variant_request": true,
+      "is_graph_pairing_request": false,
+      "looks_fashion": true,
+      "query_normalized": "do you have different color for this one?",
+      "rule_applied": "honor_other_colours_with_anchor",
+      "strong_pairing": false
+    },
+    "llm_filters_raw": {},
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {},
+      "search_query_en": "different colors for [garment name]"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"different colors for [garment name]\",\n  \"must_filters\": {}\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
+    "using_query_llm": false
+  },
+  "boost_applied": false,
+  "boosted_product_type": "",
+  "dense_query": "different colors for [garment name]",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [],
+  "graph_anchor_id": "0782880006",
+  "graph_anchor_invalid": "",
+  "graph_anchor_source": "selected_anchor",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": false,
+  "hybrid_result_count": 10,
+  "intent_hint": "color_variant",
+  "latency_ms": 10332,
+  "llm_filters_raw": {},
+  "llm_must_not_raw": {},
+  "must_filters": {},
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "no_anchor": false,
+  "query": "Do you have different color for this one?",
+  "request_id": "ca6d9940fc57",
+  "result_count": 10,
+  "result_ids": [
+    "0799209002",
+    "0782880002",
+    "0799209003",
+    "0782880007",
+    "0784848003",
+    "0826213001",
+    "0854754001",
+    "0874114002",
+    "0782880015",
+    "0782880016"
+  ],
+  "retrieval_path": [
+    "color_variant_other_colours"
+  ],
+  "search_query": "different colors for [garment name]",
+  "search_query_raw": "different colors for [garment name]",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "different colors for [garment name]",
+  "timestamp_utc": "2026-06-25T08:22:10.251701+00:00",
+  "timing_ms": {
+    "analysis": 3849,
+    "embedding": 10,
+    "total": 10332
   }
 }
 

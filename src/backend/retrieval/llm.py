@@ -1066,7 +1066,11 @@ class QwenMultimodalService:
             }
 
         search_query = str(obj.get("search_query_en", "") or "").strip()
-        if not search_query:
+        # the small rewrite model can emit an unfilled template on a terse referential follow-up
+        # ("any different colour of this one?" -> "different colors of [color name ...] dress"); a
+        # bracket means the rewrite failed, so fall back to the raw query rather than embedding the
+        # literal placeholder text into the dense search.
+        if not search_query or re.search(r"[\[\]<>]", search_query):
             search_query = query
         raw_filters = obj.get("must_filters") if isinstance(obj.get("must_filters"), dict) else {}
         raw_must_not = obj.get("must_not_filters") if isinstance(obj.get("must_not_filters"), dict) else {}

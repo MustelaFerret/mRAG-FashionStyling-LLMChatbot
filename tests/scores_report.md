@@ -3,7 +3,7 @@
 Mỗi case là một **hội thoại nhiều lượt** chung session, chạy qua toàn bộ pipeline production (`FashionRAGService.prepare_chat`): intent classifier → intent rules → gazetteer → Qwen rewrite → filtered hybrid retrieval → rerank. Chấm **từng lượt**; một hội thoại đạt chỉ khi **mọi lượt** của nó đạt.
 
 - Đề thi: `tests/exam_cases.json` · Đáp án: `tests/answer_key.json`
-- **Hội thoại: 20/20 (100.0%)** · **Lượt: 31/31 (100.0%)**
+- **Hội thoại: 22/22 (100.0%)** · **Lượt: 34/34 (100.0%)**
 
 ## Tổng hợp theo độ khó
 
@@ -11,7 +11,7 @@ Mỗi case là một **hội thoại nhiều lượt** chung session, chạy qua
 |---|---|---|
 | easy | 6/6 | 6/6 |
 | medium | 5/5 | 5/5 |
-| hard | 9/9 | 20/20 |
+| hard | 11/11 | 23/23 |
 
 ## Chi tiết từng hội thoại
 
@@ -40,7 +40,7 @@ Mỗi case là một **hội thoại nhiều lượt** chung session, chạy qua
 #### [PASS] E5 — occasion-only (loungewear, no type)
 - **[PASS] E5** `comfy loungewear set for sleeping`
   - intent=`similar_items` (cls=`similar_items`) · must={'occasion': 'Lounge/Sleep/Nightwear'} · must_not={}
-  - path=['filter+occasion', 'cross_encoder_rerank'] · 10 kết quả · types=['Pyjama set', 'Pyjama set', 'Pyjama set', 'Pyjama set', 'Pyjama set', 'Pyjama bottom']
+  - path=['filter+occasion', 'cross_encoder_rerank'] · 10 kết quả · types=['Pyjama set', 'Pyjama set', 'Pyjama set', 'Pyjama set', 'Pyjama set', 'Pyjama set']
 
 #### [PASS] E6 — occasion-only (gym, no type)
 - **[PASS] E6** `something to wear to the gym`
@@ -100,7 +100,7 @@ Mỗi case là một **hội thoại nhiều lượt** chung session, chạy qua
   - intent=`similar_items` (cls=`similar_items`) · must={'product_type': 'Dress', 'colour_group': 'Black'} · must_not={}
   - path=['hard_filters', 'cross_encoder_rerank'] · 10 kết quả · types=['Dress', 'Dress', 'Dress', 'Dress', 'Dress', 'Dress']
 - **[PASS] C3.2** `do you have this in red`
-  - intent=`color_variant` (cls=`color_variant`, anchor=0700842002) · must={'product_type': 'Shirt', 'colour_group': 'Red'} · must_not={}
+  - intent=`color_variant` (cls=`color_variant`, anchor=0842290001) · must={'product_type': 'Shirt', 'colour_group': 'Red'} · must_not={}
   - path=['color_variant_image_knn'] · 10 kết quả · types=['Dress', 'Dress', 'Dress', 'Dress', 'Dress', 'Dress']
 
 #### [PASS] C4 — negation refinement across turns
@@ -153,3 +153,16 @@ Mỗi case là một **hội thoại nhiều lượt** chung session, chạy qua
 - **[PASS] C9.2** `what matches it`
   - intent=`graph_pairing` (cls=`graph_pairing`, anchor=0612075008) · must={} · must_not={}
   - path=['intent_graph_pairing', 'anchor_from_selection', 'graph_neighbors', 'cold_twin_compat_rrf', 'pairing_query_rerank'] · 8 kết quả · types=['Hat/beanie', 'Hat/beanie', 'Scarf', 'Other accessories', 'Other accessories', 'Hat/beanie']
+
+#### [PASS] C10 — variant without a target colour (not swept into refine)
+- **[PASS] C10.1** `show me a black hoodie`
+  - intent=`similar_items` (cls=`similar_items`) · must={'colour_group': 'Black', 'product_type': 'Hoodie'} · must_not={}
+  - path=['hard_filters', 'cross_encoder_rerank'] · 10 kết quả · types=['Hoodie', 'Hoodie', 'Hoodie', 'Hoodie', 'Hoodie', 'Hoodie']
+- **[PASS] C10.2** `any different color of this one?`
+  - intent=`color_variant` (cls=`color_variant`, anchor=0715624054) · must={'product_type': 'Dress'} · must_not={}
+  - path=['color_variant_other_colours'] · 10 kết quả · types=['Hoodie', 'Hoodie', 'Hoodie', 'Hoodie', 'Hoodie', 'Hoodie']
+
+#### [PASS] C11 — no <type> with the term -> cross-category suggestion
+- **[PASS] C11** `I want a shirt that has the word NASA printed on it`
+  - intent=`similar_items` (cls=`similar_items`) · must={'product_type': 'Shirt'} · must_not={}
+  - path=['hard_filters', 'cross_encoder_rerank', 'cross_category_suggestion'] · 10 kết quả · types=['Shirt', 'Shirt', 'Shirt', 'Shirt', 'Shirt', 'Shirt']

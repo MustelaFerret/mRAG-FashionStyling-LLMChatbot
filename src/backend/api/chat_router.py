@@ -148,7 +148,8 @@ async def chat(req: ChatRequest, request: Request, rag: FashionRAGService = Depe
 
             yield _format_sse(
                 "meta",
-                {"request_id": request_id, "items": items, "intent": intent_hint, "anchor_id": active_anchor_id},
+                {"request_id": request_id, "items": items, "intent": intent_hint,
+                 "anchor_id": active_anchor_id, "suggestions": log_payload.get("suggestions", [])},
             )
             if not has_context:
                 message = NO_PAIRING_MESSAGE if intent_hint == INTENT_GRAPH else NO_RESULTS_MESSAGE

@@ -54,6 +54,7 @@ class Observation:
     retrieval_path: List[str] = field(default_factory=list)
     anchor_id: str = ""
     graph_candidate_count: int = 0
+    n_suggestions: int = 0
     results: List[Dict[str, Any]] = field(default_factory=list)
     error: str = ""
 
@@ -111,6 +112,7 @@ class PipelineHarness:
             retrieval_path=list(log_payload.get("retrieval_path", []) or []),
             anchor_id=anchor,
             graph_candidate_count=int(log_payload.get("graph_candidate_count", 0) or 0),
+            n_suggestions=len(log_payload.get("suggestions", []) or []),
             results=list(items or []),
         )
 
@@ -252,6 +254,10 @@ class Grader:
         want = bool(pred.get("resolved", True))
         ok = bool(obs.anchor_id) == want
         return {"passed": ok, "detail": f"anchor_id={obs.anchor_id!r} resolved_expected={want}"}
+
+    def _check_suggestions(self, pred, obs):
+        ok = obs.n_suggestions >= int(pred.get("min", 1))
+        return {"passed": ok, "detail": f"n_suggestions={obs.n_suggestions} min={pred.get('min', 1)}"}
 
     def _check_graph_candidates(self, pred, obs):
         if "min" in pred:

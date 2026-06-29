@@ -402,6 +402,25 @@ function AiMessage({ message, anchorId, pickedIds, onOpenItem, onConfirmIntent, 
                     Show {cards.length - CARDS_PREVIEW} more
                 </button>
             )}
+
+            {Array.isArray(message.suggestions) && message.suggestions.length > 0 && (
+                <div className="suggest-strip w-full">
+                    <div className="suggest-label">Not in that category — but a closer match elsewhere</div>
+                    <div className="cards-row w-full">
+                        {message.suggestions.map((item, index) => (
+                            <ItemCard
+                                key={"sg-" + String(item.article_id) + "-" + index}
+                                item={item}
+                                isAnchor={formatArticleId(item.article_id) === anchorId}
+                                isPinned={pickedIds && pickedIds.has(formatArticleId(item.article_id))}
+                                onOpen={() => onOpenItem(item, message.suggestions)}
+                                onSetAnchor={onSetAnchor}
+                                onTogglePin={onTogglePin}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -937,6 +956,7 @@ function App() {
                     intentResolved: false,
                     items: [],
                     cards: [],
+                    suggestions: [],
                     meta: null,
                     error: false,
                 },
@@ -971,10 +991,12 @@ function App() {
             if (api.chatStream) {
                 let streamError = null;
                 let pendingItems = [];
+                let pendingSuggestions = [];
                 await api.chatStream(requestPayload, (eventName, data) => {
                     if (eventName === "meta") {
                         const normalizedItems = normalizeItems(data && data.items ? data.items : []);
                         pendingItems = normalizedItems;
+                        pendingSuggestions = normalizeItems(data && data.suggestions ? data.suggestions : []);
                         applyIntentPayload(data);
                         return;
                     }
@@ -984,7 +1006,7 @@ function App() {
                     }
                     if (eventName === "done") {
                         const finalText = data && data.message ? data.message : streamedText;
-                        updateAiMessage({ text: finalText, items: pendingItems, cards: pendingItems });
+                        updateAiMessage({ text: finalText, items: pendingItems, cards: pendingItems, suggestions: pendingSuggestions });
                         applyIntentPayload(data);
                         if (pendingItems.length > 0) {
                             setRecentItems(pendingItems.slice(0, 10));
@@ -992,11 +1014,13 @@ function App() {
                         // the focus item is the user's choice; results never change it
                         streamedText = "";
                         pendingItems = [];
+                        pendingSuggestions = [];
                         return;
                     }
                     if (eventName === "error") {
                         streamedText = "";
                         pendingItems = [];
+                        pendingSuggestions = [];
                         streamError = data && data.error ? data.error : "Streaming error";
                     }
                 });
@@ -1018,6 +1042,7 @@ function App() {
                     text: payload && payload.message ? payload.message : "",
                     items: normalizedItems,
                     cards: normalizedItems,
+                    suggestions: normalizeItems(payload && payload.suggestions ? payload.suggestions : []),
                     intent: payload && payload.intent ? payload.intent : "",
                     intentOptions: Array.isArray(payload && payload.intent_options) ? payload.intent_options : [],
                     intentQuery: payload && payload.intent_query ? payload.intent_query : "",

@@ -210,6 +210,25 @@
       {"check": "anchor", "resolved": true},
       {"check": "results_min", "n": 1},
       {"check": "results_none_in", "field": "product_type", "values": ["Trousers"]}
+    ],
+
+    "C10.1": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Hoodie"},
+      {"check": "results_all_in", "field": "product_type", "values": ["Hoodie"]}
+    ],
+    "C10.2": [
+      {"check": "intent", "equals": "color_variant"},
+      {"check": "anchor", "resolved": true},
+      {"check": "results_min", "n": 1},
+      {"check": "results_all_in", "field": "product_type", "values": ["Hoodie"]}
+    ],
+
+    "C11": [
+      {"check": "intent", "equals": "similar_items"},
+      {"check": "must", "field": "product_type", "equals": "Shirt"},
+      {"check": "path", "contains": "cross_category_suggestion"},
+      {"check": "suggestions", "min": 1}
     ]
   }
 }

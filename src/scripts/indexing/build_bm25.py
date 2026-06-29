@@ -18,7 +18,7 @@ from src.backend.core.config import settings
 from src.backend.core.utils import normalize_article_id, parse_numeric_ids
 from src.backend.retrieval.embeddings import SparseBM25Encoder
 from src.backend.retrieval.qdrant import QdrantStore
-from src.scripts.indexing.build_vector_db import VectorIndexBuilder
+from src.scripts.indexing.build_vector_db import VectorIndexBuilder, _drop_local_hybrid_cache
 
 BATCH = 256
 
@@ -62,6 +62,10 @@ def main() -> None:
         store.client.update_vectors(collection_name=settings.collection_name, points=batch)
         updated += len(batch)
     print(f"\n[bm25] re-indexed sparse vectors for {updated} points")
+    # the in-process hybrid index caches vectors keyed only by point count; re-indexing
+    # leaves the count unchanged, so drop the cache or serving keeps the old TF-IDF vectors.
+    _drop_local_hybrid_cache()
+    print("[bm25] dropped local_hybrid cache (rebuilds lazily on next startup)")
 
 
 if __name__ == "__main__":

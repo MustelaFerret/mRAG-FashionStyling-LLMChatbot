@@ -799,6 +799,11 @@ body {
     transition: border-color 160ms ease, color 160ms ease;
 }
 .show-more-btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+.suggest-strip { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 10px; }
+.suggest-label {
+    font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px;
+}
 .msg-anchor {
     position: relative; align-self: flex-end; border: 1px solid var(--accent);
     border-radius: 8px; overflow: hidden; width: 132px; box-shadow: var(--shadow-soft);

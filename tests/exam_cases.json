@@ -81,6 +81,15 @@
      "turns": [
        {"id": "C9.1", "query": "find black trousers"},
        {"id": "C9.2", "query": "what matches it", "context": {"anchor_from_prev": 0}}
+     ]},
+    {"id": "C10", "tier": "hard", "title": "variant without a target colour (not swept into refine)",
+     "turns": [
+       {"id": "C10.1", "query": "show me a black hoodie"},
+       {"id": "C10.2", "query": "any different color of this one?", "context": {"anchor_from_prev": 0}}
+     ]},
+    {"id": "C11", "tier": "hard", "title": "no <type> with the term -> cross-category suggestion",
+     "turns": [
+       {"id": "C11", "query": "I want a shirt that has the word NASA printed on it"}
      ]}
   ]
 }

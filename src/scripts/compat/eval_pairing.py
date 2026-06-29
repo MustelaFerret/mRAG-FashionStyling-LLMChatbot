@@ -132,8 +132,13 @@ class PairingEvaluator:
             "siglip": self.X[candidates] @ self.X[anchor],
             "popularity": self.degree[candidates],
         }
-        for name, emb in self.extra_methods.items():
-            out[name] = emb[candidates] @ emb[anchor]
+        for name, method in self.extra_methods.items():
+            # an extra method is either a per-node embedding (scored by dot product) or a callable
+            # scorer fn(anchor_idx, candidate_idxs) -> scores (for pairwise / type-conditioned models).
+            if callable(method):
+                out[name] = np.asarray(method(anchor, candidates), dtype=np.float32)
+            else:
+                out[name] = method[candidates] @ method[anchor]
         return out
 
     @staticmethod

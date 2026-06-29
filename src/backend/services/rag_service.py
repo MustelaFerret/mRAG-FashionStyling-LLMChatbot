@@ -44,6 +44,13 @@ NO_PAIRING_MESSAGE = (
     "so I can't confidently suggest pieces to match it."
 )
 
+# Cross-category suggestion thresholds (cross-encoder relevance, NOT keyword rules). Measured score
+# gap: when the requested type genuinely lacks what was asked for, the best in-type item scores
+# deeply negative (~ -5), while a type that does carry it scores ~ +6..+8 -- so a low in-type score
+# plus a clearly higher out-of-type score is the signal. (md/fix_log_nasa_variant_suggest.md)
+_SUGGEST_RELEVANCE_FLOOR = 2.0   # best in-type result must rate below this (a poor match) to suggest
+_SUGGEST_RELEVANCE_MARGIN = 2.0  # an out-of-type item must beat the best in-type by at least this
+
 
 class FashionRAGService:
     def __init__(self, embedder: QueryEncoder, store: QdrantStore, llm: QwenMultimodalService, catalog: FashionCatalog, limit: int = 5, personalization=None, sessions=None):
@@ -215,6 +222,71 @@ class FashionRAGService:
             return ""
         return f"/images/{aid[:3]}/{aid}.jpg"
 
+    def _card_from_payload(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        aid = str(payload.get("article_id", ""))
+        return {
+            "article_id": aid,
+            "name": str(payload.get("prod_name", "") or payload.get("product_type", "") or ""),
+            "product_type": str(payload.get("product_type", "")),
+            "product_group": str(payload.get("product_group", "")),
+            "colour_group": str(payload.get("colour_group", "")),
+            "fit": str(payload.get("fit", "")),
+            "occasion": str(payload.get("occasion", "")),
+            "seasonality": str(payload.get("seasonality", "")),
+            "description": str(payload.get("description", "")),
+            "image_path": self._build_image_url(aid),
+            "price": str(payload.get("price", "") or ""),
+        }
+
+    def _rerank_doc(self, point) -> str:
+        """Structured doc text the cross-encoder scores against (kept in sync across rerank uses)."""
+        pl = getattr(point, "payload", {}) or {}
+        head = " ".join(
+            str(pl.get(k, "") or "")
+            for k in ("colour_group", "graphical_appearance", "dominant_material",
+                      "product_type", "fit", "occasion", "seasonality")
+            if pl.get(k))
+        return f"{head}. {pl.get('description', '')}".strip()
+
+    def _cross_category_suggestions(self, query, product_type, primary_points, text_dense,
+                                    sparse_idx, sparse_val, must_not_filters):
+        """Relevance-driven cross-category suggestion -- no keyword rules. If the cross-encoder rates
+        the best in-type result a poor match for the request, yet rates an item of ANOTHER type
+        clearly higher, the requested type cannot satisfy the request, so offer those other-type
+        items ("no NASA shirt, but here are NASA tees"). The generation layer phrases the specifics
+        from the query + suggestions. Returns suggestion cards (empty when no suggestion applies)."""
+        rr = self._get_reranker()
+        if rr is None or not query or not primary_points:
+            return []
+        in_score = max(rr.score(query, [self._rerank_doc(p) for p in primary_points[:5]]))
+        if in_score >= _SUGGEST_RELEVANCE_FLOOR:
+            return []  # the requested type already matches the request well
+        relaxed = self.store.hybrid_search(
+            text_dense=text_dense, image_dense=None, sparse_indices=sparse_idx,
+            sparse_values=sparse_val, limit=30, must_filters=None,
+            must_not_filters=must_not_filters) or []
+        pt_low = str(product_type).strip().lower()
+        cross = [p for p in relaxed
+                 if str((getattr(p, "payload", {}) or {}).get("product_type", "")).strip().lower() != pt_low][:12]
+        if not cross:
+            return []
+        cross_scores = rr.score(query, [self._rerank_doc(p) for p in cross])
+        order = sorted(range(len(cross)), key=lambda i: cross_scores[i], reverse=True)
+        if cross_scores[order[0]] - in_score <= _SUGGEST_RELEVANCE_MARGIN:
+            return []  # nothing outside the requested type matches clearly better
+        cards: List[Dict[str, Any]] = []
+        seen_codes: set = set()
+        for i in order:
+            payload = getattr(cross[i], "payload", {}) or {}
+            code = str(payload.get("product_code", "")) or str(payload.get("article_id", ""))
+            if code in seen_codes:
+                continue
+            seen_codes.add(code)
+            cards.append(self._card_from_payload(payload))
+            if len(cards) >= 4:
+                break
+        return cards
+
     def _hard_filters(self, must_filters: Dict[str, str]) -> Dict[str, str]:
         return {k: v for k, v in (must_filters or {}).items() if k in HARD_FILTER_KEYS and str(v).strip()}
 
@@ -275,19 +347,9 @@ class FashionRAGService:
         rr = self._get_reranker()
         if rr is None or not query or len(points) <= 1:
             return points[:top_k]
-        docs: List[str] = []
-        for p in points:
-            pl = getattr(p, "payload", {}) or {}
-            # structured head (colour, pattern, material, type, fit, occasion, season):
-            # +4.7pp rerank nDCG over colour+type alone (md/refine_2.MD); keep in sync
-            # with eval_rerank._doc_text
-            head = " ".join(
-                str(pl.get(k, "") or "")
-                for k in ("colour_group", "graphical_appearance", "dominant_material",
-                          "product_type", "fit", "occasion", "seasonality")
-                if pl.get(k)
-            )
-            docs.append(f"{head}. {pl.get('description', '')}".strip())
+        # structured head (colour, pattern, material, type, fit, occasion, season): +4.7pp rerank
+        # nDCG over colour+type alone (md/refine_2.MD); keep in sync with eval_rerank._doc_text
+        docs = [self._rerank_doc(p) for p in points]
         scores = rr.score(query, docs)
         order = sorted(range(len(points)), key=lambda i: scores[i], reverse=True)
         return [points[i] for i in order[:top_k]]
@@ -451,6 +513,11 @@ class FashionRAGService:
         session_anchor = "" if no_anchor else (normalize_article_id(session_state.user_anchor_id) if session_state else "")
         classifier_intent = str(((analysis_debug or {}).get("intent_classifier") or {}).get("intent", "")).strip()
         requested_colour = str(must_filters.get("colour_group", "")).strip()
+        # a genuine colour-variant request ("any different colour of this one") carries a colour cue
+        # plus a variant word; it differs from a terse negative refinement ("no, nothing in orange")
+        # that only happens to classify as variant. The former must keep its variant route, not be
+        # swept into refine-continuation below.
+        is_variant_request = isinstance(intent_rules, dict) and bool(intent_rules.get("is_color_variant_request"))
         referential_anchor = explicit_anchor or session_anchor
         # The text-only classifier cannot see the sticky/selected anchor. When it predicts a colour
         # variant and an anchor (or image) is actually present, pin the variant sub-path by what the
@@ -492,7 +559,7 @@ class FashionRAGService:
         # NO target colour ("no, nothing in orange" -> classifier says variant, but there is no
         # colour to vary toward). Both are really "keep doing the last thing, with this constraint".
         refine_candidate = intent_hint in (INTENT_CHAT, INTENT_COMPOSITE) or (
-            intent_hint == INTENT_VARIANT and not requested_colour)
+            intent_hint == INTENT_VARIANT and not requested_colour and not is_variant_request)
         if (last_intent in (INTENT_SIMILAR, INTENT_GRAPH, INTENT_VARIANT)
                 and refine_candidate
                 and (must_filters or must_not_filters)
@@ -969,20 +1036,18 @@ class FashionRAGService:
 
         items: List[dict] = []
         for point in points:
-            payload = getattr(point, "payload", {}) or {}
-            items.append({
-                "article_id": str(payload.get("article_id", "")),
-                "name": str(payload.get("prod_name", "") or payload.get("product_type", "") or ""),
-                "product_type": str(payload.get("product_type", "")),
-                "product_group": str(payload.get("product_group", "")),
-                "colour_group": str(payload.get("colour_group", "")),
-                "fit": str(payload.get("fit", "")),
-                "occasion": str(payload.get("occasion", "")),
-                "seasonality": str(payload.get("seasonality", "")),
-                "description": str(payload.get("description", "")),
-                "image_path": self._build_image_url(str(payload.get("article_id", ""))),
-                "price": str(payload.get("price", "") or ""),
-            })
+            items.append(self._card_from_payload(getattr(point, "payload", {}) or {}))
+
+        # Cross-category suggestion: an honest "no good <type> for this, but here is a better match
+        # elsewhere". Only for a plain typed search (similar intent + a product_type filter); the
+        # cross-encoder relevance decides whether the requested type actually fails the request.
+        suggestion_cards: List[dict] = []
+        if intent_hint == INTENT_SIMILAR and must_filters.get("product_type") and points:
+            suggestion_cards = self._cross_category_suggestions(
+                query, str(must_filters.get("product_type", "")), points,
+                text_dense, sparse_idx, sparse_val, must_not_filters)
+            if suggestion_cards:
+                retrieval_path.append("cross_category_suggestion")
 
         if self.personalization is not None and customer_id and self.personalization.has_profile(customer_id):
             order = self.personalization.rerank(customer_id, [it.get("article_id", "") for it in items])
@@ -1039,6 +1104,7 @@ class FashionRAGService:
             "hybrid_result_count": hybrid_result_count,
             "has_image": bool(image),
             "result_ids": result_ids,
+            "suggestions": suggestion_cards,
             "timing_ms": {
                 "analysis": analysis_ms,
                 "embedding": embed_ms,
@@ -1050,15 +1116,32 @@ class FashionRAGService:
         if not context:
             return items, "", log_payload, False, None
 
-        system_prompt = (
-            "You are a warm, concise fashion stylist talking to a customer. "
-            "The products below are already shown to the customer as clickable cards with full details, price and image — they ARE your recommendations.\n"
-            "Write a SHORT, natural reply (1-2 sentences) that introduces the picks and why they work for the request or pair together. "
-            "Refer to pieces by name only. NEVER write article IDs, prices, measurements or full spec lists — those live on the cards. "
-            "Do not apologize and do not say nothing matches; the listed products are the answer. "
-            "Write in flowing prose (no numbered or bulleted lists). Sound like a human stylist, not a catalogue.\n\n"
-            f"PRODUCTS SHOWN:\n{context}"
-        )
+        if suggestion_cards:
+            # honest cross-category answer: the requested type does not match this request well, but
+            # items in other categories do. The model infers the specifics from the query + the list.
+            rtype = str(must_filters.get("product_type", ""))
+            alt = "\n".join(f"- {c['name']} ({c['product_type']})" for c in suggestion_cards)
+            system_prompt = (
+                "You are a warm, concise fashion stylist talking to a customer. "
+                f"Our {rtype} options do not really match what the customer asked for — the {rtype} cards "
+                f"shown are only the closest {rtype} items. The ALTERNATIVES below, from OTHER categories, "
+                "match the request much better.\n"
+                f"In 1-2 warm sentences, gently acknowledge we don't have a great {rtype} for this specific "
+                "request, then point the customer to the alternatives by name and category. Refer to pieces "
+                "by name only; NEVER write article IDs, prices or measurements. Flowing prose, no lists.\n\n"
+                f"{rtype.upper()} CARDS SHOWN:\n{context}\n\n"
+                f"BETTER-MATCHING ALTERNATIVES (other categories):\n{alt}"
+            )
+        else:
+            system_prompt = (
+                "You are a warm, concise fashion stylist talking to a customer. "
+                "The products below are already shown to the customer as clickable cards with full details, price and image — they ARE your recommendations.\n"
+                "Write a SHORT, natural reply (1-2 sentences) that introduces the picks and why they work for the request or pair together. "
+                "Refer to pieces by name only. NEVER write article IDs, prices, measurements or full spec lists — those live on the cards. "
+                "Do not apologize and do not say nothing matches; the listed products are the answer. "
+                "Write in flowing prose (no numbered or bulleted lists). Sound like a human stylist, not a catalogue.\n\n"
+                f"PRODUCTS SHOWN:\n{context}"
+            )
         full_prompt = f"{system_prompt}\n\nCustomer: {query}"
         return items, full_prompt, log_payload, True, None
 
@@ -1134,4 +1217,7 @@ class FashionRAGService:
 
         message = self.llm.generate_answer(full_prompt, images=[image] if image else None)
         self._finalize_log(log_payload, started_at, len(items))
-        return message, items, {"intent": log_payload.get("intent_hint", ""), "anchor_id": active_anchor_id}
+        extra = {"intent": log_payload.get("intent_hint", ""), "anchor_id": active_anchor_id}
+        if log_payload.get("suggestions"):
+            extra["suggestions"] = log_payload["suggestions"]
+        return message, items, extra
