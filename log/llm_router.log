@@ -2,9 +2,11 @@
   "active_anchor_id": "",
   "analysis_debug": {
     "constrained": true,
-    "gazetteer_filters": {},
+    "gazetteer_filters": {
+      "colour_group": "White"
+    },
     "intent_classifier": {
-      "confidence": 0.8359375,
+      "confidence": 0.89453125,
       "index": 0,
       "intent": "similar_items",
       "raw_label": "similar_items",
@@ -17,29 +19,29 @@
       "is_color_variant_request": false,
       "is_graph_pairing_request": false,
       "looks_fashion": true,
-      "query_normalized": "i want to find some shirt that have the word nasa printed on it",
+      "query_normalized": "i want to find some white t-shirt that have the word \"newyork\" printed on it",
       "rule_applied": "trust_classifier",
       "strong_pairing": false
     },
     "llm_filters_raw": {
-      "product_type": "shirt"
+      "product_type": "T-shirt"
     },
     "llm_must_not_raw": {},
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {
-        "product_type": "shirt"
+        "product_type": "T-shirt"
       },
-      "search_query_en": "shirt with NASA print"
+      "search_query_en": "white T-shirt with 'New York' printed"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"shirt with NASA print\",\n  \"must_filters\": {\"product_type\": \"shirt\"}\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"white T-shirt with 'New York' printed\",\n  \"must_filters\": {\n    \"product_type\": \"T-shirt\"\n  }\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "slot_filters": {},
     "using_query_llm": false
   },
   "boost_applied": true,
-  "boosted_product_type": "Shirt",
-  "dense_query": "shirt with NASA print",
+  "boosted_product_type": "T-shirt",
+  "dense_query": "white T-shirt with 'New York' printed",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
@@ -47,9 +49,17 @@
     {
       "allowed_count": 113,
       "allowed_has_value": true,
-      "input": "Shirt",
+      "input": "T-shirt",
       "key": "product_type",
-      "matched": "Shirt",
+      "matched": "T-shirt",
+      "scope": "must_filters"
+    },
+    {
+      "allowed_count": 50,
+      "allowed_has_value": true,
+      "input": "White",
+      "key": "colour_group",
+      "matched": "White",
       "scope": "must_filters"
     }
   ],
@@ -63,56 +73,603 @@
   "has_image": false,
   "hybrid_result_count": 10,
   "intent_hint": "similar_items",
-  "latency_ms": 33332,
+  "latency_ms": 41678,
   "llm_filters_raw": {
-    "product_type": "shirt"
+    "product_type": "T-shirt"
   },
   "llm_must_not_raw": {},
   "must_filters": {
-    "product_type": "Shirt"
+    "colour_group": "White",
+    "product_type": "T-shirt"
   },
   "must_not_filters": {},
   "must_not_validation_debug": [],
   "no_anchor": true,
-  "query": "I want to find some shirt that have the word NASA printed on it",
-  "request_id": "77c8fd71ef1e",
+  "query": "I want to find some white T-shirt that have the word \"Newyork\" printed on it",
+  "request_id": "5d50deae7dee",
   "result_count": 10,
   "result_ids": [
-    "0701574001",
-    "0501620043",
-    "0802224001",
-    "0606692001",
-    "0722503001",
-    "0501620047",
-    "0835666002",
-    "0535388008",
-    "0395127001",
-    "0695324006"
+    "0621522018",
+    "0590951010",
+    "0699923067",
+    "0649440035",
+    "0699923001",
+    "0592743049",
+    "0572262002",
+    "0630323033",
+    "0805510026",
+    "0630323040"
   ],
   "retrieval_path": [
     "hard_filters",
     "cross_encoder_rerank"
   ],
-  "search_query": "shirt with NASA print",
-  "search_query_raw": "shirt with NASA print",
+  "search_query": "white T-shirt with 'New York' printed",
+  "search_query_raw": "white T-shirt with 'New York' printed",
   "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
   "soft_product_type": "",
-  "sparse_query": "Shirt shirt with NASA print",
-  "timestamp_utc": "2026-06-25T08:17:10.505058+00:00",
+  "sparse_query": "T-shirt white T-shirt with 'New York' printed",
+  "suggestions": [],
+  "timestamp_utc": "2026-06-29T16:25:20.983095+00:00",
   "timing_ms": {
-    "analysis": 20216,
-    "embedding": 26,
-    "total": 33332
+    "analysis": 22399,
+    "embedding": 20,
+    "total": 41678
   }
 }
 
 {
-  "active_anchor_id": "",
+  "active_anchor_id": "0621522018",
   "analysis_debug": {
     "constrained": true,
     "gazetteer_filters": {},
     "intent_classifier": {
-      "confidence": 0.92578125,
+      "confidence": 0.94140625,
+      "index": 2,
+      "intent": "color_variant",
+      "raw_label": "color_variant",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "color_variant",
+      "has_anchor_reference": false,
+      "in_colour_cue": false,
+      "is_color_variant_request": true,
+      "is_graph_pairing_request": false,
+      "looks_fashion": true,
+      "query_normalized": "do you have any different color?",
+      "rule_applied": "honor_other_colours_with_anchor",
+      "strong_pairing": false
+    },
+    "llm_filters_raw": {},
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {},
+      "search_query_en": "different colors"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"different colors\",\n  \"must_filters\": {}\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
+    "using_query_llm": false
+  },
+  "boost_applied": false,
+  "boosted_product_type": "",
+  "dense_query": "different colors",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [],
+  "graph_anchor_id": "0621522018",
+  "graph_anchor_invalid": "",
+  "graph_anchor_source": "selected_anchor",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": false,
+  "hybrid_result_count": 10,
+  "intent_hint": "color_variant",
+  "latency_ms": 9265,
+  "llm_filters_raw": {},
+  "llm_must_not_raw": {},
+  "must_filters": {},
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "no_anchor": false,
+  "query": "do you have any different color?",
+  "request_id": "6a3e5f169102",
+  "result_count": 10,
+  "result_ids": [
+    "0665685001",
+    "0634905001",
+    "0684021007",
+    "0649440014",
+    "0723408001",
+    "0805510037",
+    "0935694003",
+    "0649440019",
+    "0608674003",
+    "0621522036"
+  ],
+  "retrieval_path": [
+    "color_variant_other_colours"
+  ],
+  "search_query": "different colors",
+  "search_query_raw": "different colors",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "different colors",
+  "suggestions": [],
+  "timestamp_utc": "2026-06-29T16:26:51.337759+00:00",
+  "timing_ms": {
+    "analysis": 4836,
+    "embedding": 26,
+    "total": 9265
+  }
+}
+
+{
+  "active_anchor_id": "0634905001",
+  "analysis_debug": {
+    "constrained": true,
+    "gazetteer_filters": {},
+    "intent_classifier": {
+      "confidence": 0.91796875,
+      "index": 4,
+      "intent": "chit_chat",
+      "raw_label": "chit_chat",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "chit_chat",
+      "has_anchor_reference": true,
+      "in_colour_cue": false,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": true,
+      "looks_fashion": true,
+      "query_normalized": "i love this one, do you have any trouser to go with?",
+      "rule_applied": "override_to_graph_pairing",
+      "strong_pairing": true
+    },
+    "llm_filters_raw": {
+      "product_type": "trouser"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": "trouser"
+      },
+      "search_query_en": "love trousers"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"love trousers\",\n  \"must_filters\": {\"product_type\": \"trouser\"}\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
+    "using_query_llm": false
+  },
+  "boost_applied": true,
+  "boosted_product_type": "Trousers",
+  "dense_query": "love trousers",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "Trousers",
+      "key": "product_type",
+      "matched": "Trousers",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "0634905001",
+  "graph_anchor_invalid": "",
+  "graph_anchor_source": "selected_anchor",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [
+    "0640331004",
+    "0585355001",
+    "0627143002",
+    "0649671002",
+    "0307656023",
+    "0695545005",
+    "0562252034",
+    "0665095005"
+  ],
+  "graph_used": true,
+  "has_image": false,
+  "hybrid_result_count": 0,
+  "intent_hint": "graph_pairing",
+  "latency_ms": 12777,
+  "llm_filters_raw": {
+    "product_type": "trouser"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "product_type": "Trousers"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "no_anchor": false,
+  "query": "I love this one, do you have any trouser to go with?",
+  "request_id": "ef5685aa57f7",
+  "result_count": 5,
+  "result_ids": [
+    "0649671002",
+    "0640331004",
+    "0562252034",
+    "0695545005",
+    "0627143002"
+  ],
+  "retrieval_path": [
+    "intent_graph_pairing",
+    "anchor_from_selection",
+    "graph_neighbors",
+    "cold_twin_compat_rrf",
+    "pairing_exact_type",
+    "pairing_query_rerank"
+  ],
+  "search_query": "love trousers",
+  "search_query_raw": "love trousers",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "Trousers love trousers",
+  "suggestions": [],
+  "timestamp_utc": "2026-06-29T16:27:27.991735+00:00",
+  "timing_ms": {
+    "analysis": 5226,
+    "embedding": 30,
+    "total": 12777
+  }
+}
+
+{
+  "active_anchor_id": "0695545005",
+  "analysis_debug": {
+    "constrained": true,
+    "gazetteer_filters": {},
+    "intent_classifier": {
+      "confidence": 0.84375,
+      "index": 4,
+      "intent": "chit_chat",
+      "raw_label": "chit_chat",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "chit_chat",
+      "has_anchor_reference": false,
+      "in_colour_cue": false,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": true,
+      "looks_fashion": true,
+      "query_normalized": "good, do you have some sneaker or shoe to go with?",
+      "rule_applied": "override_to_graph_pairing",
+      "strong_pairing": true
+    },
+    "llm_filters_raw": {
+      "product_type": "shoe"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": "shoe"
+      },
+      "search_query_en": "good sneakers"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"good sneakers\",\n  \"must_filters\": {\"product_type\": \"shoe\"}\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
+    "using_query_llm": false
+  },
+  "boost_applied": true,
+  "boosted_product_type": "Sneakers",
+  "dense_query": "good sneakers",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "Sneakers",
+      "key": "product_type",
+      "matched": "Sneakers",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "0695545005",
+  "graph_anchor_invalid": "",
+  "graph_anchor_source": "selected_anchor",
+  "graph_candidate_count": 8,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [
+    "0809466001",
+    "0782574001",
+    "0613874001",
+    "0634241001",
+    "0743237001",
+    "0683135001",
+    "0674101001",
+    "0918158001"
+  ],
+  "graph_used": true,
+  "has_image": false,
+  "hybrid_result_count": 0,
+  "intent_hint": "graph_pairing",
+  "latency_ms": 3384,
+  "llm_filters_raw": {
+    "product_type": "shoe"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "product_type": "Sneakers"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "no_anchor": false,
+  "query": "Good, do you have some sneaker or shoe to go with?",
+  "request_id": "50ced1a06535",
+  "result_count": 0,
+  "result_ids": [],
+  "retrieval_path": [
+    "intent_graph_pairing",
+    "anchor_from_selection",
+    "graph_neighbors",
+    "compat_pairing_fallback",
+    "pairing_no_exact_type",
+    "no_graph_pairing"
+  ],
+  "search_query": "good sneakers",
+  "search_query_raw": "good sneakers",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "Sneakers good sneakers",
+  "suggestions": [],
+  "timestamp_utc": "2026-06-29T16:28:21.894681+00:00",
+  "timing_ms": {
+    "analysis": 3320,
+    "embedding": 10,
+    "total": 3384
+  }
+}
+
+{
+  "active_anchor_id": "0695545005",
+  "analysis_debug": {
+    "constrained": true,
+    "gazetteer_filters": {},
+    "intent_classifier": {
+      "confidence": 0.93359375,
+      "index": 1,
+      "intent": "graph_pairing",
+      "raw_label": "graph_pairing",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "graph_pairing",
+      "has_anchor_reference": true,
+      "in_colour_cue": false,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": true,
+      "looks_fashion": true,
+      "query_normalized": "do you have sneaker to go with this?",
+      "rule_applied": "trust_classifier",
+      "strong_pairing": true
+    },
+    "llm_filters_raw": {
+      "product_type": "sneaker"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": "sneaker"
+      },
+      "search_query_en": "sneakers"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"sneakers\",\n  \"must_filters\": {\"product_type\": \"sneaker\"}\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
+    "using_query_llm": false
+  },
+  "boost_applied": true,
+  "boosted_product_type": "Sneakers",
+  "dense_query": "sneakers",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "Sneakers",
+      "key": "product_type",
+      "matched": "Sneakers",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "0695545005",
+  "graph_anchor_invalid": "",
+  "graph_anchor_source": "selected_anchor",
+  "graph_candidate_count": 8,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [
+    "0809466001",
+    "0782574001",
+    "0613874001",
+    "0634241001",
+    "0743237001",
+    "0683135001",
+    "0674101001",
+    "0918158001"
+  ],
+  "graph_used": true,
+  "has_image": false,
+  "hybrid_result_count": 0,
+  "intent_hint": "graph_pairing",
+  "latency_ms": 5556,
+  "llm_filters_raw": {
+    "product_type": "sneaker"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "product_type": "Sneakers"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "no_anchor": false,
+  "query": "do you have sneaker to go with this?",
+  "request_id": "2a86810ab719",
+  "result_count": 0,
+  "result_ids": [],
+  "retrieval_path": [
+    "intent_graph_pairing",
+    "anchor_from_selection",
+    "graph_neighbors",
+    "compat_pairing_fallback",
+    "pairing_no_exact_type",
+    "no_graph_pairing"
+  ],
+  "search_query": "sneakers",
+  "search_query_raw": "sneakers",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "Sneakers sneakers",
+  "suggestions": [],
+  "timestamp_utc": "2026-06-29T16:28:52.804070+00:00",
+  "timing_ms": {
+    "analysis": 5490,
+    "embedding": 24,
+    "total": 5556
+  }
+}
+
+{
+  "active_anchor_id": "0627143002",
+  "analysis_debug": {
+    "constrained": true,
+    "gazetteer_filters": {},
+    "intent_classifier": {
+      "confidence": 0.9140625,
+      "index": 1,
+      "intent": "graph_pairing",
+      "raw_label": "graph_pairing",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "graph_pairing",
+      "has_anchor_reference": true,
+      "in_colour_cue": false,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": true,
+      "looks_fashion": true,
+      "query_normalized": "how about sneaker to go with this?",
+      "rule_applied": "trust_classifier",
+      "strong_pairing": true
+    },
+    "llm_filters_raw": {
+      "product_type": "sneaker"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": "sneaker"
+      },
+      "search_query_en": "sneakers"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"sneakers\",\n  \"must_filters\": {\n    \"product_type\": \"sneaker\"\n  }\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
+    "using_query_llm": false
+  },
+  "boost_applied": true,
+  "boosted_product_type": "Sneakers",
+  "dense_query": "sneakers",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "Sneakers",
+      "key": "product_type",
+      "matched": "Sneakers",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "0627143002",
+  "graph_anchor_invalid": "",
+  "graph_anchor_source": "selected_anchor",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [
+    "0516219001",
+    "0650067003",
+    "0643833006",
+    "0609469002",
+    "0673309001",
+    "0319906002",
+    "0533518005",
+    "0537076004"
+  ],
+  "graph_used": true,
+  "has_image": false,
+  "hybrid_result_count": 0,
+  "intent_hint": "graph_pairing",
+  "latency_ms": 8984,
+  "llm_filters_raw": {
+    "product_type": "sneaker"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "product_type": "Sneakers"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "no_anchor": false,
+  "query": "how about sneaker to go with this?",
+  "request_id": "4d4b51d10293",
+  "result_count": 3,
+  "result_ids": [
+    "0533518005",
+    "0650067003",
+    "0609469002"
+  ],
+  "retrieval_path": [
+    "intent_graph_pairing",
+    "anchor_from_selection",
+    "graph_neighbors",
+    "cold_twin_compat_rrf",
+    "pairing_exact_type",
+    "pairing_query_rerank"
+  ],
+  "search_query": "sneakers",
+  "search_query_raw": "sneakers",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "Sneakers sneakers",
+  "suggestions": [],
+  "timestamp_utc": "2026-06-29T16:29:20.827074+00:00",
+  "timing_ms": {
+    "analysis": 5878,
+    "embedding": 24,
+    "total": 8984
+  }
+}
+
+{
+  "active_anchor_id": "0533518005",
+  "analysis_debug": {
+    "constrained": true,
+    "gazetteer_filters": {},
+    "intent_classifier": {
+      "confidence": 0.9296875,
       "index": 4,
       "intent": "chit_chat",
       "raw_label": "chit_chat",
@@ -125,223 +682,8 @@
       "is_color_variant_request": false,
       "is_graph_pairing_request": false,
       "looks_fashion": true,
-      "query_normalized": "how about some hoodie that have the word nasa printed on ti?",
+      "query_normalized": "more like this one",
       "rule_applied": "override_chit_chat_to_similar",
-      "strong_pairing": false
-    },
-    "llm_filters_raw": {
-      "product_type": "hoodie"
-    },
-    "llm_must_not_raw": {},
-    "llm_parse_ok": true,
-    "llm_parsed": {
-      "must_filters": {
-        "product_type": "hoodie"
-      },
-      "search_query_en": "hoodie with NASA print"
-    },
-    "llm_raw": "{\n  \"search_query_en\": \"hoodie with NASA print\",\n  \"must_filters\": {\n    \"product_type\": \"hoodie\"\n  }\n}",
-    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
-    "slot_filters": {},
-    "using_query_llm": false
-  },
-  "boost_applied": true,
-  "boosted_product_type": "Hoodie",
-  "dense_query": "hoodie with NASA print",
-  "dropped_filters": [],
-  "dropped_must_not": [],
-  "event": "chat",
-  "filter_validation_debug": [
-    {
-      "allowed_count": 113,
-      "allowed_has_value": true,
-      "input": "Hoodie",
-      "key": "product_type",
-      "matched": "Hoodie",
-      "scope": "must_filters"
-    }
-  ],
-  "graph_anchor_id": "",
-  "graph_anchor_invalid": "",
-  "graph_anchor_source": "",
-  "graph_candidate_count": 0,
-  "graph_filtered_count": 0,
-  "graph_neighbor_ids": [],
-  "graph_used": false,
-  "has_image": false,
-  "hybrid_result_count": 10,
-  "intent_hint": "similar_items",
-  "latency_ms": 17063,
-  "llm_filters_raw": {
-    "product_type": "hoodie"
-  },
-  "llm_must_not_raw": {},
-  "must_filters": {
-    "product_type": "Hoodie"
-  },
-  "must_not_filters": {},
-  "must_not_validation_debug": [],
-  "no_anchor": true,
-  "query": "How about some hoodie that have the word NASA printed on ti?",
-  "request_id": "d5d62be8c1f3",
-  "result_count": 10,
-  "result_ids": [
-    "0782880014",
-    "0782880006",
-    "0648414001",
-    "0782880016",
-    "0564048016",
-    "0633136004",
-    "0799209002",
-    "0782880007",
-    "0799209003",
-    "0925656001"
-  ],
-  "retrieval_path": [
-    "hard_filters",
-    "cross_encoder_rerank"
-  ],
-  "search_query": "hoodie with NASA print",
-  "search_query_raw": "hoodie with NASA print",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "soft_product_type": "",
-  "sparse_query": "Hoodie hoodie with NASA print",
-  "timestamp_utc": "2026-06-25T08:19:52.337851+00:00",
-  "timing_ms": {
-    "analysis": 6317,
-    "embedding": 21,
-    "total": 17063
-  }
-}
-
-{
-  "active_anchor_id": "0782880006",
-  "analysis_debug": {
-    "constrained": true,
-    "gazetteer_filters": {},
-    "intent_classifier": {
-      "confidence": 0.9375,
-      "index": 2,
-      "intent": "color_variant",
-      "raw_label": "color_variant",
-      "source": "intent_classifier"
-    },
-    "intent_rules": {
-      "classifier_intent": "color_variant",
-      "has_anchor_reference": true,
-      "in_colour_cue": false,
-      "is_color_variant_request": true,
-      "is_graph_pairing_request": false,
-      "looks_fashion": true,
-      "query_normalized": "any different color of this one?",
-      "rule_applied": "refine_continue_last_intent",
-      "strong_pairing": false
-    },
-    "llm_filters_raw": {
-      "product_type": "dress"
-    },
-    "llm_must_not_raw": {},
-    "llm_parse_ok": true,
-    "llm_parsed": {
-      "must_filters": {
-        "product_type": "dress"
-      },
-      "search_query_en": "different colors of [color name from original query] dress"
-    },
-    "llm_raw": "{\n  \"search_query_en\": \"different colors of [color name from original query] dress\",\n  \"must_filters\": {\"product_type\": \"dress\"}\n}",
-    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
-    "slot_filters": {},
-    "using_query_llm": false
-  },
-  "boost_applied": true,
-  "boosted_product_type": "Dress",
-  "dense_query": "different colors of [color name from original query] dress",
-  "dropped_filters": [],
-  "dropped_must_not": [],
-  "event": "chat",
-  "filter_validation_debug": [
-    {
-      "allowed_count": 113,
-      "allowed_has_value": true,
-      "input": "dress",
-      "key": "product_type",
-      "matched": "Dress",
-      "scope": "must_filters"
-    }
-  ],
-  "graph_anchor_id": "0782880006",
-  "graph_anchor_invalid": "",
-  "graph_anchor_source": "selected_anchor",
-  "graph_candidate_count": 0,
-  "graph_filtered_count": 0,
-  "graph_neighbor_ids": [],
-  "graph_used": false,
-  "has_image": false,
-  "hybrid_result_count": 10,
-  "intent_hint": "similar_items",
-  "latency_ms": 10901,
-  "llm_filters_raw": {
-    "product_type": "dress"
-  },
-  "llm_must_not_raw": {},
-  "must_filters": {
-    "product_type": "Dress"
-  },
-  "must_not_filters": {},
-  "must_not_validation_debug": [],
-  "no_anchor": false,
-  "query": "any different color of this one?",
-  "request_id": "038546c85af0",
-  "result_count": 10,
-  "result_ids": [
-    "0797075004",
-    "0811291006",
-    "0681178006",
-    "0747204008",
-    "0617830002",
-    "0662448002",
-    "0543738021",
-    "0747204002",
-    "0776179001",
-    "0677932001"
-  ],
-  "retrieval_path": [
-    "similar_image_knn"
-  ],
-  "search_query": "different colors of [color name from original query] dress",
-  "search_query_raw": "different colors of [color name from original query] dress",
-  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
-  "soft_product_type": "",
-  "sparse_query": "Dress different colors of [color name from original query] dress",
-  "timestamp_utc": "2026-06-25T08:21:15.939591+00:00",
-  "timing_ms": {
-    "analysis": 6437,
-    "embedding": 23,
-    "total": 10901
-  }
-}
-
-{
-  "active_anchor_id": "0782880006",
-  "analysis_debug": {
-    "constrained": true,
-    "gazetteer_filters": {},
-    "intent_classifier": {
-      "confidence": 0.9375,
-      "index": 2,
-      "intent": "color_variant",
-      "raw_label": "color_variant",
-      "source": "intent_classifier"
-    },
-    "intent_rules": {
-      "classifier_intent": "color_variant",
-      "has_anchor_reference": true,
-      "in_colour_cue": false,
-      "is_color_variant_request": true,
-      "is_graph_pairing_request": false,
-      "looks_fashion": true,
-      "query_normalized": "do you have different color for this one?",
-      "rule_applied": "honor_other_colours_with_anchor",
       "strong_pairing": false
     },
     "llm_filters_raw": {},
@@ -349,21 +691,21 @@
     "llm_parse_ok": true,
     "llm_parsed": {
       "must_filters": {},
-      "search_query_en": "different colors for [garment name]"
+      "search_query_en": "more like this"
     },
-    "llm_raw": "{\n  \"search_query_en\": \"different colors for [garment name]\",\n  \"must_filters\": {}\n}",
+    "llm_raw": "{\n  \"search_query_en\": \"more like this\",\n  \"must_filters\": {}\n}",
     "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
     "slot_filters": {},
     "using_query_llm": false
   },
   "boost_applied": false,
   "boosted_product_type": "",
-  "dense_query": "different colors for [garment name]",
+  "dense_query": "more like this",
   "dropped_filters": [],
   "dropped_must_not": [],
   "event": "chat",
   "filter_validation_debug": [],
-  "graph_anchor_id": "0782880006",
+  "graph_anchor_id": "0533518005",
   "graph_anchor_invalid": "",
   "graph_anchor_source": "selected_anchor",
   "graph_candidate_count": 0,
@@ -372,42 +714,157 @@
   "graph_used": false,
   "has_image": false,
   "hybrid_result_count": 10,
-  "intent_hint": "color_variant",
-  "latency_ms": 10332,
+  "intent_hint": "similar_items",
+  "latency_ms": 7367,
   "llm_filters_raw": {},
   "llm_must_not_raw": {},
   "must_filters": {},
   "must_not_filters": {},
   "must_not_validation_debug": [],
   "no_anchor": false,
-  "query": "Do you have different color for this one?",
-  "request_id": "ca6d9940fc57",
+  "query": "More like this one",
+  "request_id": "18f41c8e7eca",
   "result_count": 10,
   "result_ids": [
-    "0799209002",
-    "0782880002",
-    "0799209003",
-    "0782880007",
-    "0784848003",
-    "0826213001",
-    "0854754001",
-    "0874114002",
-    "0782880015",
-    "0782880016"
+    "0533518001",
+    "0484212004",
+    "0564372002",
+    "0593986001",
+    "0411974005",
+    "0593986002",
+    "0564375011",
+    "0564375008",
+    "0669393001",
+    "0572954005"
   ],
   "retrieval_path": [
-    "color_variant_other_colours"
+    "similar_image_knn"
   ],
-  "search_query": "different colors for [garment name]",
-  "search_query_raw": "different colors for [garment name]",
+  "search_query": "more like this",
+  "search_query_raw": "more like this",
   "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
   "soft_product_type": "",
-  "sparse_query": "different colors for [garment name]",
-  "timestamp_utc": "2026-06-25T08:22:10.251701+00:00",
+  "sparse_query": "more like this",
+  "suggestions": [],
+  "timestamp_utc": "2026-06-29T16:29:49.041266+00:00",
   "timing_ms": {
-    "analysis": 3849,
-    "embedding": 10,
-    "total": 10332
+    "analysis": 3549,
+    "embedding": 21,
+    "total": 7367
+  }
+}
+
+{
+  "active_anchor_id": "0533518005",
+  "analysis_debug": {
+    "constrained": true,
+    "gazetteer_filters": {
+      "colour_group": "Dark Green"
+    },
+    "intent_classifier": {
+      "confidence": 0.9375,
+      "index": 2,
+      "intent": "color_variant",
+      "raw_label": "color_variant",
+      "source": "intent_classifier"
+    },
+    "intent_rules": {
+      "classifier_intent": "color_variant",
+      "has_anchor_reference": true,
+      "in_colour_cue": true,
+      "is_color_variant_request": false,
+      "is_graph_pairing_request": false,
+      "looks_fashion": true,
+      "query_normalized": "more like this one, and in green color only",
+      "rule_applied": "honor_color_variant_with_anchor",
+      "strong_pairing": false
+    },
+    "llm_filters_raw": {
+      "product_type": "shirt"
+    },
+    "llm_must_not_raw": {},
+    "llm_parse_ok": true,
+    "llm_parsed": {
+      "must_filters": {
+        "product_type": "shirt"
+      },
+      "search_query_en": "more like this, green"
+    },
+    "llm_raw": "{\n  \"search_query_en\": \"more like this, green\",\n  \"must_filters\": {\"product_type\": \"shirt\"}\n}",
+    "query_llm_model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+    "slot_filters": {},
+    "using_query_llm": false
+  },
+  "boost_applied": true,
+  "boosted_product_type": "Shirt",
+  "dense_query": "more like this, green",
+  "dropped_filters": [],
+  "dropped_must_not": [],
+  "event": "chat",
+  "filter_validation_debug": [
+    {
+      "allowed_count": 113,
+      "allowed_has_value": true,
+      "input": "shirt",
+      "key": "product_type",
+      "matched": "Shirt",
+      "scope": "must_filters"
+    },
+    {
+      "allowed_count": 50,
+      "allowed_has_value": true,
+      "input": "Dark Green",
+      "key": "colour_group",
+      "matched": "Dark Green",
+      "scope": "must_filters"
+    }
+  ],
+  "graph_anchor_id": "0533518005",
+  "graph_anchor_invalid": "",
+  "graph_anchor_source": "selected_anchor",
+  "graph_candidate_count": 0,
+  "graph_filtered_count": 0,
+  "graph_neighbor_ids": [],
+  "graph_used": false,
+  "has_image": false,
+  "hybrid_result_count": 5,
+  "intent_hint": "color_variant",
+  "latency_ms": 11883,
+  "llm_filters_raw": {
+    "product_type": "shirt"
+  },
+  "llm_must_not_raw": {},
+  "must_filters": {
+    "colour_group": "Dark Green",
+    "product_type": "Shirt"
+  },
+  "must_not_filters": {},
+  "must_not_validation_debug": [],
+  "no_anchor": false,
+  "query": "More like this one, and in green color only",
+  "request_id": "26775439ab08",
+  "result_count": 5,
+  "result_ids": [
+    "0564375003",
+    "0645901002",
+    "0643145002",
+    "0838898001",
+    "0601728016"
+  ],
+  "retrieval_path": [
+    "color_variant_image_knn"
+  ],
+  "search_query": "more like this, green",
+  "search_query_raw": "more like this, green",
+  "session_id": "59cc6919-7d3f-4e7b-abbf-05576966cc7d",
+  "soft_product_type": "",
+  "sparse_query": "Shirt more like this, green",
+  "suggestions": [],
+  "timestamp_utc": "2026-06-29T16:30:18.926187+00:00",
+  "timing_ms": {
+    "analysis": 5552,
+    "embedding": 18,
+    "total": 11883
   }
 }
 
