@@ -1,23 +1,3 @@
-"""NLU-inclusive end-to-end exam runner (the "scoring" stage), multi-turn.
-
-Drives the full production pipeline (DeBERTa intent classifier -> deterministic intent rules ->
-gazetteer extraction -> Qwen rewrite -> filtered hybrid retrieval -> rerank) via
-FashionRAGService.prepare_chat, which yields both the result cards (items) and the analysis payload
-(intent, must/must_not filters, retrieval_path, result ids) without running answer generation.
-
-The exam is organised as CONVERSATIONS: each conversation is a list of turns that share one session
-(so refinement, sticky anchors and cross-turn references behave as in production). Every turn is
-scored against its own gold; a conversation passes iff all its turns pass. A turn context may carry
-"anchor_from_prev": <i> to simulate the user clicking result #i of the previous turn.
-
-Inputs  : tests/exam_cases.json   (de thi  -- conversations + turns)
-          tests/answer_key.json   (dap an  -- gold predicates per turn id)
-Outputs : tests/scores.json       (machine-readable per-turn observation + verdicts)
-          tests/scores_report.md  (diem thi -- human report, Vietnamese)
-
-Run with the project env (single-process embedded Qdrant -- no server may be running):
-    D:/miniconda/envs/mRAG/python.exe tests/run_nlu_eval.py
-"""
 from __future__ import annotations
 
 import json
